@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<Template
+	originator = "Ramón Rocha" 
+	created = "07/22/2012"
+	lastModified = "07/23/2012">
+
+	<!-- Template Header -->
+	<TemplateConfiguration>
+                <_Name>Empty Project</_Name>
+                <_Category>Cobra</_Category>
+                <Icon>md-project</Icon> <!-- TODO -->
+                <LanguageName>Cobra</LanguageName>
+                <_Description>Creates an empty Cobra project.</_Description>
+	</TemplateConfiguration>
+
+	<!-- Template Content -->
+	<Combine name="${ProjectName}" directory = ".">
+		<Project name="${ProjectName}" directory = "."/>
+	</Combine>
+	
+</Template>

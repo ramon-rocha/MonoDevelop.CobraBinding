@@ -1,0 +1,9 @@
+CobraBinding/[Oo]bj/
+CobraBinding/[Bb]in/
+*.suo
+*.pidb
+*.userprefs
+*.user
+*.dll
+*.pdb
+*.cache

@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<Addin
+	id = "CobraBinding"
+	namespace = "MonoDevelop"
+	name = "Cobra Language Binding"
+	author = "Ramón Rocha"
+	copyright = "Community"
+	url = "http://cobra-language.com"
+	description = "Provides support for using the Cobra programming language in MonoDevelop."
+	category = "Language bindings"
+	version = "0.1">	
+	
+	<RunTime>
+		<Import assembly="MonoDevelop.CobraBinding.dll" />
+	</RunTime>
+	
+	<Dependencies>
+		<Addin id="Core" version="2.8.5"/>
+		<Addin id="Ide" version="2.8.5"/>
+		<Addin id="SourceEditor2" version="2.8.5"/>
+		<Addin id="Refactoring" version="2.8.5"/>
+	</Dependencies>	
+	
+	<Extension path = "/MonoDevelop/ProjectModel/MSBuildItemTypes">
+		<DotNetProject language="Cobra" extension="cobraproj" guid="{0A906CA0-EF87-4D08-9CA7-C8380245B3FF}" />
+	</Extension>
+	
+	<Extension path="/MonoDevelop/Core/MimeTypes">
+		<MimeType id="text/x-plain" _description="Cobra Source File" icon="md-text-file" isText="true"> <!-- TODO: proper mime type and icons -->
+			<File pattern = "*.cobra" />
+		</MimeType>
+		<MimeType id="text/x-cobra" _description="Cobra Source File" icon="md-text-file" isText="true"> <!-- TODO: proper mime type and icons -->
+			<File pattern = "*.cobra" />
+		</MimeType>
+	</Extension>
+	
+	<Extension path="/MonoDevelop/Ide/FileFilters">
+		<FileFilter id="Cobra" insertbefore="AllFiles" _label="Cobra Source Files" extensions="*.cobra" />
+	</Extension>
+	
+	<Extension path="/MonoDevelop/Ide/FileTemplates">
+		<FileTemplate id="CobraEmptyFile" resource="EmptyCobraFile.xft.xml"/>    	
+  	</Extension>
+  	
+  	<Extension path="/MonoDevelop/Ide/ProjectTemplates">
+		<ProjectTemplate id="CobraEmptyProject" resource="EmptyProject.xpt.xml"/>
+		<ProjectTemplate id="CobraConsoleProject" resource="ConsoleProject.xpt.xml"/>
+		<ProjectTemplate id="CobraLibraryProject" resource="LibraryProject.xpt.xml"/>
+	</Extension>
+	
+	<Extension path="/MonoDevelop/ProjectModel/LanguageBindings">
+		<LanguageBinding id="Cobra" supportedextensions=".cobra" class="MonoDevelop.Cobra.CobraLanguageBinding" />
+	</Extension>
+	
+	<Extension path = "/MonoDevelop/ProjectModel/SerializableClasses">
+		<DataType class = "MonoDevelop.Cobra.CobraCompilerParameters" />
+	</Extension>
+	
+	<Extension path = "/MonoDevelop/SourceEditor2/SyntaxModes">
+		<Templates resource="CobraSyntaxMode.xml" />
+	</Extension>
+	
+</Addin>		

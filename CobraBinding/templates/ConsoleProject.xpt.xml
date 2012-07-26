@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<Template
+	originator = "Ramón Rocha" 
+	created = "07/22/2012"
+	lastModified = "07/23/2012">
+
+	<!-- Template Header -->
+	<TemplateConfiguration>
+                <_Name>Console Project</_Name>
+                <_Category>Cobra</_Category>
+                <Icon>md-project-console</Icon> <!-- TODO -->
+                <LanguageName>Cobra</LanguageName>
+                <_Description>Creates a 'Hello, World!' Cobra project.</_Description>
+	</TemplateConfiguration>
+
+	<!-- Template Content -->
+	
+	<Actions>
+		<Open filename="MyProgram.cobra" />
+	</Actions>
+	
+	<Combine name="${ProjectName}" directory=".">
+		<Options>
+			<StartupProject>${ProjectName}</StartupProject>			
+		</Options>
+		
+		<Project name="${ProjectName}" directory=".">
+			<Options ExternalConsole="True" />
+			<Files>
+				<File name="MyProgram.cobra" AddStandardHeader="True"><![CDATA[class MyProgram
+
+    def main
+        print 'Hello, world.']]></File>
+			</Files>
+		</Project>
+	</Combine>
+	
+</Template>

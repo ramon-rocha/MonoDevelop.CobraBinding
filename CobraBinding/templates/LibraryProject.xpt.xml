@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<Template
+	originator = "Ramón Rocha" 
+	created = "07/24/2012"
+	lastModified = "07/24/2012">
+
+	<!-- Template Header -->
+	<TemplateConfiguration>
+                <_Name>Library Project</_Name>
+                <_Category>Cobra</_Category>
+                <Icon>md-project-library</Icon> <!-- TODO -->
+                <LanguageName>Cobra</LanguageName>
+                <_Description>Creates an empty Cobra class library.</_Description>
+	</TemplateConfiguration>
+
+	<!-- Template Content -->
+	
+	<Actions>
+		<Open filename="MyClass.cobra" />
+	</Actions>
+	
+	<Combine name="${ProjectName}" directory=".">
+		<Options>
+			<StartupProject>${ProjectName}</StartupProject>			
+		</Options>
+		
+		<Project name="${ProjectName}" directory=".">
+			<Options Target="Library" />
+			<Files>
+				<File name="MyClass.cobra" AddStandardHeader="True"><![CDATA[class MyClass
+
+    pass]]></File>
+			</Files>
+		</Project>
+	</Combine>
+	
+</Template>

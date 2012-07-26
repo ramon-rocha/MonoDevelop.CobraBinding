@@ -1,0 +1,20 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 11.00
+# Visual Studio 2010
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CobraBinding", "CobraBinding.csproj", "{2E12D71C-F696-48A5-97B7-B4A8B9F1987B}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{2E12D71C-F696-48A5-97B7-B4A8B9F1987B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2E12D71C-F696-48A5-97B7-B4A8B9F1987B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2E12D71C-F696-48A5-97B7-B4A8B9F1987B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2E12D71C-F696-48A5-97B7-B4A8B9F1987B}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(MonoDevelopProperties) = preSolution
+		StartupItem = CobraBinding.csproj
+	EndGlobalSection
+EndGlobal

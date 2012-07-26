@@ -1,0 +1,266 @@
+<SyntaxMode name="Cobra" mimeTypes="text/x-cobra;text/x-plain">
+    
+    <Property name="LineComment">#</Property>
+    <Property name="BlockCommentStart">"""</Property>
+    <Property name="BlockCommentEnd">"""</Property>
+    <Property name="BlockCommentStart">'''</Property>  
+    <Property name="BlockCommentEnd">'''</Property>  
+    <Property name="StringQuote">"</Property>
+    <Property name="StringQuote">'</Property>	
+	
+	<!-- Numbers -->
+	<Match color="constant.digit">\b[0-9._]+\b</Match>	
+	
+	<!-- Array Literals -->	
+	<Rule name="Comma">
+		<Match color="text">,</Match>
+	</Rule>
+	
+	<Span color="constant.digit" rule="Comma" tagColor="constant">
+		<Begin>@[</Begin>
+		<End>]</End>
+	</Span>
+	
+	<!-- Compiler directives -->
+	<Rule name="CompilerDirective">
+		<Keywords color="text.preprocessor.keyword">
+			<Word>args</Word>
+			<Word>number</Word>
+			<Word>ref</Word>
+			<Word>help</Word>
+			<Word>throw</Word>
+			<Word>error</Word>
+			<Word>warning</Word>
+		</Keywords>		
+	</Rule>
+	
+	<Span color="text.preprocessor.keyword" rule="CompilerDirective" tagColor="text.preprocessor" stopAtEol="True">
+		<Begin startsLine="True" firstNonWs="True">@</Begin>
+		<End> </End>
+	</Span>
+    
+	<!-- Comments and doc strings -->
+	<Rule name="Comment">  
+        <Keywords color="comment.keyword.todo" ignorecase="True">
+            <Word>TODO</Word>
+            <Word>to-do</Word>
+            <Word>FIXME</Word>
+            <Word>HACK</Word>
+        </Keywords>
+    </Rule>
+	
+	<EolSpan color="comment.line" rule="Comment" tagColor="comment.tag.line">#</EolSpan>
+	
+	<Span color="comment.block" rule="Comment" tagColor="comment.tag.block">
+		<Begin>/#</Begin>
+		<End>#/</End>
+	</Span>
+	
+    <Span color="comment.doc" rule="Comment" tagColor="comment.tag.doc">  
+        <Begin>"""</Begin>  
+        <End>"""</End>  
+    </Span>  
+    
+    <Span color="comment.doc" rule="Comment" tagColor="comment.tag.doc">
+        <Begin>'''</Begin>  
+        <End>'''</End>  
+    </Span>
+	
+	<!-- Strings -->
+	<Span color="string.single">
+		<Begin>c'</Begin>
+		<End>'</End>
+	</Span>
+
+	<Span color="string.other">
+		<Begin>r'</Begin>
+		<End>'</End>
+	</Span>
+	
+	<Rule name="StringExpr">
+		<Span color="keyword.parameter" tagColor="text.punctuation">
+			<Begin>[</Begin>
+			<End>]</End>
+		</Span>
+	</Rule>	
+	
+	<Span color="string" rule="StringExpr">
+		<Begin>"</Begin>
+		<End>"</End>
+	</Span>
+	
+	<Span color="string" rule="StringExpr">
+		<Begin>'</Begin>
+		<End>'</End>
+	</Span>
+	
+	<!-- Generics -->
+	<Span color="keyword.parameter" tagColor="keyword.type">
+		<Begin>&lt;of </Begin>>
+		<End>&gt;</End>
+	</Span>	
+	
+    <!-- Keywords -->
+    <Keywords color="keyword.namespace">
+        <Word>namespace</Word>
+        <Word>use</Word>
+        <Word>import</Word>
+    </Keywords>
+	
+    <Keywords color="keyword.declaration">
+        <Word>enum</Word>
+        <Word>class</Word>
+        <Word>interface</Word>
+        <Word>mixin</Word>
+        <Word>adds</Word>
+        <Word>struct</Word>
+        <Word>extend</Word>
+        <Word>def</Word>
+        <Word>sig</Word>
+        <Word>as</Word>
+        <Word>cue</Word>
+        <Word>var</Word>
+        <Word>const</Word>
+        <Word>has</Word>
+        <Word>event</Word>
+    </Keywords>
+    
+    <Keywords color="keyword.property">
+        <Word>get</Word>
+        <Word>set</Word>
+        <Word>pro</Word>
+        <Word>value</Word>
+    </Keywords>
+
+    <Keywords color="keyword.modifier">
+        <Word>public</Word>
+        <Word>protected</Word>
+        <Word>private</Word>
+        <Word>internal</Word>        
+        
+        <Word>partial</Word>
+        <Word>virtual</Word>
+        <Word>nonvirtual</Word>
+        <Word>override</Word>
+        <Word>new</Word>
+        
+        <Word>shared</Word>
+        <Word>abstract</Word>
+        <Word>extern</Word>
+    </Keywords>
+    
+    <Keywords color="keyword.context">
+        <Word>invariant</Word>        
+        <Word>require</Word>
+        <Word>ensure</Word>
+        <Word>test</Word>
+        <Word>body</Word>        
+        <Word>using</Word>
+        <Word>lock</Word>
+    </Keywords>
+    
+    <Keywords color="keyword.exceptions">
+        <Word>try</Word>
+        <Word>catch</Word>
+        <Word>success</Word>
+        <Word>finally</Word>
+        <Word>throw</Word>
+        
+        <Word>assert</Word>
+        <Word>expect</Word>
+        <Word>implies</Word>
+    </Keywords>
+    
+    <Keywords color="keyword.selection">
+        <Word>if</Word>
+        <Word>else</Word>
+        <Word>branch</Word>
+        <Word>where</Word>
+        <Word>from</Word>
+    </Keywords>
+    
+    <Keywords color="keyword.iteration">
+        <Word>while</Word>
+        <Word>post</Word>
+        <Word>for</Word>        
+    </Keywords>
+    
+    <Keywords color="keyword.jump">
+        <Word>break</Word>
+        <Word>continue</Word>
+        <Word>return</Word>
+        <Word>yield</Word>
+    </Keywords>
+    
+    <Keywords color="constant.language">
+        <Word>true</Word>
+        <Word>false</Word>
+        <Word>nil</Word>
+    </Keywords>
+        
+    <Keywords color="keyword.access">
+        <Word>base</Word>
+        <Word>this</Word>
+        <Word>result</Word>
+        <Word>old</Word>
+        <Word>value</Word>
+    </Keywords>
+    
+    <Keywords color="keyword.operator">
+		<Word>inherits</Word>
+        <Word>implements</Word>
+		<Word>is</Word>
+        <Word>to</Word>
+        <Word>and</Word>
+        <Word>or</Word>
+        <Word>not</Word>
+        <Word>any</Word>
+        <Word>every</Word>
+        <Word>all</Word>
+        <Word>each</Word>
+        <Word>in</Word>		
+    </Keywords>
+    
+    <Keywords color="keyword.type">
+        <Word>bool</Word>
+        <Word>char</Word>
+        <Word>int</Word>
+        <Word>uint</Word>
+        <Word>decimal</Word>
+        <Word>float</Word>
+        <Word>dynamic</Word>
+        <Word>same</Word>
+        <Word>number</Word>
+        <Word>passthrough</Word>
+    </Keywords>
+    
+    <Keywords color="keyword.parameter">
+        <Word>vari</Word>
+        <Word>out</Word>
+        <Word>inout</Word>
+    </Keywords>
+    
+    <Keywords color="keyword.misc">
+        <Word>init</Word>
+        <Word>must</Word>
+        <Word>be</Word>
+        <Word>callable</Word>
+        <Word>of</Word>
+        <Word>on</Word>
+        <Word>off</Word>
+        <Word>pass</Word>
+        <Word>print</Word>
+        <Word>stop</Word>
+        <Word>trace</Word>
+        <Word>listen</Word>
+        <Word>ignore</Word>
+        <Word>raise</Word>
+        <Word>end</Word>
+        <Word>do</Word>
+        <Word>ref</Word>
+        <Word>par</Word>
+        <Word>objc</Word>
+        <Word>except</Word>
+    </Keywords>
+    
+</SyntaxMode>

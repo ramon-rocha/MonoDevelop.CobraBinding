@@ -23,7 +23,7 @@
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugType>none</DebugType>
     <Optimize>false</Optimize>
-    <OutputPath>home\ramon\.local\share\MonoDevelop-2.8\LocalInstall\Addins\MonoDevelop.CobraBinding</OutputPath>
+    <OutputPath>bin\Release</OutputPath>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <ConsolePause>false</ConsolePause>
@@ -42,9 +42,6 @@
     <Compile Include="CobraCompilerParameters.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
-  <Target Name="HelloWorld">
-    <Message Text="Compile item type contains @(Compile, '%0A%0D')" />
-  </Target>
   <ItemGroup>
     <Folder Include="bin\" />
     <Folder Include="icons\" />

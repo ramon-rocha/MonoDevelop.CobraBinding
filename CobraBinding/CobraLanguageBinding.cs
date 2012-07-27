@@ -1,6 +1,7 @@
 using System;
 using System.Xml;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Collections.Generic;
 using System.CodeDom.Compiler;
 using MonoDevelop.Core;
@@ -29,8 +30,11 @@ namespace MonoDevelop.Cobra
         public string ProjectStockIcon {
             get { return "md-project"; }
         }
+		
+		// to-do: block comments in Cobra are actually /# ... #/ and """ ... """ or doc strings.
+		//        maybe look at how C# does raw strings for an idea
 
-        public string BlockCommentEndTag {
+		public string BlockCommentEndTag {
             get { return "\"\"\""; }
         }
 
@@ -128,17 +132,35 @@ namespace MonoDevelop.Cobra
             proc.Start();
             proc.WaitForExit();
 			
-			BuildResult result = new BuildResult();
+			var result = new BuildResult();
 			
-			if (proc.ExitCode != 0) {
-				result.AddError(proc.StandardError.ReadToEnd());
-				result.AddError(proc.StandardOutput.ReadToEnd());
+			var lines = new List<string>();
+			lines.AddRange(proc.StandardError.ReadToEnd().Split('\n'));
+			var stdOut = proc.StandardOutput.ReadToEnd();
+			lines.AddRange(stdOut.Split('\n'));
+			if (lines.Count > 0) {
+				// examples:
+				//     foo.cobra(4): error: Cannot find "b". There is a member named ".memberwiseClone" with a similar name.
+				//     foo.cobra(4): warning: The value of variable "a" is never used.
+				// regex testing:
+				//     http://regexhero.net/tester/
+				var re = new Regex(@"(?<fileName>[^\(]+)\((?<lineNum>\d+)\):(\s)+(?<msgType>error|warning):(\s)*(?<msg>[^\r]+)", RegexOptions.Compiled);
+				foreach (var line in lines) {
+					var match = re.Match(line);
+					if (match.Success) {
+						var groups = match.Groups;
+						var fileName = groups["fileName"].ToString();
+						int lineNum = int.Parse(groups["lineNum"].ToString());
+						var msg = groups["msg"].ToString();
+						int col = 1; string errNum = "";
+						result.AddError(fileName, lineNum, col, errNum, msg);
+					}
+				}
 			}
 			
-			result.CompilerOutput = proc.StandardOutput.ReadToEnd();
+			result.CompilerOutput = stdOut;
 			
-			return result;
-			
+			return result;			
         }
 
         public ConfigurationParameters CreateCompilationParameters(XmlElement projectOptions) {
@@ -153,6 +175,7 @@ namespace MonoDevelop.Cobra
 
         public CodeDomProvider GetCodeDomProvider() {
             //TODO
+			// note that someone started a CodeDom provider awhile back. search the discussion forums and/or wiki
             return null;
         }
 

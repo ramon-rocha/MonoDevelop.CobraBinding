@@ -15,16 +15,21 @@ To Compile and Use
 
 3) Copy MonoDevelop.CobraBinding.dll to the MonoDevelop addins folder. This location depends on your operating system.
 
-	* Ubuntu : ~/.local/share/MonoDevelop-2.8/LocalInstall/Addins
+	- Ubuntu : ~/.local/share/MonoDevelop-2.8/LocalInstall/Addins
 
-	* Mac : ~/Library/Application Support/MonoDevelop-2.8/LocalInstall/Addins
+	- Mac : ~/Library/Application Support/MonoDevelop-2.8/LocalInstall/Addins
 
-	* Windows 7 : ~/AppData/Local/MonoDevelop-2.8/LocalInstall/Addins
+	- Windows 7 : ~/AppData/Local/MonoDevelop-2.8/LocalInstall/Addins
 		(on Windows ~ is usually c:\users\<username>, also note that AppData is a hidden folder)
 
 	If any folders do not exist, you should create them manually.
 
 4) Restart MonoDevelop and you should now have a "Cobra" section when creating a new project/solution.
+
+
+Contributing
+============
+Any and all help is appreciated.  See below for tips on getting started.
 
 
 Low-hanging Fruit
@@ -36,8 +41,6 @@ These are some of the easier tasks that still need to be done...
 	* Create a GTK Project template
 
 	* Create additional file templates
-
-	* Proper creation of BuildResult errors with line number, file name, etc. in the proper fields (see the end of CobraLanguageBinding.Compile)
 
 	* Create some color schemes that match those on the Cobra website.
 
@@ -53,11 +56,6 @@ These will require a bit more effort...
 	* Parser, Autocompletion, code formatting, code folding, etc.
 
 	* Rewrite it in Cobra! This one will actually be easy once the other tasks are done ;)
-
-
-Contributing
-============
-Any and all help is appreciated.  See below for tips on getting started.
 
 
 Relevant Documentation

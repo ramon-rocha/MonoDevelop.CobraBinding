@@ -15,14 +15,13 @@ To Compile and Use
 
 3) Copy MonoDevelop.CobraBinding.dll to the MonoDevelop addins folder. This location depends on your operating system.
 
-	- Ubuntu : ~/.local/share/MonoDevelop-2.8/LocalInstall/Addins
+- Ubuntu : ~/.local/share/MonoDevelop-2.8/LocalInstall/Addins
 
-	- Mac : ~/Library/Application Support/MonoDevelop-2.8/LocalInstall/Addins
+- Mac : ~/Library/Application Support/MonoDevelop-2.8/LocalInstall/Addins
 
-	- Windows 7 : ~/AppData/Local/MonoDevelop-2.8/LocalInstall/Addins
-		(on Windows ~ is usually c:\users\<username>, also note that AppData is a hidden folder)
+- Windows 7 : ~/AppData/Local/MonoDevelop-2.8/LocalInstall/Addins (on Windows ~ is usually c:\users\<username>, also note that AppData is a hidden folder)
 
-	If any folders do not exist, you should create them manually.
+If any folders do not exist, you should create them manually.
 
 4) Restart MonoDevelop and you should now have a "Cobra" section when creating a new project/solution.
 
@@ -36,26 +35,26 @@ Low-hanging Fruit
 -----------------
 These are some of the easier tasks that still need to be done...
 
-	* Create icons for project and file templates
+* Create icons for project and file templates
 
-	* Create a GTK Project template
+* Create a GTK Project template
 
-	* Create additional file templates
+* Create additional file templates
 
-	* Create some color schemes that match those on the Cobra website.
+* Create some color schemes that match those on the Cobra website.
 
 
 Larger Todo Tasks
 -----------------
 These will require a bit more effort...
 
-	* Handling references to assemblies, packages, and other projects in a solution.
+* Handling references to assemblies, packages, and other projects in a solution.
 
-	* Proper handling for project options and compiler configuration.
+* Proper handling for project options and compiler configuration.
 
-	* Parser, Autocompletion, code formatting, code folding, etc.
+* Parser, Autocompletion, code formatting, code folding, etc.
 
-	* Rewrite it in Cobra! This one will actually be easy once the other tasks are done ;)
+* Rewrite it in Cobra! This one will actually be easy once the other tasks are done ;)
 
 
 Relevant Documentation
@@ -63,8 +62,11 @@ Relevant Documentation
 These are some links to available documentation for adding support for a new language to MonoDevelop.
 
 http://monodevelop.com/Developers/Articles/Language_Addins
+
 http://monodevelop.com/Developers/Articles/Syntax_Mode_Definition
+
 http://monodevelop.com/Developers/Articles/API_Overview
+
 http://monodevelop.com/Developers/Articles/Creating_a_Simple_Add-in
 
 
@@ -73,6 +75,9 @@ Reference Implementations for other Languages
 These are examples of existing language bindings for MonoDevelop.
 
 https://github.com/fsharp/fsharpbinding
+
 https://github.com/mono/monodevelop/tree/master/main/src/addins/CSharpBinding
+
 https://github.com/aBothe/Mono-D/tree/master/MonoDevelop.DBinding
+
 https://github.com/mono/monodevelop/tree/master/extras/BooBinding

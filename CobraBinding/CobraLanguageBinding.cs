@@ -142,18 +142,36 @@ namespace MonoDevelop.Cobra
 				// examples:
 				//	 foo.cobra(4): error: Cannot find "b". There is a member named ".memberwiseClone" with a similar name.
 				//	 foo.cobra(4): warning: The value of variable "a" is never used.
+				//   lines.Add("foo.cobra(4,15): error: Expecting an expression.");
 				// regex testing:
 				//	 http://regexhero.net/tester/
-				var re = new Regex(@"(?<fileName>[^\(]+)\((?<lineNum>\d+)\):(\s)+(?<msgType>error|warning):(\s)*(?<msg>[^\r]+)", RegexOptions.Compiled);
+				var re = new Regex(@"(?<fileName>[^\(]+)\((?<lineNum>\d+)(,(?<col>\d+))?\):(\s)+(?<msgType>error|warning):(\s)*(?<msg>[^\r]+)", RegexOptions.Compiled);
 				foreach (var line in lines) {
 					var match = re.Match(line);
 					if (match.Success) {
 						var groups = match.Groups;
 						var fileName = groups["fileName"].ToString();
 						int lineNum = int.Parse(groups["lineNum"].ToString());
+						int col;
+						if (!int.TryParse(groups["col"].ToString(), out col)) {
+							col = 1;
+						}
+						var msgType = groups["msgType"].ToString();
 						var msg = groups["msg"].ToString();
-						int col = 1; string errNum = "";
-						result.AddError(fileName, lineNum, col, errNum, msg);
+						string errNum = "";
+
+						if (msgType == "error") {
+							result.AddError(fileName, lineNum, col, errNum, msg);
+						}
+						else {
+							result.AddWarning(fileName, lineNum, col, errNum, msg);
+						}
+					}
+					else if (line.Contains("error:")) {
+						result.AddError(line);
+					}
+					else if (line.Contains("warning:")) {
+						result.AddWarning(line);
 					}
 				}
 			}

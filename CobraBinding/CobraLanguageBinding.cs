@@ -122,6 +122,7 @@ namespace MonoDevelop.Cobra
 			}
 			else {
 				proc.StartInfo.FileName = "cobra";
+				proc.StartInfo.WorkingDirectory = "/";
 			}
 			
 			proc.StartInfo.Arguments = cmdArgsBuilder.ToString();
@@ -140,11 +141,11 @@ namespace MonoDevelop.Cobra
 			lines.AddRange(stdOut.Split('\n'));
 			if (lines.Count > 0) {
 				// examples:
-				//	 foo.cobra(4): error: Cannot find "b". There is a member named ".memberwiseClone" with a similar name.
-				//	 foo.cobra(4): warning: The value of variable "a" is never used.
-				//   lines.Add("foo.cobra(4,15): error: Expecting an expression.");
+				//      foo.cobra(4): error: Cannot find "b". There is a member named ".memberwiseClone" with a similar name.
+				//      foo.cobra(4): warning: The value of variable "a" is never used.
+				//      foo.cobra(4,15): error: Expecting an expression.
 				// regex testing:
-				//	 http://regexhero.net/tester/
+				//      http://regexhero.net/tester/
 				var re = new Regex(@"(?<fileName>[^\(]+)\((?<lineNum>\d+)(,(?<col>\d+))?\):(\s)+(?<msgType>error|warning):(\s)*(?<msg>[^\r]+)", RegexOptions.Compiled);
 				foreach (var line in lines) {
 					var match = re.Match(line);

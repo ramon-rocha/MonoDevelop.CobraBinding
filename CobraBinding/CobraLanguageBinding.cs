@@ -122,7 +122,6 @@ namespace MonoDevelop.Cobra
 			}
 			else {
 				proc.StartInfo.FileName = "cobra";
-				proc.StartInfo.WorkingDirectory = "/";
 			}
 			
 			proc.StartInfo.Arguments = cmdArgsBuilder.ToString();

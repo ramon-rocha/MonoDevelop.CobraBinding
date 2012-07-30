@@ -113,19 +113,48 @@ namespace MonoDevelop.Cobra
 				}
 			}
 
-			//execute the cobra compiler
+			//create and setup the process which will execute the cobra compiler
 			System.Diagnostics.Process proc = new System.Diagnostics.Process();
-			
-			if (_isWindows) {
-				//gross, you probably also have to run MonoDevelop as admin
-				proc.StartInfo.FileName = "c:\\cobra\\bin\\cobra.bat";
+
+			//if the user has specified the location of the compiler, use that
+			string cobraExe = Environment.GetEnvironmentVariable("COBRA_EXE");
+
+			if (cobraExe == null || cobraExe.Length == 0) {
+				//the user has not specified the location of the compiler
+
+				if (_isWindows) {
+					/*
+					 * On Windows, we cannot rely on the cobra batch file being in the
+					 * path because we are not setting UseShellExecute to true.
+					 * This is because we need to redirect the standard output which
+					 * we couldn't do if we were executing this via the shell.
+					 *
+					 * See here for more info: http://msdn.microsoft.com/en-us/library/system.diagnostics.processstartinfo.useshellexecute.aspx
+					 */
+					cobraExe = "c:\\cobra\\bin\\cobra.bat";
+				}
+				else {
+					/*
+					 * On a non-windows based system, we'll rely on cobra being in
+					 * the user's path.
+					 */
+					cobraExe = "cobra";
+				}
 			}
-			else {
-				proc.StartInfo.FileName = "cobra";
+
+			proc.StartInfo.FileName = cobraExe;
+
+			//use the project directory as the working directory unless it's not defined
+			proc.StartInfo.WorkingDirectory = "./";
+
+			if (configuration.ParentItem != null) {
+				if (configuration.ParentItem.BaseDirectory != null) {
+					proc.StartInfo.WorkingDirectory = configuration.ParentItem.BaseDirectory.ToString();
+				}
 			}
-			
+
 			proc.StartInfo.Arguments = cmdArgsBuilder.ToString();
-			proc.StartInfo.UseShellExecute = false;
+			proc.StartInfo.UseShellExecute = false; //needs to be false so we can redirect the output
 			proc.StartInfo.RedirectStandardOutput = true;
 			proc.StartInfo.RedirectStandardError = true;
 

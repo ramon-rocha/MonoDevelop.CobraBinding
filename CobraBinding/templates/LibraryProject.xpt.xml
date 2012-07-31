@@ -3,15 +3,15 @@
 <Template
 	originator = "Ramón Rocha" 
 	created = "07/24/2012"
-	lastModified = "07/24/2012">
+	lastModified = "07/30/2012">
 
 	<!-- Template Header -->
 	<TemplateConfiguration>
-                <_Name>Library Project</_Name>
-                <_Category>Cobra</_Category>
-                <Icon>md-project-library</Icon> <!-- TODO -->
-                <LanguageName>Cobra</LanguageName>
-                <_Description>Creates an empty Cobra class library.</_Description>
+		<_Name>Library Project</_Name>
+		<_Category>Cobra</_Category>
+		<Icon>md-project-library</Icon> <!-- TODO -->
+		<LanguageName>Cobra</LanguageName>
+		<_Description>Creates an empty Cobra class library.</_Description>
 	</TemplateConfiguration>
 
 	<!-- Template Content -->
@@ -28,9 +28,20 @@
 		<Project name="${ProjectName}" directory=".">
 			<Options Target="Library" />
 			<Files>
-				<File name="MyClass.cobra" AddStandardHeader="True"><![CDATA[class MyClass
+				<File name="MyClass.cobra" AddStandardHeader="True"><![CDATA["""
+Replace this text with a description of your library.
+"""
 
-    pass]]></File>
+class MyClass
+	"""
+	Replace this text with a description of your class.
+	"""
+
+	test
+		pass
+
+	cue init
+		base.init]]></File>
 			</Files>
 		</Project>
 	</Combine>

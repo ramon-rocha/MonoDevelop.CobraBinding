@@ -3,15 +3,15 @@
 <Template
 	originator = "Ramón Rocha" 
 	created = "07/22/2012"
-	lastModified = "07/23/2012">
+	lastModified = "07/30/2012">
 
 	<!-- Template Header -->
 	<TemplateConfiguration>
-                <_Name>Console Project</_Name>
-                <_Category>Cobra</_Category>
-                <Icon>md-project-console</Icon> <!-- TODO -->
-                <LanguageName>Cobra</LanguageName>
-                <_Description>Creates a 'Hello, World!' Cobra project.</_Description>
+		<_Name>Console Project</_Name>
+		<_Category>Cobra</_Category>
+		<Icon>md-project-console</Icon> <!-- TODO -->
+		<LanguageName>Cobra</LanguageName>
+		<_Description>Creates a 'Hello, world!' Cobra project.</_Description>
 	</TemplateConfiguration>
 
 	<!-- Template Content -->
@@ -28,10 +28,14 @@
 		<Project name="${ProjectName}" directory=".">
 			<Options ExternalConsole="True" />
 			<Files>
-				<File name="MyProgram.cobra" AddStandardHeader="True"><![CDATA[class MyProgram
+				<File name="MyProgram.cobra" AddStandardHeader="True"><![CDATA["""
+Replace this text with a description of your program.
+"""
 
-    def main
-        print 'Hello, world.']]></File>
+class MyProgram
+
+	def main
+		print 'Hello, world!']]></File>
 			</Files>
 		</Project>
 	</Combine>

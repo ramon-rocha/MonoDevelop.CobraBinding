@@ -37,8 +37,6 @@ These are some of the easier tasks that still need to be done...
 
 * Create icons for project and file templates
 
-* Create a GTK Project template
-
 * Create additional file templates
 
 * Create some color schemes that match those on the Cobra website.
@@ -48,7 +46,7 @@ Larger Todo Tasks
 -----------------
 These will require a bit more effort...
 
-* Handling references to assemblies, packages, and other projects in a solution.
+* Handling references to other projects in a solution.
 
 * Proper handling for project options and compiler configuration.
 

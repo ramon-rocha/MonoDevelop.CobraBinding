@@ -47,6 +47,7 @@
 		<ProjectTemplate id="CobraEmptyProject" resource="EmptyProject.xpt.xml"/>
 		<ProjectTemplate id="CobraConsoleProject" resource="ConsoleProject.xpt.xml"/>
 		<ProjectTemplate id="CobraLibraryProject" resource="LibraryProject.xpt.xml"/>
+		<ProjectTemplate id="CobraGtkSharp2Project" resource="GtkSharp2Project.xpt.xml"/>
 	</Extension>
 	
 	<Extension path="/MonoDevelop/ProjectModel/LanguageBindings">

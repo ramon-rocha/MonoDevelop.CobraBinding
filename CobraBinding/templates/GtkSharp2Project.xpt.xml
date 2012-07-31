@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<Template
+	originator = "Ramón Rocha"
+	created = "07/31/2012"
+	lastModified = "07/31/2012">
+
+	<!-- Template Header -->
+	<TemplateConfiguration>
+		<_Name>Gtk# 2.0 Project</_Name>
+		<_Category>Cobra</_Category>
+		<Icon>md-project-gui</Icon> <!-- TODO -->
+		<LanguageName>Cobra</LanguageName>
+		<_Description>Creates a Gtk# 2.0 Cobra project.</_Description>
+	</TemplateConfiguration>
+
+	<!-- Template Content -->
+	
+	<Actions>
+		<Open filename="GtkApp.cobra" />
+	</Actions>
+
+	<Combine name="${ProjectName}" directory=".">
+		<Options>
+			<StartupProject>${ProjectName}</StartupProject>
+		</Options>
+
+		<Project name="${ProjectName}" directory=".">
+			<Options Target="WinExe" />
+
+			<References>
+				<References type="Package" SpecificVersion="false" refto="gtk-sharp, Version=2.4.0.0, Culture=neutral, PublicKeyToken=35e10195dab3c99f" />
+			</References>
+
+			<Files>
+				<File name="GtkApp.cobra" AddStandardHeader="True"><![CDATA["""
+Replace this text with a description of your application.
+"""
+
+use Gtk
+
+class GtkApp
+
+	def main
+		Application.init
+
+		window = Window('Window Title')
+		listen window.deleteEvent, ref .onDeleteEvent
+		window.showAll
+
+		Application.run
+
+	def onDeleteEvent(obj, args as DeleteEventArgs)
+		Application.quit]]></File>
+			</Files>
+		</Project>
+	</Combine>
+
+</Template>

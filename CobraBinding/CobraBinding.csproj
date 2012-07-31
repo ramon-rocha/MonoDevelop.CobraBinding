@@ -63,5 +63,8 @@
     <EmbeddedResource Include="CobraSyntaxMode.xml">
       <LogicalName>CobraSyntaxMode.xml</LogicalName>
     </EmbeddedResource>
+    <EmbeddedResource Include="templates\GtkSharp2Project.xpt.xml">
+      <LogicalName>GtkSharp2Project.xpt.xml</LogicalName>
+    </EmbeddedResource>
   </ItemGroup>
 </Project>

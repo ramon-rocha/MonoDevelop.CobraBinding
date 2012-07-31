@@ -4,7 +4,9 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Collections.Generic;
 using System.CodeDom.Compiler;
+
 using MonoDevelop.Core;
+using MonoDevelop.Core.Assemblies;
 using MonoDevelop.Projects;
 using MonoDevelop.Projects.CodeGeneration;
 using MonoDevelop.Projects.Dom.Parser;
@@ -72,8 +74,42 @@ namespace MonoDevelop.Cobra
 			
 			//TODO: make this conditional
 			cmdArgsBuilder.Append(" -debug:full");
-			
-			//TODO: references
+
+
+			//references (add each one only once)
+			var refs = new HashSet<string>();
+			var pkgs = new HashSet<string>();
+
+			foreach (ProjectReference projRef in items.GetAll<ProjectReference>()) {
+
+				switch (projRef.ReferenceType) {
+				case ReferenceType.Package:
+					if (pkgs.Add(projRef.Package.Name)) {
+						cmdArgsBuilder.Append(" -pkg:\"");
+						cmdArgsBuilder.Append(projRef.Package.Name);
+						cmdArgsBuilder.Append("\"");
+					}
+					break;
+
+				case ReferenceType.Assembly:
+					foreach (string fileName in projRef.GetReferencedFileNames(configSelector)) {
+
+						if (refs.Add(fileName)) {
+							cmdArgsBuilder.Append(" -reference:\"");
+							cmdArgsBuilder.Append(fileName);
+							cmdArgsBuilder.Append("\"");
+						}
+					}
+					break;
+
+				//TODO: Project Reference
+
+				default:
+					monitor.ReportError("Unhandled Reference Type: " + projRef.ReferenceType.ToString(), new NotImplementedException());
+					break;
+				}
+			}
+
 
 			//what's the target assembly?
 			switch (configuration.CompileTarget)
@@ -95,11 +131,13 @@ namespace MonoDevelop.Cobra
 					break;
 			}
 
+
 			//what will we call the assembly?
 			FilePath asmName = configuration.CompiledOutputName;
 			cmdArgsBuilder.Append(" -out:\"");
 			cmdArgsBuilder.Append(asmName.FullPath);
 			cmdArgsBuilder.Append("\"");
+
 
 			//which files should we compile?
 			foreach (ProjectFile projFile in items.GetAll<ProjectFile>())
@@ -112,6 +150,7 @@ namespace MonoDevelop.Cobra
 						break;
 				}
 			}
+
 
 			//create and setup the process which will execute the cobra compiler
 			System.Diagnostics.Process proc = new System.Diagnostics.Process();
@@ -157,6 +196,8 @@ namespace MonoDevelop.Cobra
 			proc.StartInfo.UseShellExecute = false; //needs to be false so we can redirect the output
 			proc.StartInfo.RedirectStandardOutput = true;
 			proc.StartInfo.RedirectStandardError = true;
+
+			Console.WriteLine(proc.StartInfo.Arguments); //DEBUGGING
 
 			proc.Start();
 			proc.WaitForExit();
@@ -228,14 +269,14 @@ namespace MonoDevelop.Cobra
 
 		public IParser Parser {
 			get {
-				//TODO?
+				//This interface has been removed in MonoDevelop 3.0+
 				return null;
 			}
 		}
 		
 		public IRefactorer Refactorer {
 			get {
-				//TODO?
+				//This interface has been removed in MonoDevelop 3.0+
 				return null;
 			}
 		}

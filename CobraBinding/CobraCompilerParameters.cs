@@ -13,18 +13,18 @@ namespace MonoDevelop.Cobra
 			System.Console.WriteLine("In MonoDevelop.Cobra.CobraCompilerParameters constructor.");
 		}
 
-        [ItemProperty("DefineConstants", DefaultValue = "")]
-        string definesymbols = String.Empty;
+		[ItemProperty("DefineConstants", DefaultValue = "")]
+		string definesymbols = String.Empty;
 
-        public override void AddDefineSymbol(string symbol)
-        {
-            definesymbols += symbol + ";";
-        }
+		public override void AddDefineSymbol(string symbol)
+		{
+			definesymbols += symbol + ";";
+		}
 
-        public override void RemoveDefineSymbol(string symbol)
-        {
-            definesymbols = definesymbols.Replace(symbol + ";", "");
-        }
+		public override void RemoveDefineSymbol(string symbol)
+		{
+			definesymbols = definesymbols.Replace(symbol + ";", "");
+		}
 		
 	}
 }

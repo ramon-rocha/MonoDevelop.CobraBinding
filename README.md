@@ -46,8 +46,6 @@ Larger Todo Tasks
 -----------------
 These will require a bit more effort...
 
-* Handling references to other projects in a solution.
-
 * Proper handling for project options and compiler configuration.
 
 * Parser, Autocompletion, code formatting, code folding, etc.

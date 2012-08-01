@@ -70,6 +70,9 @@ namespace MonoDevelop.Cobra
 		                           ConfigurationSelector configSelector,
 		                           IProgressMonitor monitor)
 		{
+			//var compilerParameters = (CobraCompilerParameters)configuration.CompilationParameters;
+			//var projParameters = (CobraProjectParameters)configuration.ProjectParameters;
+
 			StringBuilder cmdArgsBuilder = new StringBuilder("-compile");
 			
 			//TODO: make this conditional
@@ -91,7 +94,7 @@ namespace MonoDevelop.Cobra
 					}
 					break;
 
-				case ReferenceType.Assembly:
+				default:
 					foreach (string fileName in projRef.GetReferencedFileNames(configSelector)) {
 
 						if (refs.Add(fileName)) {
@@ -100,12 +103,6 @@ namespace MonoDevelop.Cobra
 							cmdArgsBuilder.Append("\"");
 						}
 					}
-					break;
-
-				//TODO: Project Reference
-
-				default:
-					monitor.ReportError("Unhandled Reference Type: " + projRef.ReferenceType.ToString(), new NotImplementedException());
 					break;
 				}
 			}

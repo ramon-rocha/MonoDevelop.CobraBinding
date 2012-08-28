@@ -11,6 +11,15 @@ To Compile and Use
 
 1) Open the solution file in MonoDevelop 3.0
 
+- This Addin is developed on Ubuntu.  To compile on Windows, you'll need to re-establish the reference to the MonoDevelop.Core assembly by expanding 'References' and right-clicking on MonoDevelop.Core and selecting 'Delete.'  If you're not compiling on Windows, just proceed to Step 2.
+
+- Next, right-click on 'References' and select 'Edit References...'
+
+- On the '.Net Assembly' tab, navigate to the location where MonoDevelop is installed and select
+the MonoDevelop.Core.dll assembly under the bin folder (e.g. C:\Program Files (x86)\MonoDevelop\bin\MonoDevelop.Core.dll).
+
+- Be sure to click the 'Add' button before clicking 'OK.'
+
 2) Select Build > Build All.  This will generate a MonoDevelop.CobraBinding.dll assembly file in CobraBinding/bin/Debug.
 
 3) Copy MonoDevelop.CobraBinding.dll to the MonoDevelop addins folder. This location depends on your operating system.

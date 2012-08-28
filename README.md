@@ -3,23 +3,23 @@ Cobra Language Binding for MonoDevelop
 This is an addin for MonoDevelop that allows you to write, run, and debug programs written in the Cobra programming language.
 http://cobra-language.com/
 
-At present, this addin only works on the 2.8 series of MonoDevelop.
+At present, this addin only works on the 3.0 series of MonoDevelop.
 
 
 To Compile and Use
 ------------------
 
-1) Open the solution file in MonoDevelop 2.8
+1) Open the solution file in MonoDevelop 3.0
 
 2) Select Build > Build All.  This will generate a MonoDevelop.CobraBinding.dll assembly file in CobraBinding/bin/Debug.
 
 3) Copy MonoDevelop.CobraBinding.dll to the MonoDevelop addins folder. This location depends on your operating system.
 
-- Ubuntu : ~/.local/share/MonoDevelop-2.8/LocalInstall/Addins
+- Ubuntu : ~/.local/share/MonoDevelop-3.0/LocalInstall/Addins
 
-- Mac : ~/Library/Application Support/MonoDevelop-2.8/LocalInstall/Addins
+- Mac : ~/Library/Application Support/MonoDevelop-3.0/LocalInstall/Addins
 
-- Windows 7 : ~/AppData/Local/MonoDevelop-2.8/LocalInstall/Addins (on Windows ~ is usually c:\users\<username>, also note that AppData is a hidden folder)
+- Windows 7 : ~/AppData/Local/MonoDevelop-3.0/LocalInstall/Addins (on Windows ~ is usually c:\users\<username>, also note that AppData is a hidden folder)
 
 If any folders do not exist, you should create them manually.
 

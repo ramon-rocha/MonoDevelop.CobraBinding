@@ -8,8 +8,6 @@ using System.CodeDom.Compiler;
 using MonoDevelop.Core;
 using MonoDevelop.Core.Assemblies;
 using MonoDevelop.Projects;
-using MonoDevelop.Projects.CodeGeneration;
-using MonoDevelop.Projects.Dom.Parser;
 
 namespace MonoDevelop.Cobra
 {
@@ -263,20 +261,5 @@ namespace MonoDevelop.Cobra
 			// note that someone started a CodeDom provider awhile back. search the discussion forums and/or wiki
 			return null;
 		}
-
-		public IParser Parser {
-			get {
-				//This interface has been removed in MonoDevelop 3.0+
-				return null;
-			}
-		}
-		
-		public IRefactorer Refactorer {
-			get {
-				//This interface has been removed in MonoDevelop 3.0+
-				return null;
-			}
-		}
 	}
 }
-

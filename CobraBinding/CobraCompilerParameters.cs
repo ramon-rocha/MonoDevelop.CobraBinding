@@ -2,7 +2,7 @@ using System;
 using MonoDevelop.Projects;
 using MonoDevelop.Core.Serialization;
 
-namespace MonoDevelop.Cobra
+namespace MonoDevelop.CobraBinding
 {
 	public class CobraCompilerParameters : ConfigurationParameters
 	{

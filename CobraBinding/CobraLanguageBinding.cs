@@ -9,7 +9,7 @@ using MonoDevelop.Core;
 using MonoDevelop.Core.Assemblies;
 using MonoDevelop.Projects;
 
-namespace MonoDevelop.Cobra
+namespace MonoDevelop.CobraBinding
 {
 	public class CobraLanguageBinding : IDotNetLanguageBinding
 	{

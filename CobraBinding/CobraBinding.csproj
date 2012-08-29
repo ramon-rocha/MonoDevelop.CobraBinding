@@ -7,7 +7,7 @@
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>{2E12D71C-F696-48A5-97B7-B4A8B9F1987B}</ProjectGuid>
     <OutputType>Library</OutputType>
-    <RootNamespace>MonoDevelop.Cobra</RootNamespace>
+    <RootNamespace>MonoDevelop.CobraBinding</RootNamespace>
     <AssemblyName>MonoDevelop.CobraBinding</AssemblyName>
     <Description>This project provides the Cobra language binding addin for MonoDevelop.</Description>
   </PropertyGroup>

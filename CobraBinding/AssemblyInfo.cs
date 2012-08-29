@@ -4,8 +4,8 @@ using System.Runtime.CompilerServices;
 // Information about this assembly is defined by the following attributes. 
 // Change them to the values specific to your project.
 
-[assembly: AssemblyTitle("CobraBinding")]
-[assembly: AssemblyDescription("")]
+[assembly: AssemblyTitle("MonoDevelop.CobraBinding")]
+[assembly: AssemblyDescription("Cobra language bindings for MonoDevelop")]
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("")]
 [assembly: AssemblyProduct("")]

@@ -4,6 +4,5 @@ CobraBinding/[Bb]in/
 *.pidb
 *.userprefs
 *.user
-*.dll
 *.pdb
 *.cache

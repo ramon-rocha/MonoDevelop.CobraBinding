@@ -3,6 +3,8 @@ Cobra Language Binding for MonoDevelop
 This is an addin for MonoDevelop that allows you to write, run, and debug programs written in the Cobra programming language.
 http://cobra-language.com/
 
+This is the 'cobra' branch of the addin and is a work in progress.  Build it using the included 'build' script.  After the initial build, you should be able to start from Step 3 of the normal compilation instructions and then start from Step 1 for subsequent builds as the addin will then be self-hosted.
+
 At present, this addin only works on the 3.0 series of MonoDevelop.
 
 

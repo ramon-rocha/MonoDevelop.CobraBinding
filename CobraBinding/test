@@ -1,0 +1,3 @@
+#!/bin/sh
+
+cobra -test -color:yes -ref:/usr/lib/monodevelop/bin/MonoDevelop.Core.dll -ref:/usr/lib/mono/4.0/System.Core.dll *.cobra

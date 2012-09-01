@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProductVersion>10.0.0</ProductVersion>
+    <SchemaVersion>2.0</SchemaVersion>
+    <ProjectGuid>{A8731E9F-30C7-43C3-944E-AC1215C54EBA}</ProjectGuid>
+    <OutputType>Library</OutputType>
+    <RootNamespace>MonoDevelop.CobraBinding</RootNamespace>
+    <UsePartialTypes>false</UsePartialTypes>
+    <AssemblyName>MonoDevelop.CobraBinding</AssemblyName>
+    <Description>This project provides the Cobra language binding addin for MonoDevelop.</Description>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <OutputPath>bin\Debug</OutputPath>
+    <ErrorReport>prompt</ErrorReport>
+    <ConsolePause>false</ConsolePause>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <DebugType>none</DebugType>
+    <OutputPath>bin\Release</OutputPath>
+    <ErrorReport>prompt</ErrorReport>
+    <ConsolePause>false</ConsolePause>
+  </PropertyGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="CobraBinding.addin.xml">
+      <LogicalName>CobraBinding.addin.xml</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="CobraSyntaxMode.xml">
+      <LogicalName>CobraSyntaxMode.xml</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="templates\ConsoleProject.xpt.xml">
+      <LogicalName>ConsoleProject.xpt.xml</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="templates\EmptyCobraFile.xft.xml">
+      <LogicalName>EmptyCobraFile.xft.xml</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="templates\EmptyProject.xpt.xml">
+      <LogicalName>EmptyProject.xpt.xml</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="templates\GtkSharp2Project.xpt.xml">
+      <LogicalName>GtkSharp2Project.xpt.xml</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="templates\LibraryProject.xpt.xml">
+      <LogicalName>LibraryProject.xpt.xml</LogicalName>
+    </EmbeddedResource>
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="templates\" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="AssemblyInfo.cs" />
+    <Compile Include="CobraLanguageBinding.cobra" />
+    <Compile Include="CobraCompilerParameters.cobra" />
+  </ItemGroup>
+  <ItemGroup>
+    <Reference Include="MonoDevelop.Core, Version=2.6.0.0, Culture=neutral">
+      <Private>False</Private>
+      <Package>monodevelop</Package>
+    </Reference>
+  </ItemGroup>
+</Project>

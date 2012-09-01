@@ -1,0 +1,135 @@
+use MonoDevelop.Projects
+use MonoDevelop.Core.Serialization
+
+namespace MonoDevelop.CobraBinding
+	
+	class CobraCompilerParameters inherits ConfigurationParameters
+		"""
+		This class is to be the backend to the controls displayed for the
+		Project Options window under the Build > Compiler section.	
+		"""
+
+		/#
+		#define symbols to be passed to the C# compiler. Cobra doesn't use
+		these but they are abstract in the base class so we need to
+		implement them.
+		#/
+		def addDefineSymbol(symbol as String?) is override
+			pass
+		
+		def removeDefineSymbol(symbol as String?) is override
+			pass
+
+		# TODO: non-boolean option values should come from local
+		# vars/constants instead of hardcoded literals
+
+		# Back-end Native Compiler Options
+		var _backEndCompiler = "none"
+			has ItemProperty("BackEnd", defaultValue = "none")		
+		
+		var _nativeCompiler = "auto"
+			has ItemProperty("NativeCompiler", defaultValue = "auto")				
+		
+		var _nativeCompilerArgs = ""
+			has ItemProperty("NativeCompilerArgs", defaultValue = "")
+
+		# Performance and Quality Options		
+		var _turbo = false
+			has ItemProperty("Turbo", defaultValue = false)
+				
+		var _contracts = "inline"
+			has ItemProperty("Contracts", defaultValue = "inline")
+			
+		var _includeAsserts = true
+			has ItemProperty("IncludeAsserts", defaultValue = true)
+			
+		var _includeNilChecks = true
+			has ItemProperty("IncludeNilChecks", defaultValue = true)
+			
+		var _includeTests = true
+			has ItemProperty("IncludeTests", defaultValue = true)
+			
+		var _includeTraces = true
+			has ItemProperty("IncludeTraces", defaultValue = true)
+			
+		var _optimize = true
+			has ItemProperty("Optimize", defaultValue = true)
+
+		#Development and Deployment Options
+		var _embedRunTime = false
+			has ItemProperty("EmbedRunTime", defaultValue = false)
+			
+		var _number = "decimal"
+			has ItemProperty("Number", defaultValue = "decimal")
+			
+		var _debug = "full"
+			has ItemProperty("Debug", defaultValue = "full")
+			
+		var _debuggingTips = true
+			has ItemProperty("DebuggingTips", defaultValue = true)
+			
+		var _keepIntermediateFiles = false
+			has ItemProperty("KeepIntermediateFiles", defaultValue = false)
+			
+		var _timeIt = false
+			has ItemProperty("TimeIt", defaultValue = false)
+			
+		var _verbosity = 0
+			has ItemProperty("Verbosity", defaultValue = 0)
+			
+		var _verbosityRef = 0
+			has ItemProperty("VerbosityRef", defaultValue = 0)
+
+		pro backEnd from _backEndCompiler
+			"""Which back-end to use"""
+
+		pro nativeCompiler from var
+			"""The path to the back-end native compiler"""
+		
+		pro nativeCompilerArgs from var
+			"""Additional arguments to pass to the native back-end compiler"""
+		
+		pro turbo from var
+			"""Maximize run-time performance (override -contracts param and others)"""
+		
+		pro contracts from var
+			"""Control treatment of code generation for contracts"""		
+
+		pro includeAsserts from var
+			"""Include assert statements in program"""		
+
+		pro includeNilChecks from var
+			"""Include checks on non-nilable vars, method args, and type casts"""
+		
+		pro includeTests from var
+			"""Include unit tests in the output assembly"""		
+
+		pro includeTraces from var
+			"""Include trace statements in the output assembly"""		
+
+		pro optimize from var
+			"""Enable optimizations"""
+		
+		pro embedRunTime from var
+			"""Embed the Cobra run-time support code in the assembly"""		
+
+		pro number from var
+			"""Set the real numeric type for 'number' types and factional literals"""
+		
+		pro debug from var
+			"""Turn on system debugging information"""
+
+		pro debuggingTips from var
+			"""Display debugging tips when an unhandled exception occurs"""		
+
+		pro keepIntermediateFiles from var
+			"""Keep any generated intermediate files (such as *.cobra.cs files)"""		
+
+		pro timeIt from var
+			"""Gives the total duration of running cobra and the target program"""		
+
+		pro verbosity from var
+			"""Enable extra output from Cobra"""		
+
+		pro verbosityRef from var
+			"""Enable extra output regarding resolution of references to libraries"""

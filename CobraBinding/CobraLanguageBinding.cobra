@@ -1,0 +1,216 @@
+use System.Xml
+use System.Text.RegularExpressions
+use System.CodeDom.Compiler
+
+use MonoDevelop.Core
+use MonoDevelop.Projects
+
+namespace MonoDevelop.CobraBinding
+
+	class CobraLanguageBinding implements IDotNetLanguageBinding
+	
+		test
+			binding = CobraLanguageBinding()
+			assert binding.language == "Cobra"
+			assert binding.singleLineCommentTag == "#"
+			assert binding.blockCommentStartTag == "/#"
+			assert binding.blockCommentEndTag == "#/"
+			assert binding.projectStockIcon == "md-project" #TODO: create a custom icon
+			assert ClrVersion.Net_2_0 in binding.getSupportedClrVersions
+			assert ClrVersion.Net_4_0 in binding.getSupportedClrVersions			
+			assert binding.getFileName("test") == "test.cobra"
+			assert binding.isSourceCodeFile(FilePath("test.cobra"))
+			assert not binding.isSourceCodeFile(FilePath("test.cs"))
+					
+		shared
+			var supportedClrVersions as ClrVersion[] = @[ ClrVersion.Net_2_0, ClrVersion.Net_4_0 ]
+			var languageName = "Cobra"
+			var sourceFileExtension = ".cobra"
+			
+		var _isWindows as bool
+		
+		cue init
+			base.init
+			_isWindows = Environment.osVersion.toString.startsWith("Microsoft Windows")
+		
+		get language as String
+			return CobraLanguageBinding.languageName
+			
+		get singleLineCommentTag as String
+			return "#"
+			
+		get blockCommentStartTag as String
+			return "/#"
+			
+		get blockCommentEndTag as String
+			return "#/"
+		
+		get projectStockIcon as String
+			return "md-project"
+			
+		def getSupportedClrVersions as ClrVersion[]
+			return CobraLanguageBinding.supportedClrVersions
+						
+		def getFileName(fileNameWithoutExtension as FilePath) as FilePath
+			return fileNameWithoutExtension.changeExtension(CobraLanguageBinding.sourceFileExtension)
+			
+		def getFileName(fileNameWithoutExtension as String) as String
+			return .getFileName(FilePath(fileNameWithoutExtension)).toString
+			
+		def isSourceCodeFile(fileName as FilePath) as bool
+			return fileName.extension == CobraLanguageBinding.sourceFileExtension
+			
+		def compile(items as ProjectItemCollection, configuration as DotNetProjectConfiguration,
+					configSelector as ConfigurationSelector, monitor as IProgressMonitor) as BuildResult
+			test
+				pass
+			body
+				compilerParams = configuration.compilationParameters to CobraCompilerParameters
+				#projParams = configuration.projectParameters to CobraProjectParameters
+
+				argsBuilder = StringBuilder("-compile")
+
+				argsBuilder.append(" -debug:")
+				argsBuilder.append(compilerParams.debug)
+
+				# references (add each one only once)
+				refs = HashSet<of String>()
+				pkgs = HashSet<of String>()
+
+				for projRef in items.getAll<of ProjectReference>
+					branch projRef.referenceType
+						on ReferenceType.Package
+							if pkgs.add(projRef.package.name)
+								argsBuilder.append(' -pkg:"[projRef.package.name]"')
+						else
+							for fileName in projRef.getReferencedFileNames(configSelector)
+								if refs.add(fileName)
+									argsBuilder.append(' -ref:"[fileName]"')
+
+				# what's the target assembly?
+				branch configuration.compileTarget
+					on CompileTarget.Exe
+						argsBuilder.append(" -target:exe")
+					on CompileTarget.Library
+						argsBuilder.append(" -target:lib")
+					on CompileTarget.WinExe
+						argsBuilder.append(" -target:winexe")
+					on CompileTarget.Module
+						argsBuilder.append(" -target:module")
+
+				# what will we call the generated assembly?
+				asmName = configuration.compiledOutputName
+				argsBuilder.append(' -out:"[asmName.fullPath]"')
+
+				# which files should we compile?
+				for projFile in items.getAll<of ProjectFile>
+					branch projFile.buildAction
+						on BuildAction.compile
+							argsBuilder.append(' "[projFile.name]"')
+
+				# create and setup the process which will execute the Cobra compiler
+				proc = System.Diagnostics.Process()
+
+				# if the user has specified the location of the compiler, use that
+				cobraExe = Environment.getEnvironmentVariable("COBRA_EXE")
+
+				if cobraExe is nil or cobraExe.length == 0
+					# the user has not specified the location of the compiler
+
+					if _isWindows
+						/#
+						On Windows we cannot rely on the cobra batch file being in the
+						path because we are not setting UseShellExecute to true.
+						This is because we need to redirect the standard output which
+						we couldn't do if we were executing this via the shell.	
+
+						See here for more info: http://msdn.microsoft.com/en-us/library/system.diagnostics.processstartinfo.useshellexecute.aspx
+						#/
+						cobraExe = "c:\\cobra\\bin\\cobra.bat"
+					else
+						# On a non-Windows based system, we'll rely on cobra being in the user's path
+						cobraExe = "cobra"
+
+				proc.startInfo.fileName = cobraExe
+
+				# use the project directory as the working directory unless it's not defined
+				try
+					proc.startInfo.workingDirectory = configuration.parentItem.baseDirectory.toString
+				catch
+					if _isWindows
+						proc.startInfo.workingDirectory = ".\\"
+					else
+						proc.startInfo.workingDirectory = "./"
+
+				proc.startInfo.arguments = argsBuilder.toString
+				proc.startInfo.useShellExecute = false # needs to be false so we can redirect output
+				proc.startInfo.redirectStandardOutput = true
+				proc.startInfo.redirectStandardError = true
+
+				trace proc.startInfo.arguments
+
+				proc.start
+				proc.waitForExit
+
+				# parse the compiler output
+				result = BuildResult()
+
+				lines = List<of String>()
+				lines.addRange(proc.standardError.readToEnd.split('\n'))
+				stdOut = proc.standardOutput.readToEnd
+				lines.addRange(stdOut.split('\n'))
+				if lines.count
+					/#
+					 examples:
+						foo.cobra(4): error: Cannot find "b". There is a member named ".memberwiseClone" with a similar name.
+						foo.cobra(4): warning: The value of variable "a" is never used.
+						foo.cobra(4,15): error: Expecting an expression.
+					regex testing:
+						 http://regexhero.net/tester/
+					#/
+					re = Regex(r"(?<fileName>[^\(]+)\((?<lineNum>\d+)(,(?<col>\d+))?\):(\s)+(?<msgType>error|warning):(\s)*(?<msg>[^\r]+)", RegexOptions.Compiled)
+					for line in lines
+						match = re.match(line)
+						if match.success
+							groups = match.groups
+							fileName = groups["fileName"].toString
+							lineNum = int.parse(groups["lineNum"].toString)
+							col = 0
+							if not int.tryParse(groups["col"].toString, out col)
+								col = 1
+							msgType = groups["msgType"].toString
+							msg = groups["msg"].toString
+							errNum = ""
+
+							if msgType == "error"
+								result.addError(fileName, lineNum, col, errNum, msg)
+							else
+								result.addWarning(fileName, lineNum, col, errNum, msg)
+
+						else if line.contains("error:")
+							result.addError(line)
+						else if line.contains("warning:")
+							result.addWarning(line)
+
+				result.compilerOutput = stdOut
+
+				return result
+
+		def createCompilationParameters(projectOptions as XmlElement?) as ConfigurationParameters
+			test
+				pass
+			body
+				return CobraCompilerParameters()
+			
+		def createProjectParameters(projectOptions as XmlElement?) as ProjectParameters
+			test
+				pass
+			body
+				return ProjectParameters()
+		
+		#TODO
+		def getCodeDomProvider as CodeDomProvider?
+			test
+				pass
+			body
+				return nil

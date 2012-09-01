@@ -1,0 +1,3 @@
+#!/bin/sh
+
+cobra -compile -color:yes -debug:full -pkg:monodevelop -ref:System.Core -sharp-args:"-res:\"CobraBinding.addin.xml,CobraBinding.addin.xml\" -res:\"CobraSyntaxMode.xml,CobraSyntaxMode.xml\" -res:\"templates/ConsoleProject.xpt.xml,ConsoleProject.xpt.xml\" -res:\"templates/EmptyCobraFile.xft.xml,EmptyCobraFile.xft.xml\" -res:\"templates/EmptyProject.xpt.xml,EmptyProject.xpt.xml\" -res:\"templates/GtkSharp2Project.xpt.xml,GtkSharp2Project.xpt.xml\" -res:\"templates/LibraryProject.xpt.xml,LibraryProject.xpt.xml\"" -target:lib -out:bin/Debug/MonoDevelop.CobraBinding.dll AssemblyInfo.cs CobraLanguageBinding.cobra CobraCompilerParameters.cobra

@@ -8,6 +8,26 @@ namespace MonoDevelop.CobraBinding.Project
 		This class is to be the backend to the controls displayed for the
 		Project Options window under the Build > Compiler section.	
 		"""
+		test defaults
+			p = CobraCompilerParameters()
+			assert p.backEnd == "none"
+			assert p.nativeCompiler == "auto"
+			assert p.nativeCompilerArgs.length == 0
+			assert not p.turbo
+			assert p.contracts == "inline"
+			assert p.includeAsserts
+			assert p.includeNilChecks
+			assert p.includeTests
+			assert p.includeTraces
+			assert p.optimize
+			assert not p.embedRunTime
+			assert p.number == "decimal"
+			assert p.debug == "full"
+			assert p.debuggingTips
+			assert not p.keepIntermediateFiles
+			assert not p.timeIt
+			assert p.verbosity == 0
+			assert p.verbosityRef == 0
 
 		/#
 		#define symbols to be passed to the C# compiler. Cobra doesn't use

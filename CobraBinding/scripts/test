@@ -2,5 +2,5 @@
 
 cd "$(dirname "$0")"
 cd refs
-cobra -test -ref:MonoDevelop.Core.dll -ref:System.Core.dll ../../*.cobra
+cobra -test -ref:MonoDevelop.Core.dll -ref:System.Core.dll ../../*.cobra ../../Project/*.cobra
 rm test-*

@@ -5,6 +5,8 @@ use System.CodeDom.Compiler
 use MonoDevelop.Core
 use MonoDevelop.Projects
 
+use MonoDevelop.CobraBinding.Project
+
 namespace MonoDevelop.CobraBinding
 
 	class CobraLanguageBinding implements IDotNetLanguageBinding

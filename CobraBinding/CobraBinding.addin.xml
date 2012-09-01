@@ -55,7 +55,7 @@
 	</Extension>
 	
 	<Extension path = "/MonoDevelop/ProjectModel/SerializableClasses">
-		<DataType class = "MonoDevelop.CobraBinding.CobraCompilerParameters" />
+		<DataType class = "MonoDevelop.CobraBinding.Project.CobraCompilerParameters" />
 	</Extension>
 	
 	<Extension path = "/MonoDevelop/SourceEditor2/SyntaxModes">

@@ -8,22 +8,22 @@
     <ProjectGuid>{A8731E9F-30C7-43C3-944E-AC1215C54EBA}</ProjectGuid>
     <OutputType>Library</OutputType>
     <RootNamespace>MonoDevelop.CobraBinding</RootNamespace>
-    <UsePartialTypes>false</UsePartialTypes>
+    <UsePartialTypes>False</UsePartialTypes>
     <AssemblyName>MonoDevelop.CobraBinding</AssemblyName>
     <Description>This project provides the Cobra language binding addin for MonoDevelop.</Description>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
-    <DebugSymbols>true</DebugSymbols>
+    <DebugSymbols>True</DebugSymbols>
     <DebugType>full</DebugType>
     <OutputPath>bin\Debug</OutputPath>
     <ErrorReport>prompt</ErrorReport>
-    <ConsolePause>false</ConsolePause>
+    <ConsolePause>False</ConsolePause>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugType>none</DebugType>
     <OutputPath>bin\Release</OutputPath>
     <ErrorReport>prompt</ErrorReport>
-    <ConsolePause>false</ConsolePause>
+    <ConsolePause>False</ConsolePause>
   </PropertyGroup>
   <ItemGroup>
     <EmbeddedResource Include="CobraBinding.addin.xml">
@@ -50,11 +50,12 @@
   </ItemGroup>
   <ItemGroup>
     <Folder Include="templates\" />
+    <Folder Include="Project\" />
   </ItemGroup>
   <ItemGroup>
     <Compile Include="AssemblyInfo.cs" />
     <Compile Include="CobraLanguageBinding.cobra" />
-    <Compile Include="CobraCompilerParameters.cobra" />
+    <Compile Include="Project\CobraCompilerParameters.cobra" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="MonoDevelop.Core, Version=2.6.0.0, Culture=neutral">

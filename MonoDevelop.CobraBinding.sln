@@ -191,6 +191,20 @@ Global
 		$32.NamingStyle = PascalCase
 		$32.IncludeInstanceMembers = True
 		$32.IncludeStaticEntities = True
+		$0.TextStylePolicy = $34
+		$34.inheritsSet = null
+		$34.scope = text/x-csharp
+		$0.CSharpFormattingPolicy = $35
+		$35.BeforeMethodDeclarationParentheses = False
+		$35.BeforeMethodCallParentheses = False
+		$35.BeforeConstructorDeclarationParentheses = False
+		$35.BeforeIndexerDeclarationBracket = False
+		$35.BeforeDelegateDeclarationParentheses = False
+		$35.NewParentheses = False
+		$35.SpacesBeforeBrackets = False
+		$35.inheritsSet = Mono
+		$35.inheritsScope = text/x-csharp
+		$35.scope = text/x-csharp
 		description = This solution provides support for developing programs using the Cobra programming language on MonoDevelop.
 	EndGlobalSection
 EndGlobal

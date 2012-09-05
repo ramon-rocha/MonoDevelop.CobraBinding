@@ -353,7 +353,7 @@ namespace MonoDevelop.CobraBinding.Gui
 			this.frameDevDeployOptions.Add (this.alignDevDeployOptions);
 			this.labelDevDepolyOptions = new global::Gtk.Label ();
 			this.labelDevDepolyOptions.Name = "labelDevDepolyOptions";
-			this.labelDevDepolyOptions.LabelProp = global::Mono.Unix.Catalog.GetString ("<b>Development and Delpoyment Options</b>");
+			this.labelDevDepolyOptions.LabelProp = global::Mono.Unix.Catalog.GetString ("<b>Development and Deployment Options</b>");
 			this.labelDevDepolyOptions.UseMarkup = true;
 			this.frameDevDeployOptions.LabelWidget = this.labelDevDepolyOptions;
 			this.vboxTop.Add (this.frameDevDeployOptions);
@@ -462,7 +462,7 @@ namespace MonoDevelop.CobraBinding.Gui
 			if ((this.Child != null)) {
 				this.Child.ShowAll ();
 			}
-			this.Hide ();
+			this.Show ();
 		}
 	}
 }

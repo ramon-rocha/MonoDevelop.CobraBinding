@@ -3,7 +3,7 @@ Cobra Language Binding for MonoDevelop
 This is an addin for MonoDevelop that allows you to write, run, and debug programs written in the Cobra programming language.
 http://cobra-language.com/
 
-This is the 'cobra' branch of the addin and is a work in progress.  Build it using the included 'build' script.  After the initial build, you should be able to start from Step 3 of the normal compilation instructions and then start from Step 1 for subsequent builds as the addin will then be self-hosted.
+This is the 'cobra' branch of the addin and is a work in progress.
 
 At present, this addin only works on the 3.0 series of MonoDevelop.
 
@@ -11,20 +11,16 @@ At present, this addin only works on the 3.0 series of MonoDevelop.
 To Compile and Use
 ------------------
 
-1) Open the solution file in MonoDevelop 3.0
+This addin is mostly developed on Ubuntu 12.04 LTS using MonoDevelop 3.0 from this PPA: https://launchpad.net/~keks9n/+archive/monodevelop-latest
+I haven't been able to compile successfully on Windows yet so these instructions apply to Ubuntu.
 
-- This Addin is developed on Ubuntu.  To compile on Windows, you'll need to re-establish the reference to the MonoDevelop.Core assembly by expanding 'References' and right-clicking on MonoDevelop.Core and selecting 'Delete.'  If you're not compiling on Windows, just proceed to Step 2.
+1) Open the solution file in MonoDevelop 3.X
 
-- Next, right-click on 'References' and select 'Edit References...'
+2) Build the 'Gui' project and then exit MonoDevelop. This will generate MonoDevelop.CobraBinding.Gui.dll in the Gui/bin/Debug folder.  Do not attempt to build the 'CobraBinding' project since it's written in Cobra and you need the addin to compile Cobra code from MonoDevelop.  The 'Gui' project is written in C# to utilize the existing design tools.
 
-- On the '.Net Assembly' tab, navigate to the location where MonoDevelop is installed and select
-the MonoDevelop.Core.dll assembly under the bin folder (e.g. C:\Program Files (x86)\MonoDevelop\bin\MonoDevelop.Core.dll).
+3) Next, from the command line, change into the CobraBinding directory and execute ./scripts/build.  This will generate an assembly called MonoDevelop.CobraBinding.dll in the CobraBinding/bin/Debug folder.
 
-- Be sure to click the 'Add' button before clicking 'OK.'
-
-2) Select Build > Build All.  This will generate a MonoDevelop.CobraBinding.dll assembly file in CobraBinding/bin/Debug.
-
-3) Copy MonoDevelop.CobraBinding.dll to the MonoDevelop addins folder. This location depends on your operating system.
+3) Copy both generated assemblies to the MonoDevelop addins folder. This location depends on your operating system.
 
 - Ubuntu : ~/.local/share/MonoDevelop-3.0/LocalInstall/Addins
 
@@ -57,12 +53,17 @@ Larger Todo Tasks
 -----------------
 These will require a bit more effort...
 
-* Proper handling for project options and compiler configuration.
+* Proper handling for project options and compiler configuration. (in progress)
 
-* Parser, Autocompletion, code formatting, code folding, etc.
+* Folding Parser
 
-* Rewrite it in Cobra! This one will actually be easy once the other tasks are done ;)
+* Type System Parser
 
+* Code Completion
+
+* Code Formatter
+
+* Ambience class for tool tips
 
 Relevant Documentation
 ----------------------
@@ -81,9 +82,9 @@ Reference Implementations for other Languages
 ---------------------------------------------
 These are examples of existing language bindings for MonoDevelop.
 
-https://github.com/fsharp/fsharpbinding
-
 https://github.com/mono/monodevelop/tree/master/main/src/addins/CSharpBinding
+
+https://github.com/fsharp/fsharpbinding
 
 https://github.com/aBothe/Mono-D/tree/master/MonoDevelop.DBinding
 

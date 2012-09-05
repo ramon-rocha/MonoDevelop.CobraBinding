@@ -13,6 +13,7 @@
 	
 	<RunTime>
 		<Import assembly="MonoDevelop.CobraBinding.dll" />
+		<Import assembly="MonoDevelop.CobraBinding.Gui.dll" />
 	</RunTime>
 	
 	<Dependencies>
@@ -58,8 +59,14 @@
 		<DataType class = "MonoDevelop.CobraBinding.Project.CobraCompilerParameters" />
 	</Extension>
 	
+	<Extension path = "/MonoDevelop/ProjectModel/Gui/ItemOptionPanels/Build/Compiler">
+		<Condition id="ActiveLanguage" value="Cobra">
+			<Panel id="CompilerBuildOptionsPanel" _label="Compiler" class="MonoDevelop.CobraBinding.Project.CompilerBuildOptionsPanel" />
+		</Condition>
+	</Extension>
+
 	<Extension path = "/MonoDevelop/SourceEditor2/SyntaxModes">
 		<Templates resource="CobraSyntaxMode.xml" />
 	</Extension>
 	
-</Addin>		
+</Addin>

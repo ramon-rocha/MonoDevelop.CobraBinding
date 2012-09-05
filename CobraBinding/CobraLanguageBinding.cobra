@@ -82,7 +82,7 @@ namespace MonoDevelop.CobraBinding
 				/#
 				Workaround an issue where some System.Core types from .NET 4.0 cannot
 				be resolved without an explicit reference.  The irony is that HashSet
-				is one those that cannot be resolved :)
+				is one of those that cannot be resolved :)
 				
 				This issue seems to only exist on Mono. We shouldn't check to see if
 				we should only include this workaround on non-Windows systems because
@@ -224,7 +224,11 @@ namespace MonoDevelop.CobraBinding
 
 		def createCompilationParameters(projectOptions as XmlElement?) as ConfigurationParameters
 			test
-				pass
+				binding = CobraLanguageBinding()
+				compilerParams = binding.createCompilationParameters(nil)
+				assert compilerParams.getType == CobraCompilerParameters
+				assert (compilerParams to CobraCompilerParameters).performanceQualityOption == _
+						CobraCompilerParameters.PerfQualOption.Default
 			body
 				return CobraCompilerParameters()
 			

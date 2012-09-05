@@ -21,13 +21,31 @@ namespace MonoDevelop.CobraBinding.Project
 			assert p.includeTraces
 			assert p.optimize
 			assert not p.embedRunTime
-			assert p.number == "decimal"
 			assert p.debug == "full"
 			assert p.debuggingTips
 			assert not p.keepIntermediateFiles
-			assert not p.timeIt
-			assert p.verbosity == 0
-			assert p.verbosityRef == 0
+			assert p.cobraArgs.length == 0
+			
+		enum PerfQualOption
+			Default
+			Turbo
+			Custom
+			
+		enum ContractOption
+			Inline
+			Methods
+			None
+			
+		enum DebugOption
+			Full
+			PdbOnly
+			Off
+			
+		enum BackEndOption
+			None
+			Clr
+			Jvm
+			ObjC
 
 		/#
 		#define symbols to be passed to the C# compiler. Cobra doesn't use
@@ -43,17 +61,10 @@ namespace MonoDevelop.CobraBinding.Project
 		# TODO: non-boolean option values should come from local
 		# vars/constants instead of hardcoded literals
 
-		# Back-end Native Compiler Options
-		var _backEndCompiler = "none"
-			has ItemProperty("BackEnd", defaultValue = "none")		
+		# Performance and Quality Options
+		var _performanceQualityOption = PerfQualOption.Default
+			has ItemProperty("PerformanceQualityOption", defaultValue = PerfQualOption.Default)
 		
-		var _nativeCompiler = "auto"
-			has ItemProperty("NativeCompiler", defaultValue = "auto")				
-		
-		var _nativeCompilerArgs = ""
-			has ItemProperty("NativeCompilerArgs", defaultValue = "")
-
-		# Performance and Quality Options		
 		var _turbo = false
 			has ItemProperty("Turbo", defaultValue = false)
 				
@@ -79,9 +90,6 @@ namespace MonoDevelop.CobraBinding.Project
 		var _embedRunTime = false
 			has ItemProperty("EmbedRunTime", defaultValue = false)
 			
-		var _number = "decimal"
-			has ItemProperty("Number", defaultValue = "decimal")
-			
 		var _debug = "full"
 			has ItemProperty("Debug", defaultValue = "full")
 			
@@ -91,23 +99,22 @@ namespace MonoDevelop.CobraBinding.Project
 		var _keepIntermediateFiles = false
 			has ItemProperty("KeepIntermediateFiles", defaultValue = false)
 			
-		var _timeIt = false
-			has ItemProperty("TimeIt", defaultValue = false)
-			
-		var _verbosity = 0
-			has ItemProperty("Verbosity", defaultValue = 0)
-			
-		var _verbosityRef = 0
-			has ItemProperty("VerbosityRef", defaultValue = 0)
+		var _cobraArgs = ""
+			has ItemProperty("CobraArgs", defaultValue = "")
 
-		pro backEnd from _backEndCompiler
-			"""Which back-end to use"""
-
-		pro nativeCompiler from var
-			"""The path to the back-end native compiler"""
+		# Back-end Native Compiler Options
+		var _backEndCompiler = "none"
+			has ItemProperty("BackEnd", defaultValue = "none")
 		
-		pro nativeCompilerArgs from var
-			"""Additional arguments to pass to the native back-end compiler"""
+		var _nativeCompiler = "auto"
+			has ItemProperty("NativeCompiler", defaultValue = "auto")
+		
+		var _nativeCompilerArgs = ""
+			has ItemProperty("NativeCompilerArgs", defaultValue = "")
+
+
+		pro performanceQualityOption from var
+			"""Which radio button is selected for the 'Performance and Quality' section"""
 		
 		pro turbo from var
 			"""Maximize run-time performance (override -contracts param and others)"""
@@ -133,9 +140,6 @@ namespace MonoDevelop.CobraBinding.Project
 		pro embedRunTime from var
 			"""Embed the Cobra run-time support code in the assembly"""		
 
-		pro number from var
-			"""Set the real numeric type for 'number' types and factional literals"""
-		
 		pro debug from var
 			"""Turn on system debugging information"""
 
@@ -145,11 +149,14 @@ namespace MonoDevelop.CobraBinding.Project
 		pro keepIntermediateFiles from var
 			"""Keep any generated intermediate files (such as *.cobra.cs files)"""		
 
-		pro timeIt from var
-			"""Gives the total duration of running cobra and the target program"""		
+		pro cobraArgs from var
+			"""Misc. arguments to the Cobra compiler"""
+			
+		pro backEnd from _backEndCompiler
+			"""Which back-end to use"""
 
-		pro verbosity from var
-			"""Enable extra output from Cobra"""		
-
-		pro verbosityRef from var
-			"""Enable extra output regarding resolution of references to libraries"""
+		pro nativeCompiler from var
+			"""The path to the back-end native compiler"""
+		
+		pro nativeCompilerArgs from var
+			"""Additional arguments to pass to the native back-end compiler"""

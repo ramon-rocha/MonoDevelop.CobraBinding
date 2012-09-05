@@ -9,7 +9,6 @@
   </import>
   <widget class="Gtk.Bin" id="MonoDevelop.CobraBinding.Gui.CompilerBuildOptionsPanelWidget" design-size="488 403">
     <property name="MemberName" />
-    <property name="Visible">False</property>
     <child>
       <widget class="Gtk.VBox" id="vboxTop">
         <property name="MemberName" />
@@ -233,7 +232,6 @@ None</property>
                         <property name="MemberName" />
                         <property name="CanFocus">True</property>
                         <property name="Label" translatable="yes">Custom</property>
-                        <property name="Active">True</property>
                         <property name="DrawIndicator">True</property>
                         <property name="HasLabel">True</property>
                         <property name="UseUnderline">True</property>
@@ -258,6 +256,7 @@ None</property>
                         <property name="MemberName" />
                         <property name="CanFocus">True</property>
                         <property name="Label" translatable="yes">Default</property>
+                        <property name="Active">True</property>
                         <property name="DrawIndicator">True</property>
                         <property name="HasLabel">True</property>
                         <property name="UseUnderline">True</property>
@@ -506,7 +505,7 @@ Off</property>
             <child>
               <widget class="Gtk.Label" id="labelDevDepolyOptions">
                 <property name="MemberName" />
-                <property name="LabelProp" translatable="yes">&lt;b&gt;Development and Delpoyment Options&lt;/b&gt;</property>
+                <property name="LabelProp" translatable="yes">&lt;b&gt;Development and Deployment Options&lt;/b&gt;</property>
                 <property name="UseMarkup">True</property>
               </widget>
               <packing>

@@ -2,5 +2,5 @@
 
 cd "$(dirname "$0")"
 cd refs
-cobra -test -ref:MonoDevelop.Core.dll -ref:System.Core.dll ../../*.cobra ../../Project/*.cobra
+cobra -test -pkg:gtk-sharp-2.0 -ref:System.Core ../../*.cobra ../../Project/*.cobra
 rm test-*

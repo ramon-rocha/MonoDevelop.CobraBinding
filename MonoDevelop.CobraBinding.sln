@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 11.00
 # Visual Studio 2010
 Project("{0A906CA0-EF87-4D08-9CA7-C8380245B3FF}") = "CobraBinding", "CobraBinding\CobraBinding.cobraproj", "{A8731E9F-30C7-43C3-944E-AC1215C54EBA}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Gui", "..\..\..\Dropbox\workspaces\personal\md_projects\MonoDevelop.CobraBinding\Gui\Gui.csproj", "{7D98CD3C-517C-4DA0-BC14-DD7A276516B6}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Gui", "Gui\Gui.csproj", "{7D98CD3C-517C-4DA0-BC14-DD7A276516B6}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

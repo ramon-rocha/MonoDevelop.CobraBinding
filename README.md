@@ -20,7 +20,7 @@ I haven't been able to compile successfully on Windows yet so these instructions
 
 3) Next, from the command line, change into the CobraBinding directory and execute ./scripts/build.  This will generate an assembly called MonoDevelop.CobraBinding.dll in the CobraBinding/bin/Debug folder.
 
-3) Copy both generated assemblies to the MonoDevelop addins folder. This location depends on your operating system.
+4) Copy both generated assemblies to the MonoDevelop addins folder. This location depends on your operating system.
 
 - Ubuntu : ~/.local/share/MonoDevelop-3.0/LocalInstall/Addins
 
@@ -30,7 +30,7 @@ I haven't been able to compile successfully on Windows yet so these instructions
 
 If any folders do not exist, you should create them manually.
 
-4) Restart MonoDevelop and you should now have a "Cobra" section when creating a new project/solution.
+5) Restart MonoDevelop and you should now have a "Cobra" section when creating a new project/solution.
 
 
 Contributing

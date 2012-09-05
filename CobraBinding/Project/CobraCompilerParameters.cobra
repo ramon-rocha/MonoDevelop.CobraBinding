@@ -190,3 +190,132 @@ namespace MonoDevelop.CobraBinding.Project
 		
 		pro nativeCompilerArgs from var
 			"""Additional arguments to pass to the native back-end compiler"""
+
+		def createCmdLinArgs as String
+			"""Returns a string for the various properties suitable for passing to the Cobra compiler as arguments"""
+			return .createCmdLineArgs(true, true, true)
+
+		def createCmdLineArgs(perfQual, devDeploy, backEnd) as String
+			test PQ_Options
+				p = CobraCompilerParameters()
+				assert p.createCmdLineArgs(true, false, false).length == 0
+				
+				p.turbo = true
+				assert p.createCmdLineArgs(true, false, false) == " -turbo"
+				
+				p.performanceQualityOption = PerfQualOption.Custom
+				assert p.createCmdLineArgs(true, false, false).length > " -turbo".length
+
+			test DD_Options
+				p = CobraCompilerParameters()
+				assert not p.createCmdLineArgs(false, true, false).contains("-ert:true")
+				
+				p.embedRunTime = true
+				assert p.createCmdLineArgs(false, true, false).contains("-ert:true")
+				
+				p.debug = "hamsandwich"
+				assert p.createCmdLineArgs(false, true, false).contains("-debug:hamsandwich")
+				
+				p.debuggingTips = false
+				assert not p.createCmdLineArgs(false, true, false).contains("-debugging-tips:true")
+				
+				p.debuggingTips = true
+				assert p.createCmdLineArgs(false, true, false).contains("-debugging-tips:true")
+				
+				p.keepIntermediateFiles = false
+				assert not p.createCmdLineArgs(false, true, false).contains("-kif:true")
+				
+				p.keepIntermediateFiles = true
+				assert p.createCmdLineArgs(false, true, false).contains("-kif:true")
+				
+				p.cobraArgs = "-verbosity:1"
+				assert p.createCmdLineArgs(false, true, false).contains(" -verbosity:1")
+				p.cobraArgs = "foobar"
+				assert p.createCmdLineArgs(false, true, false).contains(" -foobar")
+
+			test BE_Options
+				p = CobraCompilerParameters()
+				assert p.createCmdLineArgs(false, false, true).length == 0
+
+				p.backEnd = "jvm"
+				assert p.createCmdLineArgs(false, false, true) == " -back-end:jvm"
+
+				p.nativeCompiler = "/path/to/javac"
+				assert p.createCmdLineArgs(false, false, true).contains(' -native-compiler:"/path/to/javac"')
+
+				p.nativeCompiler = r"c:\path\to\javac.exe"
+				trace p.nativeCompiler
+				assert p.createCmdLineArgs(false, false, true).contains(r' -native-compiler:"c:\path\to\javac.exe"')
+				trace p.createCmdLineArgs(false, false, true)
+
+				p.nativeCompilerArgs = "foo bar "
+				assert p.createCmdLineArgs(false, false, true).contains(' -native-compiler-args:"foo bar"')
+				
+			body
+				# the input parameters just make it easier to test this...
+				argsBuilder = StringBuilder()
+				if perfQual, argsBuilder.append(_createPerfQualCmdLineArgs)
+				if devDeploy, argsBuilder.append(_createDevDeployCmdLineArgs)
+				if backEnd, argsBuilder.append(_createBackEndCmdLineArgs)
+				return argsBuilder.toString
+
+		def _createPerfQualCmdLineArgs as String
+			ensure
+				(_performanceQualityOption == PerfQualOption.Default) implies result.length == 0
+				(_performanceQualityOption == PerfQualOption.Turbo) implies result == " -turbo"
+				(_performanceQualityOption == PerfQualOption.Custom) implies result.length > " -turbo".length
+			body
+				if _performanceQualityOption == PerfQualOption.Default
+					return ""
+
+				if _performanceQualityOption == PerfQualOption.Turbo
+					return " -turbo"
+
+				sb = StringBuilder()
+				sb.append(" -contracts:[_contracts]")
+				sb.append(" -include-asserts:[_includeAsserts]")
+				sb.append(" -include-nil-checks:[_includeNilChecks]")
+				sb.append(" -include-tests:[_includeTests]")
+				sb.append(" -include-traces:[_includeTraces]")
+				sb.append(" -optimize:[_optimize]")
+				return sb.toString
+
+		def _createDevDeployCmdLineArgs as String
+			ensure
+				result.contains("-ert:[.embedRunTime]")
+				result.contains("debug:[.debug]")
+				result.contains("debugging-tips:[.debuggingTips]")
+				result.contains("kif:[.keepIntermediateFiles]")
+				_cobraArgs.trim.length implies result.contains(_cobraArgs.trim)
+			body
+				sb = StringBuilder()
+				sb.append(" -ert:[_embedRunTime]")
+				sb.append(" -debug:[_debug]")
+				sb.append(" -debugging-tips:[_debuggingTips]")
+				sb.append(" -kif:[_keepIntermediateFiles]")
+				
+				args = .cobraArgs.trim
+				if args.length
+					if not args.startsWith("-")
+						args = "-" + args
+						
+					sb.append(" [args]")
+					
+				return sb.toString
+
+		def _createBackEndCmdLineArgs as String
+			ensure
+				(_backEndCompiler <> "none") implies result.contains(" -back-end:[_backEndCompiler]")
+				(_nativeCompiler <> "auto") implies result.contains(' -native-compiler:"[_nativeCompiler]"')
+				_nativeCompilerArgs.trim.length implies result.contains(' -native-compiler-args:"[_nativeCompilerArgs.trim]"')
+			body
+				sb = StringBuilder()
+				
+				if _backEndCompiler <> "none"
+					sb.append(" -back-end:[_backEndCompiler]")
+				if _nativeCompiler <> "auto"
+					sb.append(' -native-compiler:"[_nativeCompiler]"')
+				if _nativeCompilerArgs.trim.length
+					sb.append(' -native-compiler-args:"[_nativeCompilerArgs.trim]"')
+					
+				return sb.toString

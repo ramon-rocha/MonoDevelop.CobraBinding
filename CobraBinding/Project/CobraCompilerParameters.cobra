@@ -25,6 +25,25 @@ namespace MonoDevelop.CobraBinding.Project
 			assert p.debuggingTips
 			assert not p.keepIntermediateFiles
 			assert p.cobraArgs.length == 0
+
+		test PerformanceQualityOptions
+			p = CobraCompilerParameters()
+			assert p.performanceQualityOption == PerfQualOption.Default
+			p.performanceQualityOption = PerfQualOption.Turbo
+			assert p.turbo
+			# just setting turbo doesn't overwrite the individual properties
+			assert p.contracts == "inline"
+			assert p.includeAsserts
+			p.contracts = "methods"
+			assert p.turbo
+			p.performanceQualityOption = PerfQualOption.Custom
+			assert not p.turbo
+			assert p.contracts == "methods"
+			assert p.includeAsserts
+			p.turbo = true
+			assert p.performanceQualityOption == PerfQualOption.Turbo
+			assert p.contracts == "methods"
+			assert p.includeAsserts
 			
 		enum PerfQualOption
 			Default
@@ -113,11 +132,22 @@ namespace MonoDevelop.CobraBinding.Project
 			has ItemProperty("NativeCompilerArgs", defaultValue = "")
 
 
-		pro performanceQualityOption from var
+		pro performanceQualityOption
 			"""Which radio button is selected for the 'Performance and Quality' section"""
+			get
+				return _performanceQualityOption
+			set
+				_performanceQualityOption = value
+				_turbo = value == PerfQualOption.Turbo
 		
-		pro turbo from var
+		pro turbo
 			"""Maximize run-time performance (override -contracts param and others)"""
+			get
+				return _turbo
+			set
+				_turbo = value
+				if _turbo
+					_performanceQualityOption = PerfQualOption.Turbo
 		
 		pro contracts from var
 			"""Control treatment of code generation for contracts"""		

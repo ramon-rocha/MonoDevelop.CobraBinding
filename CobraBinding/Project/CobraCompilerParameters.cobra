@@ -5,8 +5,8 @@ namespace MonoDevelop.CobraBinding.Project
 	
 	class CobraCompilerParameters inherits ConfigurationParameters
 		"""
-		This class is to be the backend to the controls displayed for the
-		Project Options window under the Build > Compiler section.	
+		This class is the backend to the controls displayed for the
+		Project Options window under the Build > Compiler section.
 		"""
 		test defaults
 			p = CobraCompilerParameters()
@@ -198,58 +198,58 @@ namespace MonoDevelop.CobraBinding.Project
 		def createCmdLineArgs(perfQual, devDeploy, backEnd) as String
 			test PQ_Options
 				p = CobraCompilerParameters()
-				assert p.createCmdLineArgs(true, false, false).length == 0
+				assert p.createCmdLineArgs(1, 0, 0).length == 0
 				
 				p.turbo = true
-				assert p.createCmdLineArgs(true, false, false) == " -turbo"
+				assert p.createCmdLineArgs(1, 0, 0) == " -turbo"
 				
 				p.performanceQualityOption = PerfQualOption.Custom
-				assert p.createCmdLineArgs(true, false, false).length > " -turbo".length
+				assert p.createCmdLineArgs(1, 0, 0).length > " -turbo".length
 
 			test DD_Options
 				p = CobraCompilerParameters()
-				assert not p.createCmdLineArgs(false, true, false).contains("-ert:true")
+				assert not p.createCmdLineArgs(0, 1, 0).contains("-ert:true")
 				
 				p.embedRunTime = true
-				assert p.createCmdLineArgs(false, true, false).contains("-ert:true")
+				assert p.createCmdLineArgs(0, 1, 0).contains("-ert:true")
 				
 				p.debug = "hamsandwich"
-				assert p.createCmdLineArgs(false, true, false).contains("-debug:hamsandwich")
+				assert p.createCmdLineArgs(0, 1, 0).contains("-debug:hamsandwich")
 				
 				p.debuggingTips = false
-				assert not p.createCmdLineArgs(false, true, false).contains("-debugging-tips:true")
+				assert not p.createCmdLineArgs(0, 1, 0).contains("-debugging-tips:true")
 				
 				p.debuggingTips = true
-				assert p.createCmdLineArgs(false, true, false).contains("-debugging-tips:true")
+				assert p.createCmdLineArgs(0, 1, 0).contains("-debugging-tips:true")
 				
 				p.keepIntermediateFiles = false
-				assert not p.createCmdLineArgs(false, true, false).contains("-kif:true")
+				assert not p.createCmdLineArgs(0, 1, 0).contains("-kif:true")
 				
 				p.keepIntermediateFiles = true
-				assert p.createCmdLineArgs(false, true, false).contains("-kif:true")
+				assert p.createCmdLineArgs(0, 1, 0).contains("-kif:true")
 				
 				p.cobraArgs = "-verbosity:1"
-				assert p.createCmdLineArgs(false, true, false).contains(" -verbosity:1")
+				assert p.createCmdLineArgs(0, 1, 0).contains(" -verbosity:1")
 				p.cobraArgs = "foobar"
-				assert p.createCmdLineArgs(false, true, false).contains(" -foobar")
+				assert p.createCmdLineArgs(0, 1, 0).contains(" -foobar")
 
 			test BE_Options
 				p = CobraCompilerParameters()
-				assert p.createCmdLineArgs(false, false, true).length == 0
+				assert p.createCmdLineArgs(0, 0, 1).length == 0
 
 				p.backEnd = "jvm"
-				assert p.createCmdLineArgs(false, false, true) == " -back-end:jvm"
+				assert p.createCmdLineArgs(0, 0, 1) == " -back-end:jvm"
 
 				p.nativeCompiler = "/path/to/javac"
-				assert p.createCmdLineArgs(false, false, true).contains(' -native-compiler:"/path/to/javac"')
+				assert p.createCmdLineArgs(0, 0, 1).contains(' -native-compiler:"/path/to/javac"')
 
 				p.nativeCompiler = r"c:\path\to\javac.exe"
 				trace p.nativeCompiler
-				assert p.createCmdLineArgs(false, false, true).contains(r' -native-compiler:"c:\path\to\javac.exe"')
-				trace p.createCmdLineArgs(false, false, true)
+				assert p.createCmdLineArgs(0, 0, 1).contains(r' -native-compiler:"c:\path\to\javac.exe"')
+				trace p.createCmdLineArgs(0, 0, 1)
 
 				p.nativeCompilerArgs = "foo bar "
-				assert p.createCmdLineArgs(false, false, true).contains(' -native-compiler-args:"foo bar"')
+				assert p.createCmdLineArgs(0, 0, 1).contains(' -native-compiler-args:"foo bar"')
 				
 			body
 				# the input parameters just make it easier to test this...
@@ -306,7 +306,9 @@ namespace MonoDevelop.CobraBinding.Project
 		def _createBackEndCmdLineArgs as String
 			ensure
 				(_backEndCompiler <> "none") implies result.contains(" -back-end:[_backEndCompiler]")
+				(_backEndCompiler == "none") implies not result.contains("-back-end:")
 				(_nativeCompiler <> "auto") implies result.contains(' -native-compiler:"[_nativeCompiler]"')
+				(_nativeCompiler == "auto") implies not result.contains("-native-compiler:")
 				_nativeCompilerArgs.trim.length implies result.contains(' -native-compiler-args:"[_nativeCompilerArgs.trim]"')
 			body
 				sb = StringBuilder()

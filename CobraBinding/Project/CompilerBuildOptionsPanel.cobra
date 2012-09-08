@@ -10,7 +10,8 @@ namespace MonoDevelop.CobraBinding.Project
 		"""
 		This class is responsible for creating and setting up the
 		panel widget for the Project > Options > Build > Compiler
-		panel.  It also saves and loads the data.
+		panel.  It also saves and loads the data to and from the
+		backend CobraCompilerParameters instance(s).
 		"""
 	
 		var _widget as CompilerBuildOptionsPanelWidget
@@ -36,6 +37,9 @@ namespace MonoDevelop.CobraBinding.Project
 			
 			
 		def _onToggledPerfQualDefault(sender as Object, args as EventArgs)
+			"""
+			Handles the "Default" Performance/Quality radio button.
+			"""
 			if _widget.perfQualDefaultRadioButton.active
 				_widget.contractsComboBox.active = CobraCompilerParameters.ContractOption.Inline to int
 				_widget.includeAssertsCheckButton.active = true
@@ -47,6 +51,9 @@ namespace MonoDevelop.CobraBinding.Project
 			
 			
 		def _onToggledPerfQualTurbo(sender as Object, args as EventArgs)
+			"""
+			Handles the "Turbo" Performance/Quality radio button.
+			"""
 			if _widget.perfQualTurboRadioButton.active
 				_widget.contractsComboBox.active = CobraCompilerParameters.ContractOption.None to int
 				_widget.includeAssertsCheckButton.active = false
@@ -58,6 +65,9 @@ namespace MonoDevelop.CobraBinding.Project
 			
 		
 		def _onToggledPerfQualCustom(sender as Object, args as EventArgs)
+			"""
+			Handles the "Custom" Performance/Quality radio button.
+			"""
 			if _widget.perfQualCustomRadioButton.active
 				_enablePerfQualOptions
 				
@@ -68,6 +78,9 @@ namespace MonoDevelop.CobraBinding.Project
 			
 			
 		def _loadPerfQualCustomData(compilerParams as CobraCompilerParameters)
+			"""
+			Helper function to the "Custom" Performance/Quality radio button handler.
+			"""
 			branch compilerParams.contracts
 				on "inline"
 					_widget.contractsComboBox.active = _
@@ -87,6 +100,10 @@ namespace MonoDevelop.CobraBinding.Project
 			
 			
 		def _disablePerfQualOptions
+			"""
+			Disables widgets on the panel that are overriden by selecting the "Default"
+			or "Turbo" Performance/Quality radio buttons.
+			"""
 			_widget.contractsLabel.sensitive = false
 			_widget.contractsComboBox.sensitive = false
 			_widget.includeAssertsCheckButton.sensitive = false
@@ -97,6 +114,10 @@ namespace MonoDevelop.CobraBinding.Project
 		
 		
 		def _enablePerfQualOptions
+			"""
+			Enables widgets on the panel that become available by selecting the "Custom"
+			Performance/Quality radio button.
+			"""
 			_widget.contractsLabel.sensitive = true
 			_widget.contractsComboBox.sensitive = true
 			_widget.includeAssertsCheckButton.sensitive = true
@@ -189,7 +210,10 @@ namespace MonoDevelop.CobraBinding.Project
 			_applyDevelDeployChanges(compilerParams)
 			_applyBackEndChanges(compilerParams)
 			
-		def _applyPerformanceQualityChanges(compilerParams as CobraCompilerParameters)		
+		def _applyPerformanceQualityChanges(compilerParams as CobraCompilerParameters)
+			"""
+			Helper function to .applyChanges
+			"""
 			if _widget.perfQualDefaultRadioButton.active
 				compilerParams.performanceQualityOption = _
 					CobraCompilerParameters.PerfQualOption.Default
@@ -210,6 +234,9 @@ namespace MonoDevelop.CobraBinding.Project
 			compilerParams.includeTraces = _widget.includeTracesCheckButton.active
 				
 		def _applyDevelDeployChanges(compilerParams as CobraCompilerParameters)
+			"""
+			Helper function to .applyChanges
+			"""
 			compilerParams.embedRunTime = _widget.embedRunTimeCheckButton.active
 			compilerParams.debug = _widget.debugInfoComboBox.activeText.toLower.replace(' ', nil) #TODO: consistent name
 			compilerParams.debuggingTips = _widget.debugTipsCheckButton.active #TODO: consistent name
@@ -217,6 +244,9 @@ namespace MonoDevelop.CobraBinding.Project
 			compilerParams.cobraArgs = _widget.cobraArgsEntry.text ? ""
 				
 		def _applyBackEndChanges(compilerParams as CobraCompilerParameters)
+			"""
+			Helper function to .applyChanges
+			"""
 			branch _widget.backEndComboBox.activeText #TODO: this shouldn't be hardcoded like this
 				on "Common Language Runtime"
 					compilerParams.backEnd = "clr"

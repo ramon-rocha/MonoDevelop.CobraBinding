@@ -191,7 +191,7 @@ namespace MonoDevelop.CobraBinding.Project
 		pro nativeCompilerArgs from var
 			"""Additional arguments to pass to the native back-end compiler"""
 
-		def createCmdLinArgs as String
+		def createCmdLineArgs as String
 			"""Returns a string for the various properties suitable for passing to the Cobra compiler as arguments"""
 			argsBuilder = StringBuilder(_createPerfQualCmdLineArgs)
 			argsBuilder.append(_createDevDeployCmdLineArgs)

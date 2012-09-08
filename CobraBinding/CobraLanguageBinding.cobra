@@ -68,13 +68,10 @@ namespace MonoDevelop.CobraBinding
 			test
 				pass
 			body
-				compilerParams = configuration.compilationParameters to CobraCompilerParameters
-				#projParams = configuration.projectParameters to CobraProjectParameters
-
+				trace configuration.platform
+				
+			
 				argsBuilder = StringBuilder("-compile")
-
-				argsBuilder.append(" -debug:")
-				argsBuilder.append(compilerParams.debug)
 
 				# references (add each one only once)
 				refs = HashSet<of String>()
@@ -117,7 +114,7 @@ namespace MonoDevelop.CobraBinding
 				asmName = configuration.compiledOutputName
 				argsBuilder.append(' -out:"[asmName.fullPath]"')
 
-				# which files should we compile?
+				# which files should we compile and which ones should we embed as resources?
 				toCompile = StringBuilder()
 				nativeArgsBuilder = StringBuilder()
 				
@@ -127,17 +124,27 @@ namespace MonoDevelop.CobraBinding
 							toCompile.append(' "[projFile.name]"')
 						on BuildAction.embeddedResource
 							nativeArgsBuilder.append('-res:\\"[projFile.name],[projFile.resourceId]\\" ')
-							
+				
+				compilerParams = configuration.compilationParameters to CobraCompilerParameters
 				nativeArgs = nativeArgsBuilder.toString.trimEnd
 				
 				if nativeArgs.length
-					argsBuilder.append(' -native-compiler-args:"[nativeArgs]"')
-					
+					if compilerParams.nativeCompilerArgs.length
+						# native compiler args have already been specified, combine them
+						compilerParams.nativeCompilerArgs += " [nativeArgs]"
+					else
+						argsBuilder.append(' -native-compiler-args:"[nativeArgs]"')
+				
+				if not compilerParams.embedRunTime
+					argsBuilder.append(" -copy-core")
+				
+				# add the user specified compiler parameters for this configuration
+				argsBuilder.append(compilerParams.createCmdLineArgs)
+				
+				# add the list of files to compile
 				argsBuilder.append(toCompile.toString)
 
-
 				# create and setup the process which will execute the Cobra compiler
-				
 				# if the user has specified the location of the compiler, use that
 				cobraExe = Environment.getEnvironmentVariable("COBRA_EXE")
 				

@@ -142,7 +142,6 @@ namespace MonoDevelop.CobraBinding.Project
 			"""
 			config = .currentConfiguration to DotNetProjectConfiguration
 			compilerParams = config.compilationParameters to CobraCompilerParameters
-			generalParams = config.projectParameters #as CobraProjectParameters
 			
 			# performance and quality
 			branch compilerParams.performanceQualityOption.toString

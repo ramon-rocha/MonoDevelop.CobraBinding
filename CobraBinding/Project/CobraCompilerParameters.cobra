@@ -193,77 +193,25 @@ namespace MonoDevelop.CobraBinding.Project
 
 		def createCmdLinArgs as String
 			"""Returns a string for the various properties suitable for passing to the Cobra compiler as arguments"""
-			return .createCmdLineArgs(true, true, true)
-
-		def createCmdLineArgs(perfQual, devDeploy, backEnd) as String
-			test PQ_Options
-				p = CobraCompilerParameters()
-				assert p.createCmdLineArgs(1, 0, 0).length == 0
-				
-				p.turbo = true
-				assert p.createCmdLineArgs(1, 0, 0) == " -turbo"
-				
-				p.performanceQualityOption = PerfQualOption.Custom
-				assert p.createCmdLineArgs(1, 0, 0).length > " -turbo".length
-
-			test DD_Options
-				p = CobraCompilerParameters()
-				assert not p.createCmdLineArgs(0, 1, 0).contains("-ert:true")
-				
-				p.embedRunTime = true
-				assert p.createCmdLineArgs(0, 1, 0).contains("-ert:true")
-				
-				p.debug = "hamsandwich"
-				assert p.createCmdLineArgs(0, 1, 0).contains("-debug:hamsandwich")
-				
-				p.debuggingTips = false
-				assert not p.createCmdLineArgs(0, 1, 0).contains("-debugging-tips:true")
-				
-				p.debuggingTips = true
-				assert p.createCmdLineArgs(0, 1, 0).contains("-debugging-tips:true")
-				
-				p.keepIntermediateFiles = false
-				assert not p.createCmdLineArgs(0, 1, 0).contains("-kif:true")
-				
-				p.keepIntermediateFiles = true
-				assert p.createCmdLineArgs(0, 1, 0).contains("-kif:true")
-				
-				p.cobraArgs = "-verbosity:1"
-				assert p.createCmdLineArgs(0, 1, 0).contains(" -verbosity:1")
-				p.cobraArgs = "foobar"
-				assert p.createCmdLineArgs(0, 1, 0).contains(" -foobar")
-
-			test BE_Options
-				p = CobraCompilerParameters()
-				assert p.createCmdLineArgs(0, 0, 1).length == 0
-
-				p.backEnd = "jvm"
-				assert p.createCmdLineArgs(0, 0, 1) == " -back-end:jvm"
-
-				p.nativeCompiler = "/path/to/javac"
-				assert p.createCmdLineArgs(0, 0, 1).contains(' -native-compiler:"/path/to/javac"')
-
-				p.nativeCompiler = r"c:\path\to\javac.exe"
-				trace p.nativeCompiler
-				assert p.createCmdLineArgs(0, 0, 1).contains(r' -native-compiler:"c:\path\to\javac.exe"')
-				trace p.createCmdLineArgs(0, 0, 1)
-
-				p.nativeCompilerArgs = "foo bar "
-				assert p.createCmdLineArgs(0, 0, 1).contains(' -native-compiler-args:"foo bar"')
-				
-			body
-				# the input parameters just make it easier to test this...
-				argsBuilder = StringBuilder()
-				if perfQual, argsBuilder.append(_createPerfQualCmdLineArgs)
-				if devDeploy, argsBuilder.append(_createDevDeployCmdLineArgs)
-				if backEnd, argsBuilder.append(_createBackEndCmdLineArgs)
-				return argsBuilder.toString
+			argsBuilder = StringBuilder(_createPerfQualCmdLineArgs)
+			argsBuilder.append(_createDevDeployCmdLineArgs)
+			argsBuilder.append(_createBackEndCmdLineArgs)
+			return argsBuilder.toString
 
 		def _createPerfQualCmdLineArgs as String
 			ensure
 				(_performanceQualityOption == PerfQualOption.Default) implies result.length == 0
 				(_performanceQualityOption == PerfQualOption.Turbo) implies result == " -turbo"
 				(_performanceQualityOption == PerfQualOption.Custom) implies result.length > " -turbo".length
+			test
+				p = CobraCompilerParameters()
+				assert p._createPerfQualCmdLineArgs.length == 0
+				
+				p.turbo = true
+				assert p._createPerfQualCmdLineArgs == " -turbo"
+				
+				p.performanceQualityOption = PerfQualOption.Custom
+				assert p._createPerfQualCmdLineArgs.length > " -turbo".length
 			body
 				if _performanceQualityOption == PerfQualOption.Default
 					return ""
@@ -287,6 +235,33 @@ namespace MonoDevelop.CobraBinding.Project
 				result.contains("debugging-tips:[.debuggingTips]")
 				result.contains("kif:[.keepIntermediateFiles]")
 				_cobraArgs.trim.length implies result.contains(_cobraArgs.trim)
+			test
+				p = CobraCompilerParameters()
+				assert not p._createDevDeployCmdLineArgs.contains("-ert:true")
+				
+				p.embedRunTime = true
+				assert p._createDevDeployCmdLineArgs.contains("-ert:true")
+				
+				p.debug = "hamsandwich"
+				assert p._createDevDeployCmdLineArgs.contains("-debug:hamsandwich")
+				
+				p.debuggingTips = false
+				assert not p._createDevDeployCmdLineArgs.contains("-debugging-tips:true")
+				
+				p.debuggingTips = true
+				assert p._createDevDeployCmdLineArgs.contains("-debugging-tips:true")
+				
+				p.keepIntermediateFiles = false
+				assert not p._createDevDeployCmdLineArgs.contains("-kif:true")
+				
+				p.keepIntermediateFiles = true
+				assert p._createDevDeployCmdLineArgs.contains("-kif:true")
+				
+				p.cobraArgs = "-verbosity:1"
+				assert p._createDevDeployCmdLineArgs.contains(" -verbosity:1")
+				
+				p.cobraArgs = "foobar"
+				assert p._createDevDeployCmdLineArgs.contains(" -foobar")
 			body
 				sb = StringBuilder()
 				sb.append(" -ert:[_embedRunTime]")
@@ -310,6 +285,21 @@ namespace MonoDevelop.CobraBinding.Project
 				(_nativeCompiler <> "auto") implies result.contains(' -native-compiler:"[_nativeCompiler]"')
 				(_nativeCompiler == "auto") implies not result.contains("-native-compiler:")
 				_nativeCompilerArgs.trim.length implies result.contains(' -native-compiler-args:"[_nativeCompilerArgs.trim]"')
+			test
+				p = CobraCompilerParameters()
+				assert p._createBackEndCmdLineArgs.length == 0
+
+				p.backEnd = "jvm"
+				assert p._createBackEndCmdLineArgs == " -back-end:jvm"
+
+				p.nativeCompiler = "/path/to/javac"
+				assert p._createBackEndCmdLineArgs.contains(' -native-compiler:"/path/to/javac"')
+
+				p.nativeCompiler = r"c:\path\to\javac.exe"
+				assert p._createBackEndCmdLineArgs.contains(r' -native-compiler:"c:\path\to\javac.exe"')
+
+				p.nativeCompilerArgs = "foo bar "
+				assert p._createBackEndCmdLineArgs.contains(' -native-compiler-args:"foo bar"')
 			body
 				sb = StringBuilder()
 				

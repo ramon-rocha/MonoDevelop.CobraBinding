@@ -18,24 +18,43 @@
     <OutputPath>bin\Debug</OutputPath>
     <ErrorReport>prompt</ErrorReport>
     <ConsolePause>false</ConsolePause>
-    <EmbedRunTime>true</EmbedRunTime>
-    <PerformanceQualityOption>Turbo</PerformanceQualityOption>
-    <IncludeAsserts>false</IncludeAsserts>
-    <IncludeNilChecks>false</IncludeNilChecks>
-    <IncludeTests>false</IncludeTests>
-    <IncludeTraces>false</IncludeTraces>
+    <Optimize>false</Optimize>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugType>none</DebugType>
     <OutputPath>bin\Release</OutputPath>
     <ErrorReport>prompt</ErrorReport>
     <ConsolePause>false</ConsolePause>
-    <EmbedRunTime>true</EmbedRunTime>
     <PerformanceQualityOption>Turbo</PerformanceQualityOption>
     <IncludeAsserts>false</IncludeAsserts>
     <IncludeNilChecks>false</IncludeNilChecks>
     <IncludeTests>false</IncludeTests>
     <IncludeTraces>false</IncludeTraces>
+    <Turbo>true</Turbo>
+    <Contracts>none</Contracts>
+    <Debug>off</Debug>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|x86' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug</OutputPath>
+    <ErrorReport>prompt</ErrorReport>
+    <ConsolePause>false</ConsolePause>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|x86' ">
+    <DebugType>none</DebugType>
+    <OutputPath>bin\Release</OutputPath>
+    <ErrorReport>prompt</ErrorReport>
+    <IncludeNilChecks>false</IncludeNilChecks>
+    <IncludeAsserts>false</IncludeAsserts>
+    <IncludeTests>false</IncludeTests>
+    <IncludeTraces>false</IncludeTraces>
+    <Debug>off</Debug>
+    <ConsolePause>false</ConsolePause>
+    <PerformanceQualityOption>Turbo</PerformanceQualityOption>
+    <Contracts>none</Contracts>
+    <Turbo>true</Turbo>
   </PropertyGroup>
   <ItemGroup>
     <EmbeddedResource Include="CobraBinding.addin.xml">

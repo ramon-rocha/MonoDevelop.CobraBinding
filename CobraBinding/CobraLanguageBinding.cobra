@@ -68,9 +68,6 @@ namespace MonoDevelop.CobraBinding
 			test
 				pass
 			body
-				trace configuration.platform
-				
-			
 				argsBuilder = StringBuilder("-compile")
 
 				# references (add each one only once)
@@ -109,6 +106,9 @@ namespace MonoDevelop.CobraBinding
 						argsBuilder.append(" -target:winexe")
 					on CompileTarget.Module
 						argsBuilder.append(" -target:module")
+				
+				if configuration.platform <> nil and configuration.platform.length > 0
+					argsBuilder.append(" -clr-platform:[configuration.platform]")
 
 				# what will we call the generated assembly?
 				asmName = configuration.compiledOutputName

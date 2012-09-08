@@ -1,5 +1,6 @@
-use System.Xml
+use System.Diagnostics
 use System.Text.RegularExpressions
+use System.Xml
 use System.CodeDom.Compiler
 
 use MonoDevelop.Core
@@ -134,49 +135,24 @@ namespace MonoDevelop.CobraBinding
 					
 				argsBuilder.append(toCompile.toString)
 
-				# create and setup the process which will execute the Cobra compiler
-				proc = System.Diagnostics.Process()
 
+				# create and setup the process which will execute the Cobra compiler
+				
 				# if the user has specified the location of the compiler, use that
 				cobraExe = Environment.getEnvironmentVariable("COBRA_EXE")
-
+				
 				if cobraExe is nil or cobraExe.length == 0
 					# the user has not specified the location of the compiler
-
-					if _isWindows
-						/#
-						On Windows we cannot rely on the cobra batch file being in the
-						path because we are not setting UseShellExecute to true.
-						This is because we need to redirect the standard output which
-						we couldn't do if we were executing this via the shell.	
-
-						See here for more info: http://msdn.microsoft.com/en-us/library/system.diagnostics.processstartinfo.useshellexecute.aspx
-						#/
-						cobraExe = "c:\\cobra\\bin\\cobra.bat"
-					else
-						# On a non-Windows based system, we'll rely on cobra being in the user's path
-						cobraExe = "cobra"
-
-				proc.startInfo.fileName = cobraExe
+					# we'll rely on cobra being in the user's path
+					cobraExe = "cobra"
 
 				# use the project directory as the working directory unless it's not defined
 				try
-					proc.startInfo.workingDirectory = configuration.parentItem.baseDirectory.toString
+					workingDir = configuration.parentItem.baseDirectory.toString
 				catch
-					if _isWindows
-						proc.startInfo.workingDirectory = ".\\"
-					else
-						proc.startInfo.workingDirectory = "./"
-
-				proc.startInfo.arguments = argsBuilder.toString
-				proc.startInfo.useShellExecute = false # needs to be false so we can redirect output
-				proc.startInfo.redirectStandardOutput = true
-				proc.startInfo.redirectStandardError = true
-
-				trace proc.startInfo.arguments
-
-				proc.start
-				proc.waitForExit
+					workingDir = "."
+					
+				proc = _spawnCobraCompilerProcess(cobraExe to !, argsBuilder.toString, workingDir)
 
 				# parse the compiler output
 				lines = List<of String>()				
@@ -187,6 +163,49 @@ namespace MonoDevelop.CobraBinding
 				buildResult = .parseCompilerOutput(lines)
 				buildResult.compilerOutput = stdOut
 				return buildResult
+		
+		def _spawnCobraCompilerProcess(cobraExe as String, cobraArgs as String, workingDir as String) as Process
+			"""
+			Executes the Cobra compiler.  Returns a Process object whose standard output and standard
+			error streams can be read for later parsing.
+			"""
+			require
+				cobraExe.length > 0
+				workingDir.length > 0
+			test
+				binding = CobraLanguageBinding()
+				
+				expect Exception
+					binding._spawnCobraCompilerProcess("", "", "")
+					
+				p = binding._spawnCobraCompilerProcess("cobra", "-version", ".")
+				assert p.standardOutput.readToEnd.startsWith("Cobra ")
+				
+				p = binding._spawnCobraCompilerProcess("cobra", "", ".")
+				stdOut = p.standardOutput.readToEnd
+				assert stdOut.contains("The Cobra Programming Language")
+				assert stdOut.contains("Usage:")
+				assert stdOut.contains("cobra -h")
+			body
+				proc = System.Diagnostics.Process()
+				# useShellExecute needs to be false so we can redirect output and hide the screen on Windows
+				proc.startInfo.useShellExecute = false
+				proc.startInfo.redirectStandardOutput = true
+				proc.startInfo.redirectStandardError = true
+				proc.startInfo.windowStyle = ProcessWindowStyle.Hidden
+				
+				proc.startInfo.fileName = cobraExe
+				if _isWindows and proc.startInfo.fileName == "cobra"
+					proc.startInfo.environmentVariables["PATH"] = Environment.getEnvironmentVariable("PATH")
+				proc.startInfo.arguments = cobraArgs
+				proc.startInfo.workingDirectory = workingDir
+				
+				trace proc.startInfo.arguments
+
+				proc.start
+				proc.waitForExit
+				
+				return proc
 		
 		shared
 			var compilerOutputRegex = Regex( _

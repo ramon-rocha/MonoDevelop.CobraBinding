@@ -123,7 +123,11 @@ namespace MonoDevelop.CobraBinding
 						on BuildAction.compile
 							toCompile.append(' "[projFile.name]"')
 						on BuildAction.embeddedResource
-							nativeArgsBuilder.append('-res:\\"[projFile.name],[projFile.resourceId]\\" ')
+							#TODO: Figure out how to specify the resource name on Windows
+							if _isWindows
+								nativeArgsBuilder.append('-res:\\"[projFile.name]\\" ')
+							else
+								nativeArgsBuilder.append('-res:\\"[projFile.name],[projFile.resourceId]\\" ')
 				
 				compilerParams = configuration.compilationParameters to CobraCompilerParameters
 				nativeArgs = nativeArgsBuilder.toString.trimEnd
@@ -199,7 +203,7 @@ namespace MonoDevelop.CobraBinding
 				proc.startInfo.useShellExecute = false
 				proc.startInfo.redirectStandardOutput = true
 				proc.startInfo.redirectStandardError = true
-				proc.startInfo.windowStyle = ProcessWindowStyle.Hidden
+				proc.startInfo.windowStyle = ProcessWindowStyle.Hidden #TODO: This doesn't seem to work
 				
 				proc.startInfo.fileName = cobraExe
 				if _isWindows and proc.startInfo.fileName == "cobra"

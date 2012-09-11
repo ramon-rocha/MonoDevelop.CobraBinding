@@ -219,6 +219,10 @@ namespace MonoDevelop.CobraBinding
 				
 				return proc
 		
+		/#
+		regex testing: http://regexhero.net/tester/
+		or in MonoDevelop go to: Tools > Regex Toolkit...
+		#/
 		shared
 			var compilerOutputRegex = Regex( _
 				r"(?<fileName>[^\(]+)\((?<lineNum>\d+)(,(?<col>\d+))?\):(\s)+(?<msgType>error|warning):(\s)*(?<msg>[^\r]+)", _
@@ -299,10 +303,6 @@ namespace MonoDevelop.CobraBinding
 				assert e.errorText == 'error: Cannot find a "main" method.'
 			
 			body
-				/#
-				regex testing: http://regexhero.net/tester/
-				or in MonoDevelop go to: Tools > Regex Toolkit...
-				#/
 				buildResult = BuildResult()
 				
 				for line in compilerOutput

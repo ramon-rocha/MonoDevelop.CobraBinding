@@ -203,7 +203,8 @@ namespace MonoDevelop.CobraBinding
 				proc.startInfo.useShellExecute = false
 				proc.startInfo.redirectStandardOutput = true
 				proc.startInfo.redirectStandardError = true
-				proc.startInfo.windowStyle = ProcessWindowStyle.Hidden #TODO: This doesn't seem to work
+				proc.startInfo.windowStyle = ProcessWindowStyle.Hidden
+				proc.startInfo.createNoWindow = true
 				
 				proc.startInfo.fileName = cobraExe
 				if _isWindows and proc.startInfo.fileName == "cobra"

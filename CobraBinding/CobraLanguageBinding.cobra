@@ -31,10 +31,17 @@ namespace MonoDevelop.CobraBinding
 			var sourceFileExtension = ".cobra"
 			
 		var _isWindows as bool
+		var _targetArgs as Dictionary<of CompileTarget, String>
 		
 		cue init
 			base.init
 			_isWindows = Environment.osVersion.toString.startsWith("Microsoft Windows")
+			_targetArgs = {
+				CompileTarget.Exe : " -target:exe",
+				CompileTarget.Library : " -target:lib",
+				CompileTarget.WinExe : " -target:winexe",
+				CompileTarget.Module : " -target:module"
+			}
 		
 		get language as String
 			return CobraLanguageBinding.languageName
@@ -96,17 +103,10 @@ namespace MonoDevelop.CobraBinding
 								if refs.add(fileName)
 									argsBuilder.append(' -ref:"[fileName]"')
 
-				# what's the target assembly?
-				branch configuration.compileTarget
-					on CompileTarget.Exe
-						argsBuilder.append(" -target:exe")
-					on CompileTarget.Library
-						argsBuilder.append(" -target:lib")
-					on CompileTarget.WinExe
-						argsBuilder.append(" -target:winexe")
-					on CompileTarget.Module
-						argsBuilder.append(" -target:module")
+				# what kind of assembly will we generate?
+				argsBuilder.append(_targetArgs[configuration.compileTarget])
 				
+				# are we targetting a specific platform?
 				if configuration.platform <> nil and configuration.platform.length > 0
 					argsBuilder.append(" -clr-platform:[configuration.platform]")
 

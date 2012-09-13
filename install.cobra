@@ -1,0 +1,295 @@
+"""
+This is the installation program for the Cobra Language Binding addin for MonoDevelop.
+It is not part of the addin itself and is intended to simplify the initial compilation.
+
+To compile and install the addin, enter the following at the command prompt:
+
+	cd <path/to>/install.cobra
+	cobra install
+
+The installer will check some things and then prompt you for confirmation to install.
+To just compile the addin and not install the generated assemblies, do this instead:
+
+	cobra install -run-args compile
+
+If you are running on 64-bit Windows 7, include the -clr-patform:x86 option.  See the
+NOTE below for more details.
+
+So what does this program do?  It generates the addin assemblies and copies them
+to the <OS-dependent>/MonoDevelop-3.0/LocalInstall/Addins folder.  If you just compile
+the addin, the DLL files will be in the bin/Debug folders of each project.
+
+Once installed, you will be able to create, run, and debug programs written in Cobra
+using MonoDevelop.
+
+NOTE: If you want to be able to debug programs on Windows 7 64-bit, you need to:
+ * Install (or reinstall) Cobra using the -clr-patform:x86 option
+ * Make sure to target your programs for the x86 platform when running
+ * Use the .NET runtime if you have .NET 4.5 installed 
+This is due to a limitation of loading some 32-bit dependencies using System.Reflection.
+Alternatively, you can build MonoDevelop from source.
+"""
+
+use System.Diagnostics
+
+class CobraBindingAddinInstaller
+
+	shared
+		# needs to be shared so we can use in list initializers
+		var __s = Path.directorySeparatorChar.toString
+
+	var _isWindows = Environment.osVersion.toString.startsWith("Microsoft Windows")
+
+	var _embeddedResources = [
+		"CobraBinding.addin.xml",
+		"CobraSyntaxMode.xml",
+		"templates[__s]ConsoleProject.xpt.xml",
+		"templates[__s]EmptyCobraFile.xft.xml",
+		"templates[__s]EmptyProject.xpt.xml",
+		"templates[__s]GtkSharp2Project.xpt.xml",
+		"templates[__s]LibraryProject.xpt.xml"
+	]
+	
+	var _filesToCompile = [
+		"AssemblyInfo.cs",
+		"CobraLanguageBinding.cobra",
+		"Project[__s]CobraCompilerParameters.cobra",
+		"Project[__s]CompilerBuildOptionsPanel.cobra"
+	]
+	
+	var _refs = [
+		"System.Core",
+		"..[__s]Gui[__s]bin[__s]Debug[__s]MonoDevelop.CobraBinding.Gui.dll"
+	]
+	
+	var _pkgs = [
+		"monodevelop",
+		"gtk-sharp-2.0"
+	]
+	
+	var _winRefsPartialPaths = [
+		r"\MonoDevelop\bin\MonoDevelop.Core.dll",
+		r"\MonoDevelop\bin\MonoDevelop.Ide.dll",
+		r"\GtkSharp\2.12\lib\gtk-sharp-2.0\gtk-sharp.dll",
+		r"\GtkSharp\2.12\lib\gtk-sharp-2.0\glib-sharp.dll",
+		r"\GtkSharp\2.12\lib\gtk-sharp-2.0\atk-sharp.dll",
+	]
+
+	def main
+		if not .verifyWorkingDirectory
+			print
+			print "========================================================="
+			print "You must run this program from the addin solution folder."
+			print "========================================================="
+			print
+			CobraCore.exit(1)
+		
+		outPath = .getAddinPath
+		
+		cmdLineArgs = List<of String>(Environment.getCommandLineArgs)
+		compileOnly = "compile" in cmdLineArgs
+		if compileOnly
+			print "Compiling the Cobra Language Binding addin for MonoDevelop..."
+		else
+			print
+			print "==============================================================================="
+			print "This will compile and install the Cobra Language Binding addin for MonoDevelop."
+			print
+			print "The compiled assemblies will be copied to:"
+			print outPath
+			print "==============================================================================="
+			print
+			print "Do you wish to continue? \[Y/N\] "
+			response = Console.readLine
+			
+			if not response.toLower.startsWith("y")
+				print
+				print "The addin was not installed."
+				CobraCore.exit(1)
+		
+		cmds = .getCompilerCmds	
+		for c in cmds
+			print "Running [c.startInfo.fileName]..."
+			c.start
+			c.waitForExit
+			if c.exitCode <> 0
+				print "Failed!"
+				print c.standardOutput.readToEnd
+				print c.standardError.readToEnd
+				print
+				print "The addin was not installed due to compilation errors."
+				CobraCore.exit(c.exitCode)
+		
+		if compileOnly
+			print "The addin was successfully compiled."
+			CobraCore.exit(0)
+		
+		print "Copying assemblies..."
+		try
+			if not Directory.exists(outPath)
+				Directory.createDirectory(outPath)
+
+			name = "MonoDevelop.CobraBinding.Gui.dll"
+			File.copy("Gui[__s]bin[__s]Debug[__s][name]", outPath + name, true)
+
+			name = "MonoDevelop.CobraBinding.dll"
+			File.copy("CobraBinding[__s]bin[__s]Debug[__s][name]", outPath + name, true)
+
+			name = "Cobra.Core.dll"
+			File.copy("CobraBinding[__s]bin[__s]Debug[__s][name]", outPath + name, true)
+
+		catch e as Exception
+			print "Failed!"
+			print e.message
+			print
+			print "The addin was compiled but was not installed due to directory or file I/O errors."
+			CobraCore.exit(1)
+		
+		print "The addin has been installed."
+		CobraCore.exit(0)
+			
+	def verifyWorkingDirectory as bool
+		return File.exists("install.cobra") _
+			and Directory.exists("CobraBinding") _
+			and Directory.exists("Gui")
+	
+	def getAddinPath as String
+		"""
+		Returns the path where the assemblies will be copied to.
+		"""
+		ensure
+			result.endsWith(__s)			
+		body
+			if _isWindows				
+				path = Environment.getEnvironmentVariable("LOCALAPPDATA")				 
+				
+			else
+				home = Environment.getEnvironmentVariable("HOME")
+				
+				if Directory.exists("/Applications") and _
+					Directory.exists("/Users") and _
+					Directory.exists("/Library")
+					#ehhhh...I guess this is a Mac...right?
+				
+					path = "[home]/Library/Application Support"
+			
+				path = "[home]/.local/share"
+			
+			return path + "[__s]MonoDevelop-3.0[__s]LocalInstall[__s]Addins[__s]CobraBinding[__s]"
+	
+	def getCompilerCmds as List<of Process>
+		"""
+		Returns the commands that will compile the addin source code.
+		"""
+		test
+			procs = CobraBindingAddinInstaller().getCompilerCmds
+			for p in procs
+				i = p.startInfo
+				assert i.useShellExecute == false
+				assert i.redirectStandardOutput == true
+				assert i.redirectStandardError == true
+				assert i.createNoWindow == true
+				assert i.windowStyle == ProcessWindowStyle.Hidden
+				assert i.fileName.length > 0
+				assert i.arguments.length > 0
+				assert i.workingDirectory.length > 0
+		body
+			cmds = List<of Process>()
+			
+			info = _createProcessStartInfo
+			
+			if _isWindows
+				# We'll use msbuild to compile the Gui project
+				info.fileName = "msbuild"
+			else
+				# We'll use xbuild when not on Windows
+				info.fileName = "xbuild"
+			
+			info.arguments = "Gui.csproj"
+			info.workingDirectory += "Gui"
+			cmds.add(Process(startInfo = info))
+			
+			# and we'll use cobra to compile the CobraBinding project
+			info = _createProcessStartInfo
+			info.fileName = "cobra"
+			info.arguments = _getCobraArguments
+			info.workingDirectory += "CobraBinding"
+			cmds.add(Process(startInfo = info))
+			
+			return cmds
+			
+	def _createProcessStartInfo as ProcessStartInfo
+		"""
+		Returns a ProcessStartInfo object that will cause a process to
+		spawn in a hidden window with ability to redirect its output.
+		"""
+		ensure
+			result.workingDirectory.endsWith(__s)
+		body
+			i = ProcessStartInfo()
+			i.useShellExecute = false
+			i.redirectStandardOutput = true
+			i.redirectStandardError = true
+			i.createNoWindow = true
+			i.windowStyle = ProcessWindowStyle.Hidden
+			i.workingDirectory = Directory.getCurrentDirectory + __s
+			return i
+			
+	def _getCobraArguments as String
+		"""
+		Returns the arguments that should be passed to the Cobra compiler
+		to compile the CobraBinding project.
+		"""
+		cobraArgs = StringBuilder(
+			'-compile -copy-core -target:lib -out:"bin[__s]Debug[__s]MonoDevelop.CobraBinding.dll"'
+		)
+		
+		for r in _refs
+			cobraArgs.append(" -ref:[r]")
+		
+		if _isWindows
+			# on windows, we need to specify the full path to the MonoDevelop and Gtk libs
+			progFiles = Environment.getEnvironmentVariable("SystemDrive") + _
+						Environment.getEnvironmentVariable("PROGRAMFILES")
+			
+			if File.exists(progFiles + r" (x86)\MonoDevelop\bin\MonoDevelop.Core.dll")
+				# 32-bit on 64-bit Windows
+				progFiles += " (x86)"
+			
+			for p in _winRefsPartialPaths
+				cobraArgs.append(' -ref:"[progFiles][p]"')
+			
+		else
+			for p in _pkgs
+				cobraArgs.append(" -pkg:[p]")
+			
+		
+		cobraArgs.append(' -sharp-args:"')
+		
+		sb = StringBuilder()
+		for resource in _embeddedResources
+			sb.append('-res:\\"[resource]\\" ')
+		
+		cobraArgs.append(sb.toString.trimEnd)
+		cobraArgs.append('" ')
+		
+		
+		for fileName in _filesToCompile
+			cobraArgs.append("[fileName] ")
+		
+		return cobraArgs.toString
+		
+	def execCmd(procName as String, procArgs as String, output as out String) as int
+		"""
+		Creates and executes a hidden process.  Returns return code of process and
+		the console output via an output parameter.
+		"""
+		output = ""
+		return 0
+		
+	def copyFiles(destination as String) as bool
+		"""
+		Copies the addin assemblies to the destination folder.  Returns false if
+		any copy operation fails.
+		"""
+		return false

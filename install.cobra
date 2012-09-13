@@ -211,7 +211,11 @@ class CobraBindingAddinInstaller
 			
 			# and we'll use cobra to compile the CobraBinding project
 			info = _createProcessStartInfo
+			
 			info.fileName = "cobra"
+			if _isWindows
+				info.fileName += ".bat"
+			
 			info.arguments = _getCobraArguments
 			info.workingDirectory += "CobraBinding"
 			cmds.add(Process(startInfo = info))
@@ -233,6 +237,7 @@ class CobraBindingAddinInstaller
 			i.createNoWindow = true
 			i.windowStyle = ProcessWindowStyle.Hidden
 			i.workingDirectory = Directory.getCurrentDirectory + __s
+			i.environmentVariables["PATH"] = Environment.getEnvironmentVariable("PATH")
 			return i
 			
 	def _getCobraArguments as String
@@ -249,8 +254,7 @@ class CobraBindingAddinInstaller
 		
 		if _isWindows
 			# on windows, we need to specify the full path to the MonoDevelop and Gtk libs
-			progFiles = Environment.getEnvironmentVariable("SystemDrive") + _
-						Environment.getEnvironmentVariable("PROGRAMFILES")
+			progFiles = Environment.getEnvironmentVariable("PROGRAMFILES")
 			
 			if File.exists(progFiles + r" (x86)\MonoDevelop\bin\MonoDevelop.Core.dll")
 				# 32-bit on 64-bit Windows

@@ -209,6 +209,7 @@ namespace MonoDevelop.CobraBinding
 				proc.startInfo.fileName = cobraExe
 				if _isWindows and proc.startInfo.fileName == "cobra"
 					proc.startInfo.environmentVariables["PATH"] = Environment.getEnvironmentVariable("PATH")
+					proc.startInfo.fileName += ".bat"
 				proc.startInfo.arguments = cobraArgs
 				proc.startInfo.workingDirectory = workingDir
 				

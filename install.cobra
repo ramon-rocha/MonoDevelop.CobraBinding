@@ -111,6 +111,7 @@ class CobraBindingAddinInstaller
 		cmds = .getCompilerCmds	
 		for c in cmds
 			print "Running [c.startInfo.fileName]..."
+			#trace c.startInfo.arguments
 			c.start
 			c.waitForExit
 			if c.exitCode <> 0
@@ -206,7 +207,15 @@ class CobraBindingAddinInstaller
 				# We'll use xbuild when not on Windows
 				info.fileName = "xbuild"
 			
-			info.arguments = "Gui.csproj"
+			info.arguments = "Gui.csproj /p:Configuration=Release"
+			if _isWindows
+				progFiles = Environment.getEnvironmentVariable("PROGRAMFILES")
+				if progFiles.endsWith("(x86)")
+					# 32-bit on 64-bit Windows
+					info.arguments += " /p:Platform=x86"
+				else
+					info.arguments += " /p:Platform=anycpu"
+
 			info.workingDirectory += "Gui"
 			cmds.add(Process(startInfo = info))
 			

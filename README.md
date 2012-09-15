@@ -1,36 +1,116 @@
 Cobra Language Binding for MonoDevelop
 ======================================
-This is an addin for MonoDevelop that allows you to write, run, and debug programs written in the Cobra programming language.
+This is an addin for MonoDevelop that allows you to write, run, and debug 
+programs written in the Cobra programming language.
+
 http://cobra-language.com/
 
-This is the 'cobra' branch of the addin and is a work in progress.
+It currently supports the following features:
 
-At present, this addin only works on the 3.0 series of MonoDevelop.
+* Syntax Highlighting
+
+* Multi-file Projects
+
+* Compilation and Execution
+
+* Debugging
 
 
-To Compile and Use
-------------------
+Compiling and Installing
+========================
+This addin is primarily developed on Ubuntu 12.04 LTS using MonoDevelop 3.0 
+from this PPA: 
 
-This addin is mostly developed on Ubuntu 12.04 LTS using MonoDevelop 3.0 from this PPA: https://launchpad.net/~keks9n/+archive/monodevelop-latest
-I haven't been able to compile successfully on Windows yet so these instructions apply to Ubuntu.
+https://launchpad.net/~keks9n/+archive/monodevelop-latest
 
-1) Open the solution file in MonoDevelop 3.X
+However, it will work on OS X using Mono or on Windows using either the .NET 
+Framework or Mono. An installation program is provided for convenience. Just 
+execute...
 
-2) Build the 'Gui' project and then exit MonoDevelop. This will generate MonoDevelop.CobraBinding.Gui.dll in the Gui/bin/Debug folder.  Do not attempt to build the 'CobraBinding' project since it's written in Cobra and you need the addin to compile Cobra code from MonoDevelop.  The 'Gui' project is written in C# to utilize the existing design tools.
+    cobra install.cobra
 
-3) Next, from the command line, change into the CobraBinding directory and execute ./scripts/build.  This will generate an assembly called MonoDevelop.CobraBinding.dll in the CobraBinding/bin/Debug folder.
+...to compile and execute the installation program.
 
-4) Copy both generated assemblies to the MonoDevelop addins folder. This location depends on your operating system.
+On Windows 7 64-bit with a 32-bit installation of MonoDevelop, you'll need 
+to make sure you've installed Cobra using the '-x86' installer option first.  
+See below for more details.
 
-- Ubuntu : ~/.local/share/MonoDevelop-3.0/LocalInstall/Addins
+Requirements
+------------
+* .NET Framework 4 or Mono 2.10
 
-- Mac : ~/Library/Application Support/MonoDevelop-3.0/LocalInstall/Addins
+* MonoDevelop 3.0
 
-- Windows 7 : ~/AppData/Local/MonoDevelop-3.0/LocalInstall/Addins (on Windows ~ is usually c:\users\<username>, also note that AppData is a hidden folder)
+* Cobra 0.9
 
-If any folders do not exist, you should create them manually.
+Additional Requirements for Windows 7 64-bit
+--------------------------------------------
+Just skip this whole section if you are not running 64-bit Windows.
 
-5) Restart MonoDevelop and you should now have a "Cobra" section when creating a new project/solution.
+This addin references the MonoDevelop.Core.dll assembly.  The Cobra compiler 
+gets the public types provided by an assembly using Assembly.GetExportedTypes 
+via reflection.  If any of the dependencies of the loaded assembly are compiled 
+for 32-bit only then an exception will be thrown.  This prevents compilation of 
+the addin.  In this case, the Cobra compiler reports that the assembly 
+MonoDevelop.Projects.Formats.MSBuild could not be found.  This is not specific 
+to the Cobra compiler as the same reflection mechanism will throw the same 
+exception in C#.
+
+At this time, the workaround is to target the x86 platform when installing 
+Cobra.  If you have already installed Cobra, you'll need to reinstall it.  
+First, remove it from the GAC:
+
+    gacutil /u Cobra.Core
+
+Then, run the Cobra installer again this time including the '-x86' option:
+
+    cd\<path\to\cobra\workspace>\Source
+    bin\install-from-workspace.bat -x86
+
+Make sure to run these commands from the Visual Studio or Windows SDK Command 
+Prompt with the correct privileges (i.e. 'Run as Administrator').
+
+You can verify success by executing:
+
+    gacutil /l Cobra.Core
+
+Check the reported processorArchitecure. It should read 'x86' and not 
+'MSIL'.  Now, as long you make sure to target your Cobra programs to the x86 
+platform (the default option in MonoDevelop) when compiling, running, and 
+debugging, you shouldn't have any issues.  If you have .NET 4.5 installed, 
+you need to make sure you set .NET as the active runtime when debugging as not 
+all of 4.5 mscorlib has been implemented in Mono yet.
+
+NOTE: Some alternate workarounds may include compiling MonoDevelop from source 
+or maybe installing Cobra targetting the 'anycpu32bitpreferred' platform 
+on .NET 4.5 instead.  These alternatives have not been tried or tested yet.
+
+
+Installation
+------------
+At this time, the easiest way to install the addin is to use the provided 
+installation program.  Close MonoDevelop if it's open and then on Ubuntu, 
+Windows 32-bit, or Mac execute:
+
+    cobra install.cobra
+
+Then, start MonoDevelop and create a new solution.  You should see a 'Cobra' 
+section with various Cobra project templates.
+
+On Windows 64-bit, make sure to target the x86 platform:
+
+    cobra -clr-platform:x86 install.cobra
+
+If you just want to compile the addin and not install it, you can execute:
+
+    cobra install.cobra -run-args compile
+
+Alternatively, on Ubuntu, you can use xbuild and a bash script instead:
+
+    cd Gui
+    xbuild
+    cd ../CobraBinding
+    ./scripts/build
 
 
 Contributing
@@ -40,30 +120,34 @@ Any and all help is appreciated.  See below for tips on getting started.
 
 Low-hanging Fruit
 -----------------
-These are some of the easier tasks that still need to be done...
+Try one of these tasks...
+
+* Try the addin and report issues
+
+* Improve the installer and/or package the addin (man mdtool)
 
 * Create icons for project and file templates
 
-* Create additional file templates
+* Create additional project or file templates
 
-* Create some color schemes that match those on the Cobra website.
+* Create syntax highlighting color schemes that match those on the Cobra website
+
+* Implement a Folding Parser to fold code blocks such as tests, loops, classes, etc.
+
+* Add support for MSBuild Items
 
 
 Larger Todo Tasks
 -----------------
 These will require a bit more effort...
 
-* Proper handling for project options and compiler configuration. (in progress)
+* Implement the Type System Parser
 
-* Folding Parser
+* Implement the Code Completion extension
 
-* Type System Parser
+* Implement a Code Formatter for smarter indentation
 
-* Code Completion
-
-* Code Formatter
-
-* Ambience class for tool tips
+* Implement an Ambience class for tool tips and document outline support
 
 Relevant Documentation
 ----------------------

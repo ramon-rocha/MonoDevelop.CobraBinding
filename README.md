@@ -58,17 +58,26 @@ exception in C#.
 
 At this time, the workaround is to target the x86 platform when installing 
 Cobra.  If you have already installed Cobra, you'll need to reinstall it.  
-First, remove it from the GAC:
+
+Make sure to run these commands from the Visual Studio or Windows SDK Command 
+Prompt with the correct privileges (i.e. 'Run as Administrator').
+
+First, remove Cobra.Core from the GAC:
 
     gacutil /u Cobra.Core
+
+Next, set your system to use the 32-bit CLR by executing this command:
+
+    C:\Windows\Microsoft.NET\Framework64\v2.0.50727\Ldr64.exe setwow
 
 Then, run the Cobra installer again this time including the '-x86' option:
 
     cd\<path\to\cobra\workspace>\Source
     bin\install-from-workspace.bat -x86
 
-Make sure to run these commands from the Visual Studio or Windows SDK Command 
-Prompt with the correct privileges (i.e. 'Run as Administrator').
+Finally, restore your system to defaulting to the 64-bit CLR via:
+
+    C:\Windows\Microsoft.NET\Framework64\v2.0.50727\Ldr64.exe set64
 
 You can verify success by executing:
 

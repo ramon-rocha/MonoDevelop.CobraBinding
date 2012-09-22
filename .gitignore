@@ -8,4 +8,4 @@ Gui/[Bb]in/
 *.user
 *.pdb
 *.cache
-install.exe
+install.exe*

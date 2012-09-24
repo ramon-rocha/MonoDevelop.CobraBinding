@@ -1,0 +1,18 @@
+use Cobra.Core
+
+use MonoDevelop.Ide.TypeSystem
+use MonoDevelop.Projects
+
+namespace MonoDevelop.CobraBinding.TypeSystem
+
+class Parser implements ITypeSystemParser
+	"""
+	TODO
+	"""
+	
+	def parse(storeAst as bool, fileName as String, 
+			content as TextReader, project as Project?) as ParsedDocument
+		"""
+		TODO
+		"""
+		return DefaultParsedDocument(fileName)

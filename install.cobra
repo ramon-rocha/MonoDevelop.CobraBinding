@@ -110,6 +110,11 @@ class CobraBindingAddinInstaller
 		
 		cmds = .getCompilerCmds	
 		for c in cmds
+
+			workingDir = c.startInfo.workingDirectory + "[__s]bin[__s]Debug"
+			if not Directory.exists(workingDir)
+				Directory.createDirectory(workingDir)
+
 			print "Running [c.startInfo.fileName]..."
 			#trace c.startInfo.arguments
 			c.start
@@ -174,8 +179,8 @@ class CobraBindingAddinInstaller
 					#ehhhh...I guess this is a Mac...right?
 				
 					path = "[home]/Library/Application Support"
-			
-				path = "[home]/.local/share"
+				else
+					path = "[home]/.local/share"
 			
 			return path + "[__s]MonoDevelop-3.0[__s]LocalInstall[__s]Addins[__s]CobraBinding[__s]"
 	

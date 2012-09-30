@@ -239,10 +239,7 @@ class CobraBindingAddinInstaller
 			# and we'll use cobra to compile the CobraBinding project
 			info = _createProcessStartInfo
 			
-			info.fileName = "cobra"
-			if _isWindows
-				info.fileName += ".bat"
-			
+			info.fileName = CobraCore.findCobraExe
 			info.arguments = _getCobraArguments
 			info.workingDirectory += "CobraBinding"
 			cmds.add(Process(startInfo = info))

@@ -55,11 +55,14 @@ class CobraBindingAddinInstaller
 		"AssemblyInfo.cs",
 		"CobraLanguageBinding.cobra",
 		"Project[__s]CobraCompilerParameters.cobra",
-		"Project[__s]CompilerBuildOptionsPanel.cobra"
+		"Project[__s]CompilerBuildOptionsPanel.cobra",
+		"TypeSystem[__s]Parser.cobra",
+		"TypeSystem[__s]LineInformation.cobra"
 	]
 	
 	var _refs = [
 		"System.Core",
+		"Cobra.Compiler",
 		"..[__s]Gui[__s]bin[__s]Debug[__s]MonoDevelop.CobraBinding.Gui.dll"
 	]
 	
@@ -71,6 +74,7 @@ class CobraBindingAddinInstaller
 	var _winRefsPartialPaths = [
 		r"\MonoDevelop\bin\MonoDevelop.Core.dll",
 		r"\MonoDevelop\bin\MonoDevelop.Ide.dll",
+		r"\MonoDevelop\bin\ICSharpCode.NRefactory.dll",
 		r"\GtkSharp\2.12\lib\gtk-sharp-2.0\gtk-sharp.dll",
 		r"\GtkSharp\2.12\lib\gtk-sharp-2.0\glib-sharp.dll",
 		r"\GtkSharp\2.12\lib\gtk-sharp-2.0\atk-sharp.dll",
@@ -143,6 +147,9 @@ class CobraBindingAddinInstaller
 			File.copy("CobraBinding[__s]bin[__s]Debug[__s][name]", outPath + name, true)
 
 			name = "Cobra.Core.dll"
+			File.copy("CobraBinding[__s]bin[__s]Debug[__s][name]", outPath + name, true)
+
+			name = "Cobra.Compiler.dll"
 			File.copy("CobraBinding[__s]bin[__s]Debug[__s][name]", outPath + name, true)
 
 		catch e as Exception

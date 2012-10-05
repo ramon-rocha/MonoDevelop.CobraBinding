@@ -11,27 +11,33 @@ class LineInformation
 		assert not info.closesComment
 		assert not info.opensDocString
 		assert not info.closesDocString
+		assert info.previous == nil
+		assert info.next == nil
 		
-		info = LineInformation("#/", true, false)
+		info = LineInformation("#/", true, false, info)
 		assert not info.opensComment
 		assert info.closesComment
 		assert not info.opensDocString
 		assert not info.closesDocString
+		assert info.previous.previous == nil
+		assert info.previous.line == "/#"
+		assert info.previous.next == info
+		assert info.next == nil
 		
-		info = LineInformation("'''")
+		info = LineInformation("'''", info)
 		assert not info.opensComment
 		assert not info.closesComment
 		assert info.opensDocString
 		assert not info.closesDocString
 		assert info.docStringTag == "'''"
 		
-		info = LineInformation("'''", false, true, "'''")
+		info = LineInformation("'''", false, true, "'''", info)
 		assert not info.opensComment
 		assert not info.closesComment
 		assert not info.opensDocString
 		assert info.closesDocString
 		
-		info = LineInformation("'''", false, true, '"""')
+		info = LineInformation("'''", false, true, '"""', info)
 		assert not info.opensComment
 		assert not info.closesComment
 		assert not info.opensDocString
@@ -44,26 +50,26 @@ class LineInformation
 		assert not info.opensDocString
 		assert not info.closesDocString
 	
-		info = LineInformation('"""This is a comment tag # inside a doc string')
+		info = LineInformation('"""This is a comment tag # inside a doc string', info)
 		assert not info.opensComment
 		assert not info.closesComment
 		assert info.opensDocString
 		assert not info.closesDocString
 		assert info.docStringTag == '"""'
 		
-		info = LineInformation("if x == 1, /# ''' ''' #/ x = 2")
+		info = LineInformation("if x == 1, /# ''' ''' #/ x = 2", info)
 		assert not info.opensComment
 		assert not info.closesComment
 		assert not info.opensDocString
 		assert not info.closesDocString
 		
-		info = LineInformation("the end of a doc String.'''", false, true, "'''")
+		info = LineInformation("the end of a doc String.'''", false, true, "'''", info)
 		assert not info.opensComment
 		assert not info.closesComment
 		assert not info.opensDocString
 		assert info.closesDocString
 		
-		info = LineInformation("the end of a doc String.''' /# trailing comment", false, true, "'''")
+		info = LineInformation("the end of a doc String.''' /# trailing comment", false, true, "'''", info)
 		assert info.opensComment
 		assert not info.closesComment
 		assert not info.opensDocString
@@ -76,14 +82,26 @@ class LineInformation
 	var _opensDocString as bool
 	var _closesDocString as bool
 	var _docStringTag as String?
-	
+	var _previous as LineInformation?
+	var _next as LineInformation?
+
 	cue init(line as String)
-		.init(line, false, false, nil)
+		.init(line, false, false, nil, nil)
+	
+	cue init(line as String, previous as LineInformation?)
+		.init(line, false, false, nil, previous)
 	
 	cue init(line as String, inComment as bool, inDocString as bool)
-		.init(line, inComment, inDocString, nil)
-	
+		.init(line, inComment, inDocString, nil, nil)
+
+	cue init(line as String, inComment as bool, inDocString as bool, previous as LineInformation?)
+		.init(line, inComment, inDocString, nil, previous)
+
 	cue init(line as String, inComment as bool, inDocString as bool, docStringTag as String?)
+		.init(line, inComment, inDocString, docStringTag, nil)
+	
+	cue init(line as String, inComment as bool, inDocString as bool,
+				docStringTag as String?, previous as LineInformation?)
 		"""
 		line is a line of source code.
 		inComment should be true if the previous line of code was part of a comment block.
@@ -101,6 +119,11 @@ class LineInformation
 		_closesComment = false
 		_opensDocString = false
 		_closesDocString = false
+
+		_previous = previous
+		if _previous <> nil
+			_previous.next = this
+		_next = nil
 		
 		inString = false
 		stringTag as char? = nil
@@ -214,3 +237,12 @@ class LineInformation
 	get docStringTag from var
 		"""If this line opens a DocString, this is the tag that was used."""
 
+	get previous from var
+		"""The line information for the previous line of source code."""
+
+	pro next from var
+		"""
+		The line information for the next line of source code.
+		
+		This value is mutable.
+		"""

@@ -6,7 +6,7 @@ class LineInformation
 	"""
 	
 	test basicLogic
-		info = LineInformation("/#", false, false)
+		info = LineInformation("/#")
 		assert info.opensComment
 		assert not info.closesComment
 		assert not info.opensDocString
@@ -18,7 +18,7 @@ class LineInformation
 		assert not info.opensDocString
 		assert not info.closesDocString
 		
-		info = LineInformation("'''", false, false)
+		info = LineInformation("'''")
 		assert not info.opensComment
 		assert not info.closesComment
 		assert info.opensDocString
@@ -38,20 +38,20 @@ class LineInformation
 		assert not info.closesDocString
 	
 	test codeSamples
-		info = LineInformation("'''Single line doc string!'''", false, false)
+		info = LineInformation("'''Single line doc string!'''")
 		assert not info.opensComment
 		assert not info.closesComment
 		assert not info.opensDocString
 		assert not info.closesDocString
 	
-		info = LineInformation('"""This is a comment tag # inside a doc string', false, false)
+		info = LineInformation('"""This is a comment tag # inside a doc string')
 		assert not info.opensComment
 		assert not info.closesComment
 		assert info.opensDocString
 		assert not info.closesDocString
 		assert info.docStringTag == '"""'
 		
-		info = LineInformation("if x == 1, /# ''' ''' #/ x = 2", false, false)
+		info = LineInformation("if x == 1, /# ''' ''' #/ x = 2")
 		assert not info.opensComment
 		assert not info.closesComment
 		assert not info.opensDocString
@@ -76,6 +76,9 @@ class LineInformation
 	var _opensDocString as bool
 	var _closesDocString as bool
 	var _docStringTag as String?
+	
+	cue init(line as String)
+		.init(line, false, false, nil)
 	
 	cue init(line as String, inComment as bool, inDocString as bool)
 		.init(line, inComment, inDocString, nil)
@@ -210,3 +213,4 @@ class LineInformation
 		
 	get docStringTag from var
 		"""If this line opens a DocString, this is the tag that was used."""
+

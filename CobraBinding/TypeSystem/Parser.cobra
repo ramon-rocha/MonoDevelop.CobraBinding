@@ -147,8 +147,8 @@ class Parser implements ITypeSystemParser, IFoldingParser
 		
 	def _getLineInformation(lines as List<of String>) as List<of LineInformation>
 		"""
-		Create a list of LineInformation objects that make it easier to creating
-		folding regions.
+		Create a list of LineInformation objects that make it easier to 
+		create folding regions.
 		"""
 		require
 			lines.count > 0

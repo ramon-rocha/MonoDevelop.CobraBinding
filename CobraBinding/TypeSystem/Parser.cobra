@@ -65,7 +65,7 @@ class Parser implements ITypeSystemParser, IFoldingParser
 
 		# generate folding regions
 		folds = List<of FoldingRegion>()
-		_addFold(infoList, 0, folds)
+		_addFolds(infoList, folds)
 		parsedDoc.add(folds)
 
 		/# TODO? Add comment regions?
@@ -96,6 +96,7 @@ class Parser implements ITypeSystemParser, IFoldingParser
 		test
 			pass
 		body
+			info as LineInformation? = nil
 			inComment = false
 			inDocString = false
 			docStringTag as String? = nil
@@ -103,7 +104,7 @@ class Parser implements ITypeSystemParser, IFoldingParser
 	
 			for line in lines
 	
-				info = LineInformation(line, inComment, inDocString, docStringTag)
+				info = LineInformation(line, inComment, inDocString, docStringTag, info)
 	
 				if not inComment and info.opensComment
 					inComment = true
@@ -121,192 +122,134 @@ class Parser implements ITypeSystemParser, IFoldingParser
 				
 			return infoList
 
+	sig ClosesDelimitedBlock(info as LineInformation) as bool
 
-	def _addFold(lineInfoList as List<of LineInformation>, startIndex as int?,
-					folds as List<of FoldingRegion>) as FoldingRegion?
+	def _addFolds(infoList as List<of LineInformation>, folds as List<of FoldingRegion>)
 		"""
 		Adds folds to the given list of folds using the given list of line information.
 		"""
-		if lineInfoList.count < 2
-			# not enough lines to create a fold
-			return nil
-		
-		# start from the first non-blank line
-		startIndex = _consumeBlankLines(lineInfoList, startIndex)
-		if startIndex is nil
-			return nil
+		test
+			source = List<of String>()
+			source.add("use Foo.Namespace")
+			source.add("")
+			source.add("namespace Bar.Namespace")
+			source.add("\tclass SomeClass")
+			source.add("\t\t'''")
+			source.add("\t\tDocstring text")
+			source.add("\t\t'''")
+			source.add("")
+			source.add("\t\tdef aMethod")
+			source.add("/#")
+			source.add("\ta comment")
+			source.add("\t\t#/")
+			source.add("\t\t\t")
+			source.add("\t\t\tprint 'hello world!'")
+			source.add("")
+			source.add("")
 			
-		i = startIndex to !
-		
-		# loop through remaining lines recursively creating folds.
-		# comment blocks and doc strings are not created recursively.
-		while i < lineInfoList.count
-		
-			info = lineInfoList[i]
-
-			condition as ClosesDelimitedBlock? = nil
-
-			if info.opensComment
-				condition = do(lineInfo as LineInformation)
-					return lineInfo.closesComment
-			else if info.opensDocString
-				condition = do(lineInfo as LineInformation)
-					return lineInfo.closesDocString
+			parser = Parser()
+			infoList = parser._getLineInformation(source)
+			folds = List<of FoldingRegion>()
+			parser._addFolds(infoList, folds)
 			
-			if condition <> nil
-				openLocation = TextLocation(i + 1, info.line.length + 1)
-				fold = _closeDelimitedBlock(openLocation, lineInfoList, condition, i + 1)
-				folds.add(fold)
-				i = fold.region.endLine
-				continue
-
-			#TODO: everything else besides comment and doc strings
-			i+= 1
+			assert folds.count == 5
 			
-		return nil
-
-	def _consumeBlankLines(lineInfoList as List<of LineInformation>) as int?
-		return _consumeBlankLines(lineInfoList, 0)
+			commentBlockCount = 0
+			for f in folds
+				
+				trace f.region.beginLine
+				trace f.region.endLine
 			
-	def _consumeBlankLines(lineInfoList as List<of LineInformation>, startIndex as int?) as int?
-		"""
-		Returns the index of the first non-blank element in the list or
-		nil or if all lines are blank
-		"""
-		test blanks
-			list = List<of LineInformation>()
-			list.add(LineInformation("\t\t", false, false))
-			list.add(LineInformation("", false, false))
-			list.add(LineInformation("", false, false))
-			list.add(LineInformation("", false, false))
-			list.add(LineInformation("    ", false, false))
-			list.add(LineInformation("\t", false, false))
-			list.add(LineInformation("\ttest", false, false))
-			list.add(LineInformation("", false, false))
-			p = Parser()
-			assert p._consumeBlankLines(list) == 6
-		test noBlanks
-			list = List<of LineInformation>()
-			list.add(LineInformation("\ttest", false, false))
-			list.add(LineInformation("", false, false))
-			p = Parser()
-			assert p._consumeBlankLines(list) == 0
-		test emptyList
-			p = Parser()
-			assert p._consumeBlankLines(List<of LineInformation>()) == nil
+				if f.type == FoldType.Comment
+					commentBlockCount += 1
+				else
+					assert f.region.endLine == 14
+					
+			assert commentBlockCount == 2
+			
 		body
-			if startIndex == nil
-				startIndex = 0
-			
-			for i in startIndex to ! : lineInfoList.count
-				if not lineInfoList[i].isBlank
-					return i
-			
-			return nil
+			sw = System.Diagnostics.Stopwatch()
+			sw.start
+						
+			if infoList.count < 2
+				# not enough lines to create a fold
+				return
 	
-	sig ClosesDelimitedBlock(info as LineInformation) as bool
-
-	def _closeDelimitedBlock(startLocation as TextLocation,	lineInfoList as List<of LineInformation>,
-							closesBlock as ClosesDelimitedBlock) as FoldingRegion
-		return _closeDelimitedBlock(startLocation, lineInfoList, closesBlock, 0)
+			commentCloser as ClosesDelimitedBlock = do(i as LineInformation)
+				return i.opensComment
+	
+			docStringCloser as ClosesDelimitedBlock = do(i as LineInformation)
+				return i.opensDocString
+	
+			lineNumber = infoList.count
+			curr as LineInformation? = infoList[lineNumber - 1]
+	
+			endStack = Stack<of TextLocation>()
+			levelStack = Stack<of int>()
+	
+			# go through the list backwards creating folds as we go
+			while curr <> nil
+	
+				closer as ClosesDelimitedBlock? = nil
+	
+				# skip blank lines
+				while curr.isBlank
+					curr = curr.previous
+					if curr == nil
+						return
+					lineNumber -= 1
+	
+				# handle comment blocks and doc strings
+				if curr.closesComment
+					closer = commentCloser
+				else if curr.closesDocString
+					closer = docStringCloser
+	
+				if closer <> nil
+					endLocation = TextLocation(lineNumber, curr.line.length + 1)
+	
+					# we won't have a line that closes a delimited block without one that opens it
+					blockText = curr to !
+					while not closer(blockText)
+						blockText = blockText.previous to !
+						lineNumber -= 1
+	
+					curr = blockText
+					startLocation = TextLocation(lineNumber, curr.line.length + 2)
+					folds.add(FoldingRegion(DomRegion(startLocation, endLocation), FoldType.Comment))
+					curr = curr.previous
+					lineNumber -= 1
+					continue
+		
+				# handle indent blocks (ignore commented lines)
+				if not curr.line.trimStart.startsWith("#")
 				
-	def _closeDelimitedBlock(startLocation as TextLocation,	lineInfoList as List<of LineInformation>,
-							closesBlock as ClosesDelimitedBlock, startIndex as int?) as FoldingRegion
-		"""
-		Loops through the lineInfoList until the closesBlock method returns true.
-		Returns a Comment folding region from the startLocation to the line that
-		closed the block.
-		"""
-		test comment
-			start = TextLocation(1, 1)
-			line1 = "this is comment text"
-			line2 = "this should end the block#/"
-			line3 = "\t"
-			list = List<of LineInformation>()
-			list.add(LineInformation(line1, true, false))
-			list.add(LineInformation(line2, true, false))
-			list.add(LineInformation(line3, false, false))
-			
-			closer as ClosesDelimitedBlock = do(i as LineInformation)
-				return i.closesComment
-				
-			p = Parser()
-			fold = p._closeDelimitedBlock(start, list, closer)
-			assert fold.region.beginLine == 1
-			assert fold.region.beginColumn == 1
-			assert fold.region.endLine == 3
-			assert fold.region.endColumn == 28
-			assert fold.type == FoldType.Comment
+					level = _getIndentLevel(curr.line)
+					
+					# should we close any regions?
+					while levelStack.count > 0 and levelStack.peek > level
+						levelStack.pop
+						endLocation = endStack.pop
+						startLocation = TextLocation(lineNumber, curr.line.length + 2)
+						folds.add(FoldingRegion(DomRegion(startLocation, endLocation), FoldType.Undefined))
+					
+					# should we open any regions?
+					if levelStack.count == 0
+						first = 0
+					else if level > levelStack.peek
+						first = levelStack.peek
+					else
+						first = level + 2
+																	
+					for l in first : level + 1
+						levelStack.push(l)
+						endStack.push(TextLocation(lineNumber, curr.line.length + 1))
+	
+				curr = curr.previous
+				lineNumber -= 1
 
-			start = TextLocation(10, 1)
-			fold = p._closeDelimitedBlock(start, list, closer)
-			assert fold.region.beginLine == 10
-			assert fold.region.beginColumn == 1
-			assert fold.region.endLine == 12
-			assert fold.region.endColumn == 28
-			assert fold.type == FoldType.Comment
-		test docString
-			start = TextLocation(2, 1)
-			line1 = "\tprint 'this is inside a doc string'"
-			line2 = "\t/# this is not a comment #/"
-			line3 = "\tThis is a doc string'''"
-			line4 = "\tprint 'this is code'"
-			list = List<of LineInformation>()
-			list.add(LineInformation(line1, false, true, "'''"))
-			list.add(LineInformation(line2, false, true, "'''"))
-			list.add(LineInformation(line3, false, true, "'''"))
-			list.add(LineInformation(line4, false, false,))
-			p = Parser()
-			fold = p._closeDelimitedBlock(start, list, do(i as LineInformation))
-				return i.closesDocString
-			assert fold.region.beginLine == 2
-			assert fold.region.endLine == 5
-			assert fold.region.endColumn == line3.length + 1
-			assert fold.type == FoldType.Comment
-		test noClosingTag
-			start = TextLocation(1, 1)
-			line0 = "/#"
-			line1 = ""
-			line2 = ""
-			line3 = "\t"
-			list = List<of LineInformation>()
-			list.add(LineInformation(line0, false, false))
-			list.add(LineInformation(line1, true, false))
-			list.add(LineInformation(line2, true, false))
-			list.add(LineInformation(line3, true, false))
-			
-			p = Parser()
-			fold = p._closeDelimitedBlock(start, list, do(i as LineInformation))
-				return i.closesComment
-			assert fold.region.beginLine == 1
-			assert fold.region.beginColumn == 1
-			assert fold.region.endLine == 4
-			assert fold.region.endColumn == 1 # not 2 because end is trimmed
-			assert fold.type == FoldType.Comment
-			
-			fold = p._closeDelimitedBlock(start, list, do(i as LineInformation))
-				return i.closesDocString
-			assert fold.region.beginLine == 1
-			assert fold.region.beginColumn == 1
-			assert fold.region.endLine == 4
-			assert fold.region.endColumn == 1 # not 2 because end is trimmed
-			assert fold.type == FoldType.Comment
-		body
-			startIndex = _consumeBlankLines(lineInfoList, startIndex)
-			lineCount = 0
-			
-			if startIndex <> nil
-
-				for i in startIndex:lineInfoList.count
-					lineCount += 1
-					if closesBlock(lineInfoList[i])
-						endLocation = TextLocation(startLocation.line + lineCount, lineInfoList[i].line.length + 1)
-						return FoldingRegion(DomRegion(startLocation, endLocation), FoldType.Comment)
-
-			# no closing tag found
-			endLocation = TextLocation(lineInfoList.count, lineInfoList[lineInfoList.count-1].line.length + 1)
-			
-			return FoldingRegion(DomRegion(startLocation, endLocation), FoldType.Comment)
+			sw.stop
+			trace sw.elapsed
 
 
 	def _getIndentLevel(line as String) as int

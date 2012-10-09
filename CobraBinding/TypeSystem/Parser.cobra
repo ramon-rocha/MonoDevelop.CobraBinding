@@ -18,11 +18,8 @@ class Parser implements ITypeSystemParser, IFoldingParser
 	This parser also provides folds and underlines syntax errors.
 	"""
 	
-	const TYPICAL_LINE_LENGTH = 64 # 128 B
 	const TYPICAL_LINE_COUNT = 512 # 4 kB
-	
-	const DEFAULT_SB_CAPACITY = .TYPICAL_LINE_LENGTH * .TYPICAL_LINE_COUNT #512 kB
-	
+		
 	var _tabsToSpaces = false
 	var _indentToken = "\t"
 	
@@ -45,28 +42,17 @@ class Parser implements ITypeSystemParser, IFoldingParser
 		#/
 		
 		# read the file content
-		lines = List<of String>(.TYPICAL_LINE_COUNT)
-		
-		line = content.readLine
-		while line <> nil
-			lines.add(line)
-			line = content.readLine
+		source = content.readToEnd
 		
 		#TODO: invoke Cobra Parser and visit AST
 		errors = List<of Error>()
 		
-		parsedDoc = DefaultParsedDocument(fileName)
-				
+		# add folds
+		parsedDoc = .parse(fileName, source)
+		
+		# add parsing errors
 		for e in errors
 			parsedDoc.errors.add(e)
-
-		# get some line information useful for folding
-		infoList = _getLineInformation(lines)
-
-		# generate folding regions
-		folds = List<of FoldingRegion>()
-		_addFolds(infoList, folds)
-		parsedDoc.add(folds)
 
 		/# TODO? Add comment regions?
 		comments = List<of Tag>()
@@ -81,13 +67,39 @@ class Parser implements ITypeSystemParser, IFoldingParser
 		
 		Parse the specified file to generate folds.
 		"""
+		sw = System.Diagnostics.Stopwatch()
+		sw.start
+			
 		parsedDoc = DefaultParsedDocument(fileName)
+		
+		reader = StringReader(content)
+		folds = List<of FoldingRegion>()
+		_addFolds(_getLineInformation(reader), folds)
+		
+		parsedDoc.add(folds)
+
+		sw.stop
+		trace sw.elapsed
 		
 		return parsedDoc
 		
+		
+	def _getLineInformation(reader as StringReader) as List<of LineInformation>
+		
+		lines = List<of String>(.TYPICAL_LINE_COUNT)
+		
+		line = reader.readLine
+		while line <> nil
+			lines.add(line)
+			line = reader.readLine
+			
+		return _getLineInformation(lines)
+		
+		
 	def _getLineInformation(lines as List<of String>) as List<of LineInformation>
 		"""
-		TODO: Document this
+		Create a list of LineInformation objects that make it easier to creating
+		folding regions.
 		"""
 		require
 			lines.count > 0
@@ -168,9 +180,6 @@ class Parser implements ITypeSystemParser, IFoldingParser
 			assert commentBlockCount == 2
 			
 		body
-			sw = System.Diagnostics.Stopwatch()
-			sw.start
-						
 			if infoList.count < 2
 				# not enough lines to create a fold
 				return
@@ -247,9 +256,6 @@ class Parser implements ITypeSystemParser, IFoldingParser
 	
 				curr = curr.previous
 				lineNumber -= 1
-
-			sw.stop
-			trace sw.elapsed
 
 
 	def _getIndentLevel(line as String) as int

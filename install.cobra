@@ -215,6 +215,18 @@ class CobraBindingAddinInstaller
 			if _isWindows
 				# We'll use msbuild to compile the Gui project
 				info.fileName = "msbuild"
+
+				# prefer a full path
+				root = Environment.getEnvironmentVariable("SYSTEMROOT")
+				msbuildPaths = @[
+					'[root][__s]Microsoft.NET[__s]Framework[__s]v4.0.30319[__s]MSBuild.exe',
+					'[root][__s]Microsoft.NET[__s]Framework[__s]v2.0.50727[__s]MSBuild.exe',
+				]
+				
+				for filePath in msbuildPaths
+					if File.exists(filePath)
+						info.fileName = filePath
+						break
 			else
 				# We'll use xbuild when not on Windows
 				info.fileName = "xbuild"
@@ -234,10 +246,7 @@ class CobraBindingAddinInstaller
 			# and we'll use cobra to compile the CobraBinding project
 			info = _createProcessStartInfo
 			
-			info.fileName = "cobra"
-			if _isWindows
-				info.fileName += ".bat"
-			
+			info.fileName = CobraCore.findCobraExe
 			info.arguments = _getCobraArguments
 			info.workingDirectory += "CobraBinding"
 			cmds.add(Process(startInfo = info))

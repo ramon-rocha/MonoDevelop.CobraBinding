@@ -44,15 +44,62 @@ class Parser implements ITypeSystemParser, IFoldingParser
 		# read the file content
 		source = content.readToEnd
 		
-		#TODO: invoke Cobra Parser and visit AST
-		errors = List<of Error>()
+		# invoke Cobra Parser and visit AST
+		parser = CobraParser()
+		
+		# the parser needs a valid compiler and backend
+		compiler = Compiler(0) # verbosity = 0
+		
+		options = OptionValues()
+		# TODO: Figure out what options are really necessary
+		options.add("compile", true)
+		options.add("back-end", "clr")
+		options.add("turbo", true)
+		options.add("number", "decimal")
+		
+		compiler.options = options
+		compiler.initBackEnd
+		# TODO: Add project references
+		
+		# TODO: Figure out why/when I need to do this
+		Node.setCompiler(compiler)
+		Node.typeProvider = compiler
+		
+		# initialize the parser
+		parser.typeProvider = compiler
+		parser.warningRecorder = compiler
+		parser.errorRecorder = compiler
+		parser.globalNS = compiler.globalNS
+		parser.backEnd = compiler.backEnd
+		
+		# parse the code
+		module as CobraModule? = nil
+		try
+			module = parser.parseSource(fileName, source)
+		catch ex as Exception
+			compiler.errors.add(SourceException(ex.message))
+			
+		# TODO: Type checking
 		
 		# add folds
-		parsedDoc = .parse(fileName, source)
+		parsedDoc = .parse(fileName, source) to DefaultParsedDocument #TODO? to ParsedCobraDocument?
 		
 		# add parsing errors
-		for e in errors
-			parsedDoc.errors.add(e)
+		errors = List<of Error>()
+		
+		for e in compiler.errors		
+			errors.add(Error( _
+				ErrorType.Error, e.message, e.lineNum, 0))
+				
+		for w in compiler.warnings
+			errors.add(Error( _
+				ErrorType.Warning, w.message, w.lineNum, 0))
+			
+		parsedDoc.add(errors)
+		
+		#doc = MonoDevelop.Ide.IdeApp.workbench.getDocument(fileName)
+		if storeAst
+			parsedDoc.ast = module #TODO: Use some kind of cached AST if there were parsing errors
 
 		/# TODO? Add comment regions?
 		comments = List<of Tag>()
@@ -82,8 +129,8 @@ class Parser implements ITypeSystemParser, IFoldingParser
 		trace sw.elapsed
 		
 		return parsedDoc
-		
-		
+	
+	
 	def _getLineInformation(reader as StringReader) as List<of LineInformation>
 		
 		lines = List<of String>(.TYPICAL_LINE_COUNT)
@@ -93,8 +140,10 @@ class Parser implements ITypeSystemParser, IFoldingParser
 			lines.add(line)
 			line = reader.readLine
 			
-		return _getLineInformation(lines)
-		
+		if lines.count > 0
+			return _getLineInformation(lines)
+			
+		return List<of LineInformation>()
 		
 	def _getLineInformation(lines as List<of String>) as List<of LineInformation>
 		"""

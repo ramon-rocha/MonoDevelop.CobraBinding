@@ -217,17 +217,49 @@ class Parser implements ITypeSystemParser, IFoldingParser
 			
 			commentBlockCount = 0
 			for f in folds
-				
+				/#
 				trace f.region.beginLine
 				trace f.region.endLine
-			
+				#/
 				if f.type == FoldType.Comment
 					commentBlockCount += 1
 				else
 					assert f.region.endLine == 14
 					
 			assert commentBlockCount == 2
+
+		test docStrings
+			source = List<of String>()
+			source.add("'''")
+			source.add("Program docstring")
+			source.add("'''")
+			source.add("interface SomeInterface")
+			source.add("\t'''")
+			source.add("\tDocstring text for interface")
+			source.add("\t'''")
+			source.add("")
+			source.add("\tget aProperty")
+			source.add("\t\t'''")
+			source.add("\t\tProperty Docstring")
+			source.add("\t\t'''")
 			
+			parser = Parser()
+			infoList = parser._getLineInformation(source)
+			folds = List<of FoldingRegion>()
+			parser._addFolds(infoList, folds)
+			
+			assert folds.count == 5
+			
+			commentBlockCount = 0
+			for f in folds
+				
+				trace f.region.beginLine
+				trace f.region.endLine
+			
+				if f.type == FoldType.Comment
+					commentBlockCount += 1
+					
+			assert commentBlockCount == 3
 		body
 			if infoList.count < 2
 				# not enough lines to create a fold
@@ -265,6 +297,18 @@ class Parser implements ITypeSystemParser, IFoldingParser
 	
 				if closer <> nil
 					endLocation = TextLocation(lineNumber, curr.line.length + 1)
+					
+					if closer == docStringCloser
+					
+						level = _getIndentLevel(curr.line)
+						trace level
+						
+						if level > 0
+							if levelStack.count == 0 or (levelStack.count > 0 and levelStack.peek < level)
+								/# We need to make sure the doc string
+								closes with its containing block #/
+								levelStack.push(level)
+								endStack.push(endLocation)
 	
 					# we won't have a line that closes a delimited block without one that opens it
 					blockText = curr to !
@@ -297,6 +341,7 @@ class Parser implements ITypeSystemParser, IFoldingParser
 					else if level > levelStack.peek
 						first = levelStack.peek
 					else
+						# makes the following loop do nothing
 						first = level + 2
 																	
 					for l in first : level + 1

@@ -74,6 +74,36 @@ class LineInformation
 		assert not info.closesComment
 		assert not info.opensDocString
 		assert info.closesDocString
+
+	test blanks
+		info = LineInformation("class Foo")
+		assert not info.isBlank
+		assert info.line.length > 0
+
+		info = LineInformation("\tclass Foo")
+		assert not info.isBlank
+		assert info.line.length > 0
+
+		info = LineInformation("    class Foo")
+		assert not info.isBlank
+		assert info.line.length > 0
+
+		info = LineInformation("")
+		assert info.isBlank
+		assert info.line.length == 0
+
+		info = LineInformation("         ")
+		assert info.isBlank
+		assert info.line.length == 0
+
+		info = LineInformation("\t")
+		assert info.isBlank
+		assert info.line.length == 0
+
+		info = LineInformation("\t\t")
+		assert info.isBlank
+		assert info.line.length == 0
+
 	
 	var _line as String
 	var _isBlank as bool
@@ -213,7 +243,7 @@ class LineInformation
 								inString = false
 								stringTag = nil
 			
-			# on the next character
+			# on to the next character
 			i += 1
 		
 	get line from var

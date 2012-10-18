@@ -261,8 +261,6 @@ class Parser implements ITypeSystemParser, IFoldingParser
 					if closer == docStringCloser
 					
 						level = _getIndentLevel(curr.line)
-						trace level
-						
 						if level > 0
 							if levelStack.count == 0 or (levelStack.count > 0 and levelStack.peek < level)
 								/# We need to make sure the doc string

@@ -30,28 +30,13 @@ class Parser implements ITypeSystemParser, IFoldingParser
 		Generates folds and parses the specified file using the Cobra Parser.
 		Stores the resultant AST in the ParsedDocument when storeAst is true.
 		"""
-		/#
-		#TODO: Figure out how to get the 'tabs to spaces' and other policies'
-		if project is not nil
-			project = project to DotNetProject
-			@help project.policies
-			_tabsToSpaces = project.policies.get<of TextStylePolicy>.tabsToSpaces
-			trace _tabsToSpaces
-			trace project.parentSolution.policies.get<of TextStylePolicy>.tabsToSpaces
-			trace project.policies.directHas<of TextStylePolicy>
-		#/
-		
-		# read the file content
 		source = content.readToEnd
-		
-		# invoke Cobra Parser and visit AST
 		parser = CobraParser()
 		
 		# the parser needs a valid compiler and backend
 		compiler = Compiler(0) # verbosity = 0
 		
 		options = OptionValues()
-		# TODO: Figure out what options are really necessary
 		options.add("compile", true)
 		options.add("back-end", "clr")
 		options.add("turbo", true)
@@ -59,9 +44,7 @@ class Parser implements ITypeSystemParser, IFoldingParser
 		
 		compiler.options = options
 		compiler.initBackEnd
-		# TODO: Add project references
 		
-		# TODO: Figure out why/when I need to do this
 		Node.setCompiler(compiler)
 		Node.typeProvider = compiler
 		
@@ -79,10 +62,8 @@ class Parser implements ITypeSystemParser, IFoldingParser
 		catch ex as Exception
 			compiler.errors.add(SourceException(ex.message))
 			
-		# TODO: Type checking
-		
 		# add folds
-		parsedDoc = .parse(fileName, source) to DefaultParsedDocument #TODO? to ParsedCobraDocument?
+		parsedDoc = .parse(fileName, source) to DefaultParsedDocument
 		
 		# add parsing errors
 		errors = List<of Error>()
@@ -97,15 +78,9 @@ class Parser implements ITypeSystemParser, IFoldingParser
 			
 		parsedDoc.add(errors)
 		
-		#doc = MonoDevelop.Ide.IdeApp.workbench.getDocument(fileName)
 		if storeAst
-			parsedDoc.ast = module #TODO: Use some kind of cached AST if there were parsing errors
+			parsedDoc.ast = module
 
-		/# TODO? Add comment regions?
-		comments = List<of Tag>()
-		parsedDoc.add(comments)
-		#/
-		
 		return parsedDoc
 		
 	def parse(fileName as String, content as String) as ParsedDocument
@@ -114,9 +89,6 @@ class Parser implements ITypeSystemParser, IFoldingParser
 		
 		Parse the specified file to generate folds.
 		"""
-		sw = System.Diagnostics.Stopwatch()
-		sw.start
-			
 		parsedDoc = DefaultParsedDocument(fileName)
 		
 		reader = StringReader(content)
@@ -125,14 +97,10 @@ class Parser implements ITypeSystemParser, IFoldingParser
 		
 		parsedDoc.add(folds)
 
-		sw.stop
-		trace sw.elapsed
-		
 		return parsedDoc
 	
 	
 	def _getLineInformation(reader as StringReader) as List<of LineInformation>
-		
 		lines = List<of String>(.TYPICAL_LINE_COUNT)
 		
 		line = reader.readLine
@@ -217,10 +185,6 @@ class Parser implements ITypeSystemParser, IFoldingParser
 			
 			commentBlockCount = 0
 			for f in folds
-				/#
-				trace f.region.beginLine
-				trace f.region.endLine
-				#/
 				if f.type == FoldType.Comment
 					commentBlockCount += 1
 				else
@@ -252,10 +216,6 @@ class Parser implements ITypeSystemParser, IFoldingParser
 			
 			commentBlockCount = 0
 			for f in folds
-				
-				trace f.region.beginLine
-				trace f.region.endLine
-			
 				if f.type == FoldType.Comment
 					commentBlockCount += 1
 					

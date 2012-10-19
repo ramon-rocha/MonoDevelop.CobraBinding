@@ -9,6 +9,8 @@ It currently supports the following features:
 
 * Syntax Highlighting
 
+* Folding Regions
+
 * Multi-file Projects
 
 * Compilation and Execution
@@ -41,7 +43,7 @@ Requirements
 
 * MonoDevelop 3.0
 
-* Cobra 0.9
+* Cobra 0.9-svn-2817
 
 Additional Requirements for Windows 7 64-bit
 --------------------------------------------
@@ -140,8 +142,6 @@ Try one of these tasks...
 * Create additional project or file templates
 
 * Create syntax highlighting color schemes that match those on the Cobra website
-
-* Implement a Folding Parser to fold code blocks such as tests, loops, classes, etc.
 
 * Add support for MSBuild Items
 

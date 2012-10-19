@@ -123,7 +123,80 @@ class Parser implements ITypeSystemParser, IFoldingParser
 		ensure
 			result.count == lines.count
 		test
-			pass
+			source = List<of String>()
+			source.add("use Foo.Namespace") # line 0
+			source.add("")
+			source.add("namespace Bar.Namespace")
+			source.add("\tclass SomeClass")
+			source.add("\t\t'''")
+			source.add("\t\tDocstring text") # line 5
+			source.add("\t\t'''")
+			source.add("")
+			source.add("\t\tdef aMethod")
+			source.add("/#")
+			source.add("\ta comment") # line 10
+			source.add("\t\t#/")
+			source.add("\t\t\t")
+			source.add("\t\t\tprint 'hello world!'")
+			source.add("")
+			source.add("")
+			
+			parser = Parser()
+			infoList = parser._getLineInformation(source)
+						
+			assert infoList[0].opensComment == false
+			assert infoList[0].closesComment == false
+			assert infoList[0].opensDocString == false
+			assert infoList[0].closesDocString == false
+			assert infoList[0].isBlank == false
+									
+			assert infoList[1].opensComment == false
+			assert infoList[1].closesComment == false
+			assert infoList[1].opensDocString == false
+			assert infoList[1].closesDocString == false
+			assert infoList[1].isBlank == true #
+						
+			assert infoList[4].opensComment == false
+			assert infoList[4].closesComment == false
+			assert infoList[4].opensDocString == true #
+			assert infoList[4].closesDocString == false
+			assert infoList[4].isBlank == false
+						
+			assert infoList[5].opensComment == false
+			assert infoList[5].closesComment == false
+			assert infoList[5].opensDocString == false
+			assert infoList[5].closesDocString == false
+			assert infoList[5].isBlank == false
+						
+			assert infoList[6].opensComment == false
+			assert infoList[6].closesComment == false
+			assert infoList[6].opensDocString == false
+			assert infoList[6].closesDocString == true #
+			assert infoList[6].isBlank == false
+			
+			assert infoList[9].opensComment == true #
+			assert infoList[9].closesComment == false
+			assert infoList[9].opensDocString == false
+			assert infoList[9].closesDocString == false
+			assert infoList[9].isBlank == false
+			
+			assert infoList[10].opensComment == false
+			assert infoList[10].closesComment == false
+			assert infoList[10].opensDocString == false
+			assert infoList[10].closesDocString == false
+			assert infoList[10].isBlank == false
+			
+			assert infoList[11].opensComment == false
+			assert infoList[11].closesComment == true #
+			assert infoList[11].opensDocString == false
+			assert infoList[11].closesDocString == false
+			assert infoList[11].isBlank == false
+			
+			assert infoList[12].opensComment == false
+			assert infoList[12].closesComment == false
+			assert infoList[12].opensDocString == false
+			assert infoList[12].closesDocString == false
+			assert infoList[12].isBlank == true #
 		body
 			info as LineInformation? = nil
 			inComment = false

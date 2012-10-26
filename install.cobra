@@ -168,7 +168,10 @@ class CobraBindingAddinInstaller
 			result.endsWith(__s)			
 		body
 			if _isWindows				
-				path = Environment.getEnvironmentVariable("LOCALAPPDATA")				 
+				path = Environment.getEnvironmentVariable("LOCALAPPDATA")
+				if path == nil
+					# variable not defined before Vista
+					path = Environment.getEnvironmentVariable("USERPROFILE") + "\\Local Settings\\Application Data"
 				
 			else
 				home = Environment.getEnvironmentVariable("HOME")

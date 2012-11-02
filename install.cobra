@@ -242,6 +242,17 @@ class CobraBindingAddinInstaller
 			# and we'll use cobra to compile the CobraBinding project
 			info = _createProcessStartInfo
 			
+			if CobraCore.isRunningOnMono
+				/#
+				Workaround an inability of Mono to find the dependencies
+				of MonoDevelop.Ide.dll when loaded via reflection.
+				#/
+				if not _isWindows
+					# not sure if this is correct for Mac...
+					info.environmentVariables["MONO_PATH"] = "/usr/lib/monodevelop/bin"
+				else
+					info.environmentVariables["MONO_PATH"] = "[progFiles]\\MonoDevelop\\bin"
+
 			info.fileName = CobraCore.findCobraExe
 			info.arguments = _getCobraArguments
 			info.workingDirectory += "CobraBinding"

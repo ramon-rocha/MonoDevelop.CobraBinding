@@ -119,6 +119,10 @@ namespace MonoDevelop.CobraBinding
 				nativeArgsBuilder = StringBuilder()
 				
 				for projFile in items.getAll<of ProjectFile>
+					
+					# workaround an issue where directories are sometimes included with project files
+					if Directory.exists(projFile.name), continue
+					
 					branch projFile.buildAction
 						on BuildAction.compile
 							toCompile.append(' "[projFile.name]"')

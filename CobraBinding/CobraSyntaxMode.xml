@@ -75,6 +75,11 @@
 		<End>'</End>
 	</Span>
 	
+	<Span color="string.other">
+		<Begin>ns'</Begin>
+		<End>'</End>
+	</Span>
+	
 	<Rule name="StringExpr">
 		<Span color="keyword.parameter" tagColor="text.punctuation">
 			<Begin>[</Begin>

@@ -9,7 +9,7 @@
 	<Property name="StringQuote">'</Property>
 	
 	<!-- Numbers -->
-	<Match color="constant.digit">\b[0-9._]+\b</Match>
+	<Match color="constant.digit">(?:[0-9]+_?)+(?:\.[0-9]+)?</Match>
 	
 	<!-- Array Literals -->
 	<Rule name="Comma">
@@ -72,6 +72,11 @@
 
 	<Span color="string.other">
 		<Begin>r'</Begin>
+		<End>'</End>
+	</Span>
+	
+	<Span color="string.other">
+		<Begin>ns'</Begin>
 		<End>'</End>
 	</Span>
 	

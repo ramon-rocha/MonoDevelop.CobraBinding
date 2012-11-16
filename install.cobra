@@ -18,7 +18,7 @@ NOTE below or the README.md file for more details.
 
 So what does this program do?  It generates the addin assemblies and copies them
 to the <OS-dependent>/MonoDevelop-3.0/LocalInstall/Addins folder.  If you just compile
-the addin, the DLL files will be in the bin/Release folders of each project.
+the addin, the DLL files will be in the bin/Debug folders of each project.
 
 Once installed, you will be able to create, run, and debug programs written in Cobra
 using MonoDevelop.
@@ -64,7 +64,7 @@ class CobraBindingAddinInstaller
 	var _refs = [
 		"System.Core",
 		"Cobra.Compiler",
-		"..[__s]Gui[__s]bin[__s]Release[__s]MonoDevelop.CobraBinding.Gui.dll"
+		"..[__s]Gui[__s]bin[__s]Debug[__s]MonoDevelop.CobraBinding.Gui.dll"
 	]
 	
 	var _pkgs = [
@@ -116,7 +116,7 @@ class CobraBindingAddinInstaller
 		cmds = .getCompilerCmds	
 		for c in cmds
 
-			binDir = c.startInfo.workingDirectory + "[__s]bin[__s]Release"
+			binDir = c.startInfo.workingDirectory + "[__s]bin[__s]Debug"
 			if not Directory.exists(binDir)
 				Directory.createDirectory(binDir)
 
@@ -142,16 +142,16 @@ class CobraBindingAddinInstaller
 				Directory.createDirectory(outPath)
 
 			name = "MonoDevelop.CobraBinding.Gui.dll"
-			File.copy("Gui[__s]bin[__s]Release[__s][name]", outPath + name, true)
+			File.copy("Gui[__s]bin[__s]Debug[__s][name]", outPath + name, true)
 
 			name = "MonoDevelop.CobraBinding.dll"
-			File.copy("CobraBinding[__s]bin[__s]Release[__s][name]", outPath + name, true)
+			File.copy("CobraBinding[__s]bin[__s]Debug[__s][name]", outPath + name, true)
 
 			name = "Cobra.Core.dll"
-			File.copy("CobraBinding[__s]bin[__s]Release[__s][name]", outPath + name, true)
+			File.copy("CobraBinding[__s]bin[__s]Debug[__s][name]", outPath + name, true)
 
 			name = "Cobra.Compiler.dll"
-			File.copy("CobraBinding[__s]scripts[__s]refs[__s][name]", outPath + name, true)
+			File.copy(_getCobraCompilerDllPath, outPath + name, true)
 
 		catch e as Exception
 			print "Failed!"
@@ -235,7 +235,7 @@ class CobraBindingAddinInstaller
 				# We'll use xbuild when not on Windows
 				info.fileName = "xbuild"
 			
-			info.arguments = "Gui.csproj /p:Configuration=Release"
+			info.arguments = "Gui.csproj /p:Configuration=Debug"
 			if _isWindows
 				progFiles = Environment.getEnvironmentVariable("PROGRAMFILES")
 				if progFiles.endsWith("(x86)")
@@ -292,7 +292,7 @@ class CobraBindingAddinInstaller
 		to compile the CobraBinding project.
 		"""
 		cobraArgs = StringBuilder(
-			'-compile -copy-core -target:lib -out:"bin[__s]Release[__s]MonoDevelop.CobraBinding.dll"'
+			'-compile -copy-core -target:lib -out:"bin[__s]Debug[__s]MonoDevelop.CobraBinding.dll"'
 		)
 		
 		for r in _refs
@@ -328,3 +328,39 @@ class CobraBindingAddinInstaller
 			cobraArgs.append("[fileName] ")
 		
 		return cobraArgs.toString
+
+	def _getCobraCompilerDllPath as String
+		"""
+		Returns the path to Cobra.Compiler.dll
+		"""
+		require
+			CobraCore.findCobraExe <> nil
+			CobraCore.findCobraExe.length > 0
+		ensure
+			result.endsWith("Cobra.Compiler.dll")
+		test
+			installer = CobraBindingAddinInstaller()
+			path = installer._getCobraCompilerDllPath
+			assert File.exists(path)
+		body
+			/#
+			Get the location of the cobra.exe, this will actually
+			return cobra.bat or a BASH script in most cases.
+			#/
+			cobraCmd = CobraCore.findCobraExe
+			
+			# execute: 'cobra -path'
+			proc = System.Diagnostics.Process()
+			proc.startInfo.fileName = cobraCmd
+			proc.startInfo.arguments = "-path"
+			proc.startInfo.useShellExecute = false
+			proc.startInfo.createNoWindow = true
+			proc.startInfo.windowStyle = ProcessWindowStyle.Hidden
+			proc.startInfo.workingDirectory = Directory.getCurrentDirectory + __s
+			proc.startInfo.environmentVariables["PATH"] = Environment.getEnvironmentVariable("PATH")
+			
+			# this should return something like '/usr/local/cobra/Cobra-0.9.0/bin/cobra.exe'
+			output = proc.runAndCaptureAllOutput.trim
+			cobraExeInfo = FileInfo(output)
+			cobraDir = cobraExeInfo.directoryName
+			return cobraDir + __s + "Cobra.Compiler.dll"

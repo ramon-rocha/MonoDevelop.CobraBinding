@@ -152,31 +152,42 @@ namespace MonoDevelop.CobraBinding
 				# add the list of files to compile
 				argsBuilder.append(toCompile.toString)
 
-				# create and setup the process which will execute the Cobra compiler
-				# if the user has specified the location of the compiler, use that
-				cobraExe = Environment.getEnvironmentVariable("COBRA_EXE")
-				
+				cobraExe = CobraCore.findCobraExe
 				if cobraExe is nil or cobraExe.length == 0
-					# the user has not specified the location of the compiler
-					# we'll rely on cobra being in the user's path
-					cobraExe = "cobra"
+					errMsg = "Could not find cobra.exe. " + _
+						"Try adding its location to your PATH environment variable."
+					monitor.reportError(errMsg, nil)
+					failedResult = BuildResult()
+					failedResult.addError(errMsg)
+					return failedResult
 
 				# use the project directory as the working directory unless it's not defined
 				try
 					workingDir = configuration.parentItem.baseDirectory.toString
 				catch
 					workingDir = "."
-					
+
 				proc = _spawnCobraCompilerProcess(cobraExe to !, argsBuilder.toString, workingDir)
 
+				monitor.log.writeLine("Working directory: " + workingDir)
+				# TODO: This creates one giant long string that requires horiztonal scrolling,
+				# it should wrap or logically group the arguments instead
+				monitor.log.writeLine(cobraExe to ! + " " + proc.startInfo.arguments)
+
 				# parse the compiler output
-				lines = List<of String>()				
-				lines.addRange(proc.standardError.readToEnd.split('\n'))
+				lines = List<of String>()
+
+				stdErr = proc.standardError.readToEnd
+				if stdErr.length, monitor.reportError(stdErr, nil)
+				lines.addRange(stdErr.split('\n'))
+
 				stdOut = proc.standardOutput.readToEnd
+				if stdOut.length, monitor.log.writeLine(stdOut)
 				lines.addRange(stdOut.split('\n'))
 				
 				buildResult = _parseCompilerOutput(lines)
 				buildResult.compilerOutput = stdOut
+
 				return buildResult
 		
 		def _spawnCobraCompilerProcess(cobraExe as String, cobraArgs as String, workingDir as String) as Process
@@ -211,14 +222,9 @@ namespace MonoDevelop.CobraBinding
 				proc.startInfo.createNoWindow = true
 				
 				proc.startInfo.fileName = cobraExe
-				if _isWindows and proc.startInfo.fileName == "cobra"
-					proc.startInfo.environmentVariables["PATH"] = Environment.getEnvironmentVariable("PATH")
-					proc.startInfo.fileName += ".bat"
 				proc.startInfo.arguments = cobraArgs
 				proc.startInfo.workingDirectory = workingDir
 				
-				trace proc.startInfo.arguments
-
 				proc.start
 				proc.waitForExit
 				

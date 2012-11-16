@@ -79,4 +79,7 @@
 		<Parser mimeType = "text/x-cobra" class="MonoDevelop.CobraBinding.TypeSystem.Parser" />
 	</Extension>
 	
+	<Extension path = "/MonoDevelop/Ide/TextEditorExtensions">
+		<Class fileExtensions=".cobra" class="MonoDevelop.CobraBinding.Completion.CobraCompletionTextEditorExtension" />
+	</Extension>
 </Addin>

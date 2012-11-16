@@ -18,7 +18,7 @@ NOTE below or the README.md file for more details.
 
 So what does this program do?  It generates the addin assemblies and copies them
 to the <OS-dependent>/MonoDevelop-3.0/LocalInstall/Addins folder.  If you just compile
-the addin, the DLL files will be in the bin/Debug folders of each project.
+the addin, the DLL files will be in the bin/Release folders of each project.
 
 Once installed, you will be able to create, run, and debug programs written in Cobra
 using MonoDevelop.
@@ -57,13 +57,14 @@ class CobraBindingAddinInstaller
 		"Project[__s]CobraCompilerParameters.cobra",
 		"Project[__s]CompilerBuildOptionsPanel.cobra",
 		"TypeSystem[__s]Parser.cobra",
-		"TypeSystem[__s]LineInformation.cobra"
+		"TypeSystem[__s]LineInformation.cobra",
+		"Completion[__s]CobraCompletionTextEditorExtension.cobra",
 	]
 	
 	var _refs = [
 		"System.Core",
 		"Cobra.Compiler",
-		"..[__s]Gui[__s]bin[__s]Debug[__s]MonoDevelop.CobraBinding.Gui.dll"
+		"..[__s]Gui[__s]bin[__s]Release[__s]MonoDevelop.CobraBinding.Gui.dll"
 	]
 	
 	var _pkgs = [
@@ -115,7 +116,7 @@ class CobraBindingAddinInstaller
 		cmds = .getCompilerCmds	
 		for c in cmds
 
-			binDir = c.startInfo.workingDirectory + "[__s]bin[__s]Debug"
+			binDir = c.startInfo.workingDirectory + "[__s]bin[__s]Release"
 			if not Directory.exists(binDir)
 				Directory.createDirectory(binDir)
 
@@ -141,16 +142,16 @@ class CobraBindingAddinInstaller
 				Directory.createDirectory(outPath)
 
 			name = "MonoDevelop.CobraBinding.Gui.dll"
-			File.copy("Gui[__s]bin[__s]Debug[__s][name]", outPath + name, true)
+			File.copy("Gui[__s]bin[__s]Release[__s][name]", outPath + name, true)
 
 			name = "MonoDevelop.CobraBinding.dll"
-			File.copy("CobraBinding[__s]bin[__s]Debug[__s][name]", outPath + name, true)
+			File.copy("CobraBinding[__s]bin[__s]Release[__s][name]", outPath + name, true)
 
 			name = "Cobra.Core.dll"
-			File.copy("CobraBinding[__s]bin[__s]Debug[__s][name]", outPath + name, true)
+			File.copy("CobraBinding[__s]bin[__s]Release[__s][name]", outPath + name, true)
 
 			name = "Cobra.Compiler.dll"
-			File.copy("CobraBinding[__s]bin[__s]Debug[__s][name]", outPath + name, true)
+			File.copy("CobraBinding[__s]scripts[__s]refs[__s][name]", outPath + name, true)
 
 		catch e as Exception
 			print "Failed!"
@@ -234,7 +235,7 @@ class CobraBindingAddinInstaller
 				# We'll use xbuild when not on Windows
 				info.fileName = "xbuild"
 			
-			info.arguments = "Gui.csproj /p:Configuration=Debug"
+			info.arguments = "Gui.csproj /p:Configuration=Release"
 			if _isWindows
 				progFiles = Environment.getEnvironmentVariable("PROGRAMFILES")
 				if progFiles.endsWith("(x86)")
@@ -291,7 +292,7 @@ class CobraBindingAddinInstaller
 		to compile the CobraBinding project.
 		"""
 		cobraArgs = StringBuilder(
-			'-compile -copy-core -target:lib -out:"bin[__s]Debug[__s]MonoDevelop.CobraBinding.dll"'
+			'-compile -copy-core -target:lib -out:"bin[__s]Release[__s]MonoDevelop.CobraBinding.dll"'
 		)
 		
 		for r in _refs

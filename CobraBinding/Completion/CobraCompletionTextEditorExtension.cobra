@@ -1,0 +1,429 @@
+use Cobra.Compiler
+
+use MonoDevelop.CobraBinding.TypeSystem
+
+use MonoDevelop.Core
+use MonoDevelop.Projects
+use MonoDevelop.Ide.Gui.Content
+use MonoDevelop.Ide.CodeCompletion
+use MonoDevelop.Ide.TypeSystem
+
+use ICSharpCode.NRefactory.Completion
+use ICSharpCode.NRefactory.TypeSystem
+
+namespace MonoDevelop.CobraBinding.Completion
+
+class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
+
+	var iconKeyword = IconId("md-keyword")
+	var iconClass = IconId("md-class")
+	var iconField = IconId("md-field")
+	var iconLiteral = IconId("md-literal")
+	var iconMethod = IconId("md-method")
+	var iconDelegate = IconId("md-delegate")
+	var iconStruct = IconId("md-struct")
+	var iconEvent = IconId("md-event")
+	var iconProperty = IconId("md-property")
+	var iconInterface = IconId("md-interface")
+	var iconEnum = IconId("md-enum")
+	var iconNamespace = IconId("md-name-space")
+
+	def keyPress(key as Gdk.Key, c as char, modifier as Gdk.ModifierType) as bool is override
+		"""
+		Return true if the key press should be processed by the editor.
+		"""
+		/#
+		trace key
+		trace c
+		trace modifier
+		#/
+		return base.keyPress(key, c, modifier)
+		
+	def handleCodeCompletion(context as CodeCompletionContext?, completionChar as char,
+							triggerWordLength as inout int) as ICompletionDataList? is override
+
+		/#
+		.document is a MonoDevelop.Ide.Gui.Document
+		.document.editor.document is a Mono.TextEditor.Document
+		.document.parsedDocument is a MonoDevelop.Ide.TypeSystem.DefaultParsedDocument
+
+		Eventually, we'll need to provide a custom parsedDocument and a bunch of other
+	    classes to make use of NRefactory for semantic analysis.
+		http://www.codeproject.com/Articles/408663/Using-NRefactory-for-analyzing-Csharp-code
+		#/
+	
+		if .document == nil or
+			.document.editor == nil or
+			context == nil
+			# not enough information to be able to provide completion results
+			return nil
+			
+		#trace context.toString
+		line = context.triggerLine
+		col = context.triggerLineOffset
+		
+		textDoc = .document.editor.document
+		lineText = textDoc.getLineText(line) to !
+		
+		parsedDoc = .document.parsedDocument
+		ast as CobraModule? = nil
+		folds as IEnumerable<of FoldingRegion>? = nil
+		if parsedDoc <> nil
+			ast = parsedDoc.getAst<of CobraModule>
+			folds = parsedDoc.foldings
+		
+		containingFolds = List<of FoldingRegion>()
+		if folds <> nil
+			/#
+			for f in folds
+				trace f.region.toString
+				trace textDoc.getLineText(f.region.beginLine)
+				trace f.type
+				trace f.region.isInside(context.triggerLine, context.triggerLineOffset)
+				trace textDoc.getLineText(context.triggerLine)
+			#/
+			
+			containingFolds = .getContainingFolds(line, col, folds)
+			if containingFolds.count <= 1
+				# this could be a line following the previous fold
+				previousFold = .getPreviousFold(line, containingFolds)
+				if previousFold <> nil
+					alreadyInList = false
+					for f in containingFolds
+						if previousFold.region == f.region
+							alreadyInList = true
+						
+					if not alreadyInList
+						foldBeginText = textDoc.getLineText(previousFold.region.beginLine)
+						if _getIndentLevel(lineText to !) - 1 == _getIndentLevel(foldBeginText to !)
+							containingFolds.add(previousFold)
+		
+		if completionChar <> c' '
+			# do this so that the letter just typed is considered part of the word to complete 
+			triggerWordLength += 1
+			col -= 1
+			
+		if col < 0
+			# this can happen on manual triggering of code completion via Ctrl+Space from the start of a blank line
+			col = 0
+											
+		# now we have a list of folding regions that can we use to provide completion information
+		if containingFolds.count == 0
+			/#
+			Okay...so we don't have any containing folds after all, we can still provide some completion data.
+			#/
+			return _getGlobalDeclCompletionData(lineText.substring(0, col), "TODO")
+			
+		else if .isInComment(line, col, lineText, containingFolds)
+			return nil
+			
+		else
+			completionData = CompletionDataList()
+			for f in containingFolds
+				completionData.addRange(_getCompletionData(f, lineText.substring(0, col), "TODO"))
+			return completionData
+		
+
+	def handleParameterCompletion(context as CodeCompletionContext?, completionChar as char) _
+		as IParameterDataProvider? is override
+
+		return nil
+
+	def getContainingFolds(line as int, col as int, folds as IEnumerable<of FoldingRegion>) _
+		as List<of FoldingRegion>
+		"""
+		Returns the folding regions that contain the given document location.
+		"""
+		ensure
+			result.count <= List<of FoldingRegion>(folds).count
+		test
+			folds = List<of FoldingRegion>()
+			folds.add(FoldingRegion(DomRegion(1, 1, 10, 120), FoldType.Undefined))
+			folds.add(FoldingRegion(DomRegion(1, 1, 5, 120), FoldType.Undefined))
+			folds.add(FoldingRegion(DomRegion(6, 1, 10, 120), FoldType.Undefined))
+			folds.add(FoldingRegion(DomRegion(11, 1, 15, 120), FoldType.Undefined))
+			folds.add(FoldingRegion(DomRegion(12,1, 14, 120), FoldType.Comment))
+
+			complExt = CobraCompletionTextEditorExtension()
+			assert complExt.getContainingFolds(1, 1, folds).count == 2
+			assert complExt.getContainingFolds(2, 1, folds).count == 2
+			assert complExt.getContainingFolds(5, 80, folds).count == 2
+			assert complExt.getContainingFolds(6, 10, folds).count == 2
+			assert complExt.getContainingFolds(11, 1, folds).count == 1
+			assert complExt.getContainingFolds(13, 1, folds).count == 2
+			assert complExt.getContainingFolds(15, 20, folds).count == 1
+			assert complExt.getContainingFolds(16, 1, folds).count == 0
+		body
+			containingFolds = List<of FoldingRegion>()
+			for f in folds
+				if f.region.isInside(line, col)
+					containingFolds.add(f)
+			return containingFolds
+
+	def isInComment(line as int, col as int, lineText as String, containingFolds as List<of FoldingRegion>) as bool
+		"""
+		Returns true if the given position is inside a comment.
+
+		line and col make up the position that is being checked.
+		lineText is the line of text at the given line number.
+		containingFolds is a list of FoldingRegion objects that 
+		are already known to contain the given location.
+
+		It makes sense to first call .getContainingFolds and pass
+		the return value into this method.
+		"""
+		require
+			line > 0
+			col >= 0
+			all for f in containingFolds get f.region.isInside(line, col)
+
+		test singleLineComment
+			complExt = CobraCompletionTextEditorExtension()
+			assert complExt.isInComment(1, 1, "# this is a comment", List<of FoldingRegion>())
+			#TODO: more
+
+		test multiLineComment
+			complExt = CobraCompletionTextEditorExtension()
+			folds = List<of FoldingRegion>()
+			folds.add(FoldingRegion(DomRegion(1, 1, 4, 1), FoldType.Comment))
+			assert complExt.isInComment(2, 1, "comment text in a comment block blah blah blah", folds)
+			#TODO: more
+
+		test notInComment
+			complExt = CobraCompletionTextEditorExtension()
+			assert not complExt.isInComment(1, 1, "class Foo inherits Bar", List<of FoldingRegion>())
+
+			folds = List<of FoldingRegion>()
+			folds.add(FoldingRegion(DomRegion(1, 1, 4, 1), FoldType.Undefined))
+			assert not complExt.isInComment(2, 1, "\t\t", folds)
+			#TODO: more
+
+		body
+			for f in containingFolds
+				if f.type == FoldType.Comment
+					return true
+
+			if lineText.length
+				# TODO: handle trailing comment, make sure it's not in a string
+				return lineText.trimStart.startsWith("#")
+				
+			return false
+
+	def getPreviousFold(line as int, folds as List<of FoldingRegion>) as FoldingRegion?
+		"""
+		Returns the fold immediately above the current line from the given list of folds.
+		"""
+		require
+			line > 0
+		test
+			/#
+			Why do we need this function?  Blank lines following a fold are not considered
+			part of the fold above them, but depending on the indent level of the given
+			line, we might be adding more code that fold's region so we would want to know
+			what local variables are available to autocompletion.
+			#/
+			complExt = CobraCompletionTextEditorExtension()
+			folds = List<of FoldingRegion>()
+			folds.add(FoldingRegion(DomRegion(1, 1, 3, 10)))
+			folds.add(FoldingRegion(DomRegion(5, 1, 8, 10)))
+
+			previous = complExt.getPreviousFold(4, folds)
+			assert previous is folds[0]
+
+			previous = complExt.getPreviousFold(10, folds)
+			assert previous is folds[1]
+
+			folds.add(FoldingRegion(DomRegion(1, 1, 8, 10)))
+			previous = complExt.getPreviousFold(10, folds)
+			assert previous is folds[1]
+		test noPreviousFold
+			complExt = CobraCompletionTextEditorExtension()
+			folds = List<of FoldingRegion>()
+			folds.add(FoldingRegion(DomRegion(2, 1, 3, 10)))
+			folds.add(FoldingRegion(DomRegion(5, 1, 8, 10)))
+			previous = complExt.getPreviousFold(1, folds)
+			assert previous == nil
+		test noFolds
+			assert CobraCompletionTextEditorExtension().getPreviousFold(1, List<of FoldingRegion>()) == nil
+		body
+			if folds.count == 0, return nil
+			
+			foldsAboveLine = List<of FoldingRegion>()
+			for f in folds
+				if f.region.beginLine < line
+					foldsAboveLine.add(f)
+			
+			if foldsAboveLine.count
+				# now find fold closest to the line
+				closestFold = foldsAboveLine[0]
+				for i in 1:foldsAboveLine.count
+					f = foldsAboveLine[i]
+					if f.region.endLine > closestFold.region.endLine
+						closestFold = f
+					else if f.region.endLine == closestFold.region.endLine
+						# prefer the region that starts later
+						if f.region.beginLine > closestFold.region.beginLine
+							closestFold = f
+				return closestFold
+			
+			# no folds above the line
+			return nil
+
+	def _getIndentLevel(line as String) as int
+		"""
+		Returns the number of indents for the given line.
+		"""
+		# Crap!  This function already exists in Parser.  Shouldn't be repeated here.
+		return (line.length - line.trimStart.length)
+
+	def _getGlobalDeclCompletionData(preceedingText as String, currText as String) as ICompletionDataList
+		"""
+		Returns completion data when we are in the context of the global namespace.
+		"""
+		dataList = CompletionDataList()
+		if preceedingText.endsWith("use ")
+			# provide namespaces from implicit references (actually, why? they are implicit)
+			dataList.add("System", .iconNamespace)
+			dataList.add("System.Collections.Generic", .iconNamespace)
+			dataList.add("System.IO", .iconNamespace)
+			dataList.add("System.Text", .iconNamespace)
+			dataList.add("Cobra.Core", .iconNamespace)
+			
+			# provide namespaces from explicit references
+			dataList.addRange(_getNamespacesFromProjectRefs)
+			
+		else if preceedingText.trim.length == 0
+			# declarative keywords
+			dataList.add("use", .iconKeyword)
+			dataList.add("namespace", .iconKeyword)
+			dataList.add("class", .iconKeyword)
+			dataList.add("interface", .iconKeyword)
+			dataList.add("struct", .iconKeyword)
+			dataList.add("mixin", .iconKeyword)
+			dataList.add("enum", .iconKeyword)
+			dataList.add("sig", .iconKeyword)
+			dataList.add("extend", .iconKeyword)
+		else
+			#TODO: finer context
+			dataList.add("adds", .iconKeyword)
+			dataList.add("inherits", .iconKeyword)
+			dataList.add("implements", .iconKeyword)
+			dataList.add("has", .iconKeyword)
+			dataList.add("is", .iconKeyword)
+			dataList.add("abstract", .iconKeyword)
+			dataList.add("public", .iconKeyword)
+			dataList.add("protected", .iconKeyword)
+			dataList.add("private", .iconKeyword)
+			dataList.add("internal", .iconKeyword)
+			dataList.add("partial", .iconKeyword)
+			dataList.add("extern", .iconKeyword)
+			
+		return dataList
+
+	def _getCompletionData(fold as FoldingRegion, preceedingText as String, currText as String) as ICompletionDataList
+		"""
+		Returns completion data in the context of the given fold.
+		"""
+		require
+			.document.editor <> nil
+			.document.editor.document <> nil
+		body
+			dataList = CompletionDataList()
+			textDoc = .document.editor.document
+			firstFoldLine = textDoc.getLineText(fold.region.beginLine).trimStart
+			if firstFoldLine.startsWith("namespace ")
+				#TODO being inside a namespace means we have access to all the classes inside of it
+				dataList.addRange(_getGlobalDeclCompletionData(preceedingText, currText))
+				
+			else if firstFoldLine.startsWith("class ")
+				#TODO being inside a class gives us access to all its fields and methods
+				dataList.add("test", .iconKeyword)
+				dataList.add("invariant", .iconKeyword)
+				dataList.add("cue init", .iconKeyword)
+				dataList.add("var", .iconKeyword)
+				dataList.add("as", .iconKeyword)
+				dataList.add("def", .iconKeyword)
+				dataList.add("pro", .iconKeyword)
+				dataList.add("get", .iconKeyword)
+				dataList.add("set", .iconKeyword)
+				
+				dataList.add("class", .iconKeyword)
+				dataList.add("interface", .iconKeyword)
+				dataList.add("struct", .iconKeyword)
+				dataList.add("mixin", .iconKeyword)
+				dataList.add("enum", .iconKeyword)
+				dataList.add("sig", .iconKeyword)
+				dataList.add("extend", .iconKeyword)
+			
+			else if firstFoldLine.startsWith("def ") or firstFoldLine.startsWith("get ") or firstFoldLine.startsWith("set ")
+				#TODO being inside a method gives us access to all its local variables and also to a lot more Cobra keywords
+				dataList.add("require", .iconKeyword)
+				dataList.add("ensure", .iconKeyword)
+				dataList.add("test", .iconKeyword)
+				dataList.add("body", .iconKeyword)
+				
+				dataList.add("print", .iconKeyword)
+				dataList.add("lock", .iconKeyword)
+				dataList.add("using", .iconKeyword)
+				dataList.add("try", .iconKeyword)
+				dataList.add("catch", .iconKeyword)
+				dataList.add("finally", .iconKeyword)
+				dataList.add("throw", .iconKeyword)
+				dataList.add("assert", .iconKeyword)
+				dataList.add("trace", .iconKeyword)
+				dataList.add("if", .iconKeyword)
+				dataList.add("else", .iconKeyword)
+				dataList.add("branch", .iconKeyword)
+				dataList.add("on", .iconKeyword)
+				dataList.add("for", .iconKeyword)
+				dataList.add("while", .iconKeyword)
+				dataList.add("post", .iconKeyword)
+			return dataList
+
+	def _getNamespacesFromProjectRefs as ICompletionDataList
+		"""
+		Returns the namespaces of the types in the current project references
+		"""
+		#TODO do it right with only one namespace level at as time
+		nsList = List<of String>()
+		
+		proj = .document.project to DotNetProject
+		for r in proj.references
+			for asmFileName in r.getReferencedFileNames(DefaultConfigurationSelector())
+				try
+					asm = System.Reflection.Assembly.loadFile(asmFileName)
+					if asm <> nil
+						for t in asm.getTypes
+							if t.namespace <> nil and t.namespace not in nsList
+								nsList.add(t.namespace)
+				catch ex as Exception
+					# failed to load assembly, just ignore it for now
+					trace ex.message
+		
+		dataList = CompletionDataList()
+		
+		for ns in nsList
+			dataList.add(ns, .iconNamespace)
+		
+		return dataList
+		
+	def _getNamespaceCompletionData(n as NameSpace) as ICompletionDataList
+		"""
+		Given a namespace node, return the namespaces and types it provides.
+		"""
+		#TODO
+		return CompletionDataList()
+		
+	def _getClassMemberCompletionData(c as Class) as ICompletionDataList
+		"""
+		Given a class node, return the members associated with it.
+		"""
+		#TODO
+		return CompletionDataList()
+		
+	def _getMethodVarCompletionData(m as AbstractMethod) as ICompletionDataList
+		"""
+		Given a method node, return the members associated with it.
+		"""
+		#TODO
+		return CompletionDataList()

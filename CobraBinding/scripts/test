@@ -4,5 +4,5 @@ export MONO_PATH=/usr/lib/monodevelop/bin
 
 cd "$(dirname "$0")"
 cd refs
-cobra -test -pkg:gtk-sharp-2.0 -ref:System.Core ../../*.cobra ../../Project/*.cobra ../../TypeSystem/*.cobra
+cobra -test -pkg:gtk-sharp-2.0 -pkg:monodevelop -ref:System.Core ../../*.cobra ../../Project/*.cobra ../../TypeSystem/*.cobra ../../Completion/*.cobra
 rm test-*

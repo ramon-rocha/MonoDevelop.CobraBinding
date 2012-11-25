@@ -55,11 +55,14 @@ class CobraBindingAddinInstaller
 		"AssemblyInfo.cs",
 		"CobraLanguageBinding.cobra",
 		"Project[__s]CobraCompilerParameters.cobra",
-		"Project[__s]CompilerBuildOptionsPanel.cobra"
+		"Project[__s]CompilerBuildOptionsPanel.cobra",
+		"TypeSystem[__s]Parser.cobra",
+		"TypeSystem[__s]LineInformation.cobra"
 	]
 	
 	var _refs = [
 		"System.Core",
+		"Cobra.Compiler",
 		"..[__s]Gui[__s]bin[__s]Debug[__s]MonoDevelop.CobraBinding.Gui.dll"
 	]
 	
@@ -71,6 +74,7 @@ class CobraBindingAddinInstaller
 	var _winRefsPartialPaths = [
 		r"\MonoDevelop\bin\MonoDevelop.Core.dll",
 		r"\MonoDevelop\bin\MonoDevelop.Ide.dll",
+		r"\MonoDevelop\bin\ICSharpCode.NRefactory.dll",
 		r"\GtkSharp\2.12\lib\gtk-sharp-2.0\gtk-sharp.dll",
 		r"\GtkSharp\2.12\lib\gtk-sharp-2.0\glib-sharp.dll",
 		r"\GtkSharp\2.12\lib\gtk-sharp-2.0\atk-sharp.dll",
@@ -144,6 +148,9 @@ class CobraBindingAddinInstaller
 
 			name = "Cobra.Core.dll"
 			File.copy("CobraBinding[__s]bin[__s]Debug[__s][name]", outPath + name, true)
+
+			name = "Cobra.Compiler.dll"
+			File.copy(_getCobraCompilerDllPath, outPath + name, true)
 
 		catch e as Exception
 			print "Failed!"
@@ -320,3 +327,39 @@ class CobraBindingAddinInstaller
 			cobraArgs.append("[fileName] ")
 		
 		return cobraArgs.toString
+
+	def _getCobraCompilerDllPath as String
+		"""
+		Returns the path to Cobra.Compiler.dll
+		"""
+		require
+			CobraCore.findCobraExe <> nil
+			CobraCore.findCobraExe.length > 0
+		ensure
+			result.endsWith("Cobra.Compiler.dll")
+		test
+			installer = CobraBindingAddinInstaller()
+			path = installer._getCobraCompilerDllPath
+			assert File.exists(path)
+		body
+			/#
+			Get the location of cobra.exe, this will actually
+			return cobra.bat or a BASH script in most cases.
+			#/
+			cobraCmd = CobraCore.findCobraExe
+			
+			# execute: 'cobra -path'
+			proc = System.Diagnostics.Process()
+			proc.startInfo.fileName = cobraCmd
+			proc.startInfo.arguments = "-path"
+			proc.startInfo.useShellExecute = false
+			proc.startInfo.createNoWindow = true
+			proc.startInfo.windowStyle = ProcessWindowStyle.Hidden
+			proc.startInfo.workingDirectory = Directory.getCurrentDirectory + __s
+			proc.startInfo.environmentVariables["PATH"] = Environment.getEnvironmentVariable("PATH")
+			
+			# this should return something like '/usr/local/cobra/Cobra-0.9.0/bin/cobra.exe'
+			output = proc.runAndCaptureAllOutput.trim
+			cobraExeInfo = FileInfo(output)
+			cobraDir = cobraExeInfo.directoryName
+			return cobraDir + __s + "Cobra.Compiler.dll"

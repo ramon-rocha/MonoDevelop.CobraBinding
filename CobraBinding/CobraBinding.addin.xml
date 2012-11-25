@@ -9,7 +9,7 @@
 	url = "http://cobra-language.com"
 	description = "Provides support for using the Cobra programming language in MonoDevelop."
 	category = "Language bindings"
-	version = "0.1">	
+	version = "0.2">
 	
 	<RunTime>
 		<Import assembly="MonoDevelop.CobraBinding.dll" />
@@ -67,6 +67,16 @@
 
 	<Extension path = "/MonoDevelop/SourceEditor2/SyntaxModes">
 		<Templates resource="CobraSyntaxMode.xml" />
+	</Extension>
+	
+	<Extension path = "/MonoDevelop/TypeSystem/Parser">
+		<Parser mimeType = "text/x-plain" class="MonoDevelop.CobraBinding.TypeSystem.Parser" /> <!-- TODO: proper mimetypes -->
+		<Parser mimeType = "text/x-cobra" class="MonoDevelop.CobraBinding.TypeSystem.Parser" />
+	</Extension>
+	
+	<Extension path = "/MonoDevelop/TypeSystem/FoldingParser">
+		<Parser mimeType = "text/x-plain" class="MonoDevelop.CobraBinding.TypeSystem.Parser" /> <!-- TODO: proper mimetypes -->
+		<Parser mimeType = "text/x-cobra" class="MonoDevelop.CobraBinding.TypeSystem.Parser" />
 	</Extension>
 	
 </Addin>

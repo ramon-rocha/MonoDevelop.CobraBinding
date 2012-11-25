@@ -1,0 +1,278 @@
+namespace MonoDevelop.CobraBinding.TypeSystem
+
+class LineInformation
+	"""
+	Provides information about a line of code that is useful for parsing.
+	"""
+	
+	test basicLogic
+		info = LineInformation("/#")
+		assert info.opensComment
+		assert not info.closesComment
+		assert not info.opensDocString
+		assert not info.closesDocString
+		assert info.previous == nil
+		assert info.next == nil
+		
+		info = LineInformation("#/", true, false, info)
+		assert not info.opensComment
+		assert info.closesComment
+		assert not info.opensDocString
+		assert not info.closesDocString
+		assert info.previous.previous == nil
+		assert info.previous.line == "/#"
+		assert info.previous.next == info
+		assert info.next == nil
+		
+		info = LineInformation("'''", info)
+		assert not info.opensComment
+		assert not info.closesComment
+		assert info.opensDocString
+		assert not info.closesDocString
+		assert info.docStringTag == "'''"
+		
+		info = LineInformation("'''", false, true, "'''", info)
+		assert not info.opensComment
+		assert not info.closesComment
+		assert not info.opensDocString
+		assert info.closesDocString
+		
+		info = LineInformation("'''", false, true, '"""', info)
+		assert not info.opensComment
+		assert not info.closesComment
+		assert not info.opensDocString
+		assert not info.closesDocString
+	
+	test codeSamples
+		info = LineInformation("'''Single line doc string!'''")
+		assert not info.opensComment
+		assert not info.closesComment
+		assert not info.opensDocString
+		assert not info.closesDocString
+	
+		info = LineInformation('"""This is a comment tag # inside a doc string', info)
+		assert not info.opensComment
+		assert not info.closesComment
+		assert info.opensDocString
+		assert not info.closesDocString
+		assert info.docStringTag == '"""'
+		
+		info = LineInformation("if x == 1, /# ''' ''' #/ x = 2", info)
+		assert not info.opensComment
+		assert not info.closesComment
+		assert not info.opensDocString
+		assert not info.closesDocString
+		
+		info = LineInformation("the end of a doc String.'''", false, true, "'''", info)
+		assert not info.opensComment
+		assert not info.closesComment
+		assert not info.opensDocString
+		assert info.closesDocString
+		
+		info = LineInformation("the end of a doc String.''' /# trailing comment", false, true, "'''", info)
+		assert info.opensComment
+		assert not info.closesComment
+		assert not info.opensDocString
+		assert info.closesDocString
+
+	test blanks
+		info = LineInformation("class Foo")
+		assert not info.isBlank
+		assert info.line.length > 0
+
+		info = LineInformation("\tclass Foo")
+		assert not info.isBlank
+		assert info.line.length > 0
+
+		info = LineInformation("    class Foo")
+		assert not info.isBlank
+		assert info.line.length > 0
+
+		info = LineInformation("")
+		assert info.isBlank
+		assert info.line.length == 0
+
+		info = LineInformation("         ")
+		assert info.isBlank
+		assert info.line.length == 0
+
+		info = LineInformation("\t")
+		assert info.isBlank
+		assert info.line.length == 0
+
+		info = LineInformation("\t\t")
+		assert info.isBlank
+		assert info.line.length == 0
+
+	
+	var _line as String
+	var _isBlank as bool
+	var _opensComment as bool
+	var _closesComment as bool
+	var _opensDocString as bool
+	var _closesDocString as bool
+	var _docStringTag as String?
+	var _previous as LineInformation?
+	var _next as LineInformation?
+
+	cue init(line as String)
+		.init(line, false, false, nil, nil)
+	
+	cue init(line as String, previous as LineInformation?)
+		.init(line, false, false, nil, previous)
+	
+	cue init(line as String, inComment as bool, inDocString as bool)
+		.init(line, inComment, inDocString, nil, nil)
+
+	cue init(line as String, inComment as bool, inDocString as bool, previous as LineInformation?)
+		.init(line, inComment, inDocString, nil, previous)
+
+	cue init(line as String, inComment as bool, inDocString as bool, docStringTag as String?)
+		.init(line, inComment, inDocString, docStringTag, nil)
+	
+	cue init(line as String, inComment as bool, inDocString as bool,
+				docStringTag as String?, previous as LineInformation?)
+		"""
+		line is a line of source code.
+		inComment should be true if the previous line of code was part of a comment block.
+		inDocString should be true if the previous line of code was part of a doc string.
+		docStringTag should be provided when inDocString is true.
+		
+		This is the most giant/ugly initializer ever...
+		"""
+		base.init
+		
+		_line = line.trimEnd
+		_isBlank = line.trimStart.length == 0
+		
+		_opensComment = false
+		_closesComment = false
+		_opensDocString = false
+		_closesDocString = false
+
+		_previous = previous
+		if _previous <> nil
+			_previous.next = this
+		_next = nil
+		
+		inString = false
+		stringTag as char? = nil
+		length = _line.length
+		
+		i = 0
+		while i < length
+			branch line[i]
+				on c'#'
+					if i + 1 < length
+						if inComment and line[i+1] == c'/'
+							# we just read a closing block comment tag
+							i += 1
+							inComment = false
+							if _opensComment
+								# this comment block was opened and closed in the same line
+								# /# like this #/
+								_opensComment = false
+								_closesComment = false
+							else
+								_closesComment = true
+								
+						else if not inComment and not inString and not inDocString
+							# the rest of the line is commented out, skip it
+							i = length
+				on c'/'
+					if i + 1 < length
+						if not inComment and not inString and not inDocString and line[i+1] == "#"
+							# we just read an opening block comment tag
+							i += 1
+							inComment = true
+							_opensComment = true
+							_closesComment = false
+							_opensDocString = false
+				
+				on c"'" or c'"'
+					if not inComment
+						/#
+						We might hit ', ", ''', """, or any pair of tags containing
+						any of the other tags so this will get a little complicated.
+						
+						I'm open to suggestions for alternative algorithms...
+						#/
+						if i + 2 < length and not inString
+							if line[i] == line[i+1] and line[i] == line[i+2]
+							
+								if docStringTag == nil
+									# we just read an opening doc-string tag
+									i += 2
+									docStringTag = String(line[i], 3)
+									_docStringTag = docStringTag
+									_opensDocString = true
+									inDocString = true
+									_closesDocString = false
+								
+								else if inDocString and docStringTag == String(line[i], 3)
+									# we just read a closing doc-string tag
+									i += 2
+									inDocString = false
+									
+									if _opensDocString
+										# single line doc string '''like this'''
+										_opensDocString = false
+										_closesDocString = false
+									else
+										_closesDocString = true
+										
+							else if not inDocString
+								if stringTag == nil
+									# opening string tag
+									inString = true
+									stringTag = line[i]
+								
+								else if line[i] == stringTag
+									# closing string tag
+									inString = false
+									stringTag = nil
+									
+						else if not inDocString
+							if stringTag == nil
+								# opening string tag
+								inString = true
+								stringTag = line[i]
+							
+							else if line[i] == stringTag
+								# closing string tag
+								inString = false
+								stringTag = nil
+			
+			# on to the next character
+			i += 1
+		
+	get line from var
+		"""A line of source code"""
+		
+	get isBlank from var
+		"""Returns true if this line is just whitespace"""
+		
+	get opensComment from var
+		"""Returns true if this line opens a comment but does not close it."""
+		
+	get closesComment from var
+		"""Returns true if this line closes a comment."""
+		
+	get opensDocString from var
+		"""Returns true if this line opens a DocString but does not close it."""
+		
+	get closesDocString from var
+		"""Returns true if this line closes a DocString."""
+		
+	get docStringTag from var
+		"""If this line opens a DocString, this is the tag that was used."""
+
+	get previous from var
+		"""The line information for the previous line of source code."""
+
+	pro next from var
+		"""
+		The line information for the next line of source code.
+		
+		This value is mutable.
+		"""

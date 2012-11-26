@@ -86,7 +86,7 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 						
 					if not alreadyInList
 						foldBeginText = textDoc.getLineText(previousFold.region.beginLine)
-						if _getIndentLevel(lineText to !) - 1 == _getIndentLevel(foldBeginText to !)
+						if _getIndentLevel(lineText) - 1 == _getIndentLevel(foldBeginText to !)
 							containingFolds.add(previousFold)
 		
 		if completionChar <> c' '
@@ -265,7 +265,7 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 		Returns the number of indents for the given line.
 		"""
 		# Crap!  This function already exists in Parser.  Shouldn't be repeated here.
-		return (line.length - line.trimStart.length)
+		return line.length - line.trimStart.length
 
 	def _getGlobalDeclCompletionData(preceedingText as String, currText as String) as ICompletionDataList
 		"""

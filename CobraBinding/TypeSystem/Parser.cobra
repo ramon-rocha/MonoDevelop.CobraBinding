@@ -58,6 +58,7 @@ class Parser implements ITypeSystemParser, IFoldingParser
 		# parse the code
 		module as CobraModule? = nil
 		parseErr as ParserException? = nil
+		visitor as MonoDevelop.CobraBinding.TypeSystem.Visitor? = nil
 		try
 			module = parser.parseSource(fileName, source)
 			visitor = MonoDevelop.CobraBinding.TypeSystem.Visitor()
@@ -66,7 +67,11 @@ class Parser implements ITypeSystemParser, IFoldingParser
 			parseErr = ex
 		
 		# add folds
-		parsedDoc = .parse(fileName, source) to DefaultParsedDocument
+		parsedDoc = .parse(fileName, source) to ParsedCobraDocument
+
+		if visitor <> nil
+			parsedDoc.regionMap = visitor.regionMap
+			parsedDoc.typeMap = visitor.typeMap
 		
 		if parseErr <> nil
 			parsedDoc.add(Error(ErrorType.Error, parseErr.message, parseErr.lineNum, parseErr.colNum - 1))
@@ -82,7 +87,7 @@ class Parser implements ITypeSystemParser, IFoldingParser
 		
 		Parse the specified file to generate folds.
 		"""
-		parsedDoc = DefaultParsedDocument(fileName)
+		parsedDoc = ParsedCobraDocument(fileName, content)
 		
 		reader = StringReader(content)
 		folds = List<of FoldingRegion>()

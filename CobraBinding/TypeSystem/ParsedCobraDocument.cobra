@@ -1,0 +1,51 @@
+use Cobra.Compiler
+
+use MonoDevelop.Ide.TypeSystem
+
+use ICSharpCode.NRefactory.TypeSystem
+
+namespace MonoDevelop.CobraBinding.TypeSystem
+
+class ParsedCobraDocument inherits DefaultParsedDocument
+
+	test
+		doc = ParsedCobraDocument("test.cobra", "class Foo\n\tpass")
+		assert doc.regionMap == nil
+		doc.regionMap = Dictionary<of ISyntaxNode, DomRegion>()
+		assert doc.regionMap.count == 0
+
+		assert doc.typeMap == nil
+		doc.typeMap = Dictionary<of ISyntaxNode, Type>()
+		assert doc.typeMap.count == 0
+
+		expect ArgumentNullException
+			doc.regionMap = nil
+
+		expect ArgumentNullException
+			doc.typeMap = nil
+
+	var _content as String
+	var _regionMap as Dictionary<of ISyntaxNode, DomRegion>?
+	var _typeMap as Dictionary<of ISyntaxNode, Type>?
+
+	cue init(fileName as String, content as String)
+		base.init(fileName)
+		_content = content
+
+	get content from var
+
+	pro regionMap as Dictionary<of ISyntaxNode, DomRegion>?
+		get
+			return _regionMap
+		set
+			if value == nil
+				throw ArgumentNullException()
+			_regionMap = value
+
+	pro typeMap as Dictionary<of ISyntaxNode, Type>?
+		get
+			return _typeMap
+		set
+			if value == nil
+				throw ArgumentNullException()
+			_typeMap = value

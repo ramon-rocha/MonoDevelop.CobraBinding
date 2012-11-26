@@ -60,6 +60,8 @@ class Parser implements ITypeSystemParser, IFoldingParser
 		parseErr as ParserException? = nil
 		try
 			module = parser.parseSource(fileName, source)
+			visitor = MonoDevelop.CobraBinding.TypeSystem.Visitor()
+			visitor.visit(module)
 		catch ex as ParserException
 			parseErr = ex
 		

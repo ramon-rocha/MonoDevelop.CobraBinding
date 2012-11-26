@@ -58,6 +58,7 @@ class CobraBindingAddinInstaller
 		"Project[__s]CompilerBuildOptionsPanel.cobra",
 		"TypeSystem[__s]Parser.cobra",
 		"TypeSystem[__s]LineInformation.cobra",
+		"TypeSystem[__s]Visitor.cobra",
 		"Completion[__s]CobraCompletionTextEditorExtension.cobra",
 	]
 	

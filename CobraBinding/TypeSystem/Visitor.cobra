@@ -1,0 +1,85 @@
+use Cobra.Compiler
+
+use ICSharpCode.NRefactory.TypeSystem
+
+namespace MonoDevelop.CobraBinding.TypeSystem
+
+class Visitor inherits Cobra.Core.Visitor
+	"""
+	This class visits every declaration in every namespace in the
+	given CobraModule.
+
+	The region of each declaration is added to a dictionary keyed by
+	the decalaration itself (as an ISyntaxNode).
+
+	Similiary, the type of each declaration (e.g. Class, Method, etc.)
+	is added to a different dictionary using the same key.
+	"""
+
+	var _regionMap as Dictionary<of ISyntaxNode, DomRegion>
+	var _typeMap as Dictionary<of ISyntaxNode, Type>
+
+	get regionMap from var
+	get typeMap from var
+
+	cue init
+		base.init
+		_regionMap = Dictionary<of ISyntaxNode, DomRegion>()
+		_typeMap = Dictionary<of ISyntaxNode,  Type>()
+
+	def _addRegion(node as ISyntaxNode)
+		bl = node.token.lineNum
+		bc = node.token.colNum
+		el = node.endToken.lineNum
+		ec = node.endToken.colNum
+		_regionMap[node] = DomRegion(node.token.fileName, bl, bc, el, ec)
+	
+	get methodName as String is override
+		return "visit"
+		
+	def visit(n as INode)
+		"""
+		This is the generic "catch-all" method for nodes that don't
+		provide meaningul type information.
+		"""
+		pass
+		
+	def visit(m as CobraModule)
+		"""
+		This is the externally called "top-level" method.
+		"""
+		.visit(m.topNameSpace)
+		
+	def visit(ns as NameSpace)
+		_addRegion(ns)
+		_typeMap[ns] = NameSpace
+		.dispatch(ns.declsInOrder)
+		
+	def visit(c as Class)
+		_addRegion(c)
+		_typeMap[c] = Class
+		.dispatch(c.declsInOrder)
+
+	def visit(i as Interface)
+		_addRegion(i)
+		_typeMap[i] = Interface
+
+	def visit(s as Struct)
+		_addRegion(s)
+		_typeMap[s] = Struct
+
+	def visit(e as EnumDecl)
+		_addRegion(e)
+		_typeMap[e] = EnumDecl
+
+	def visit(e as Extension)
+		_addRegion(e)
+		_typeMap[e] = Extension
+
+	def visit(m as Mixin)
+		_addRegion(m)
+		_typeMap[m] = Mixin
+		
+	def visit(m as AbstractMethod)
+		_addRegion(m)
+		_typeMap[m] = m.getType

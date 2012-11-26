@@ -99,6 +99,7 @@
     <Compile Include="TypeSystem\Parser.cobra" />
     <Compile Include="TypeSystem\LineInformation.cobra" />
     <Compile Include="Completion\CobraCompletionTextEditorExtension.cobra" />
+    <Compile Include="TypeSystem\Visitor.cobra" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Gui\Gui.csproj">

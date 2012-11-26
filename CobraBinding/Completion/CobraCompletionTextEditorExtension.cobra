@@ -74,15 +74,6 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 		
 		containingFolds = List<of FoldingRegion>()
 		if folds <> nil
-			/#
-			for f in folds
-				trace f.region.toString
-				trace textDoc.getLineText(f.region.beginLine)
-				trace f.type
-				trace f.region.isInside(context.triggerLine, context.triggerLineOffset)
-				trace textDoc.getLineText(context.triggerLine)
-			#/
-			
 			containingFolds = .getContainingFolds(line, col, folds)
 			if containingFolds.count <= 1
 				# this could be a line following the previous fold

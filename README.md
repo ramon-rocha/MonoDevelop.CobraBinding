@@ -9,6 +9,8 @@ It currently supports the following features:
 
 * Syntax Highlighting
 
+* Underlining Syntax Errors
+
 * Folding Regions
 
 * Multi-file Projects
@@ -43,7 +45,7 @@ Requirements
 
 * MonoDevelop 3.0
 
-* Cobra 0.9-svn-2817
+* Cobra 0.9.2
 
 Additional Requirements for Windows 7 64-bit
 --------------------------------------------
@@ -150,13 +152,21 @@ Larger Todo Tasks
 -----------------
 These will require a bit more effort...
 
-* Implement the Type System Parser
-
 * Implement the Code Completion extension
 
 * Implement a Code Formatter for smarter indentation
 
 * Implement an Ambience class for tool tips and document outline support
+
+
+Cobra Forums Discussion
+-----------------------
+This is a link to a post on the Cobra Forums discussing how the addin has been 
+implemented so far and what work remains with an emphasis on adding support 
+for automatic code-completion.
+
+http://cobra-language.com/forums/viewtopic.php?f=4&t=1047 
+
 
 Relevant Documentation
 ----------------------

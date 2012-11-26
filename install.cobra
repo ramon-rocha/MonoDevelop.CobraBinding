@@ -344,7 +344,7 @@ class CobraBindingAddinInstaller
 			assert File.exists(path)
 		body
 			/#
-			Get the location of the cobra.exe, this will actually
+			Get the location of cobra.exe, this will actually
 			return cobra.bat or a BASH script in most cases.
 			#/
 			cobraCmd = CobraCore.findCobraExe

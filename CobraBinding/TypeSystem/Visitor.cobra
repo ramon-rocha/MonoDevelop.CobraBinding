@@ -10,7 +10,7 @@ class Visitor inherits Cobra.Core.Visitor
 	given CobraModule.
 
 	The region of each declaration is added to a dictionary keyed by
-	the decalaration itself (as an ISyntaxNode).
+	the declaration itself (as an ISyntaxNode).
 
 	Similiary, the type of each declaration (e.g. Class, Method, etc.)
 	is added to a different dictionary using the same key.

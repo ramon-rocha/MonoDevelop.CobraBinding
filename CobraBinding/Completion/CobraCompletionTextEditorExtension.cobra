@@ -15,6 +15,9 @@ namespace MonoDevelop.CobraBinding.Completion
 
 class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 
+	shared
+		var prevMap = Dictionary<of String, Dictionary<of ISyntaxNode, Type>>()
+
 	var iconKeyword = IconId("md-keyword")
 	var iconClass = IconId("md-class")
 	var iconField = IconId("md-field")
@@ -45,16 +48,13 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 		/#
 		.document is a MonoDevelop.Ide.Gui.Document
 		.document.editor.document is a Mono.TextEditor.Document
-		.document.parsedDocument is a MonoDevelop.Ide.TypeSystem.DefaultParsedDocument
-
-		Eventually, we'll need to provide a custom parsedDocument and a bunch of other
-	    classes to make use of NRefactory for semantic analysis.
-		http://www.codeproject.com/Articles/408663/Using-NRefactory-for-analyzing-Csharp-code
+		.document.parsedDocument is a MonoDevelop.CobraBinding.TypeSystem.ParsedCobraDocument
 		#/
 	
-		if .document == nil or
-			.document.editor == nil or
-			context == nil
+		if context == nil or
+			.document == nil or
+			.document.parsedDocument == nil
+			
 			# not enough information to be able to provide completion results
 			return nil
 			
@@ -63,31 +63,32 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 		col = context.triggerLineOffset
 		
 		textDoc = .document.editor.document
-		lineText = textDoc.getLineText(line) to !
+		lineText = textDoc.getLineText(line)
+		if lineText == nil, lineText = ""
 		
-		parsedDoc = .document.parsedDocument
-		ast as CobraModule? = nil
-		folds as IEnumerable<of FoldingRegion>? = nil
-		if parsedDoc <> nil
-			ast = parsedDoc.getAst<of CobraModule>
-			folds = parsedDoc.foldings
+		parsedDoc = .document.parsedDocument to ParsedCobraDocument
+		folds = parsedDoc.foldings to !
+		ast as CobraModule? = parsedDoc.getAst<of CobraModule>
 		
-		containingFolds = List<of FoldingRegion>()
-		if folds <> nil
-			containingFolds = .getContainingFolds(line, col, folds)
-			if containingFolds.count <= 1
-				# this could be a line following the previous fold
-				previousFold = .getPreviousFold(line, containingFolds)
-				if previousFold <> nil
-					alreadyInList = false
-					for f in containingFolds
-						if previousFold.region == f.region
-							alreadyInList = true
-						
-					if not alreadyInList
-						foldBeginText = textDoc.getLineText(previousFold.region.beginLine)
-						if _getIndentLevel(lineText) - 1 == _getIndentLevel(foldBeginText to !)
-							containingFolds.add(previousFold)
+		if parsedDoc.regionMap <> nil and parsedDoc.typeMap <> nil
+			for k, v in parsedDoc.regionMap
+				trace k.toTechString
+				trace v.toString
+				trace parsedDoc.typeMap[k].toString
+		
+		containingFolds = .getContainingFolds(line, col, folds)
+		if containingFolds.count <= 1
+			# this could be a line following the previous fold
+			previousFold = .getPreviousFold(line, containingFolds)
+			if previousFold <> nil
+				alreadyInList = false
+				for f in containingFolds
+					if previousFold.region == f.region
+						alreadyInList = true
+				
+				if not alreadyInList
+					foldBeginText = textDoc.getLineText(previousFold.region.beginLine)
+					containingFolds.add(previousFold)
 		
 		if completionChar <> c' '
 			# do this so that the letter just typed is considered part of the word to complete 
@@ -99,21 +100,57 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 			col = 0
 											
 		# now we have a list of folding regions that can we use to provide completion information
-		if containingFolds.count == 0
-			/#
-			Okay...so we don't have any containing folds after all, we can still provide some completion data.
-			#/
-			return _getGlobalDeclCompletionData(lineText.substring(0, col), "TODO")
-			
-		else if .isInComment(line, col, lineText, containingFolds)
-			return nil
-			
-		else
-			completionData = CompletionDataList()
-			for f in containingFolds
-				completionData.addRange(_getCompletionData(f, lineText.substring(0, col), "TODO"))
-			return completionData
-		
+		if lineText <> nil
+			if containingFolds.count == 0
+				/#
+				Okay...so we don't have any containing folds after all, we can still provide some completion data.
+				#/
+				return _getGlobalDeclCompletionData(lineText.substring(0, col), "TODO")
+				
+			else if .isInComment(line, col, lineText, containingFolds)
+				return nil
+				
+			else
+				# return unique completion data entries
+				completionData = CompletionDataList()
+				dataSet = HashSet<of String>()
+				uniqueData = List<of ICompletionData>()
+				for f in containingFolds
+					trace f.region
+					for d in _getCompletionData(f, lineText.substring(0, col), "TODO")
+						if dataSet.add(d.toString)
+							uniqueData.add(d)
+				
+				# add identifiers
+				#TODO: be smarter about this
+				typeMap as Dictionary<of ISyntaxNode, Type>? = nil
+				if parsedDoc.typeMap <> nil
+					typeMap = parsedDoc.typeMap
+					.prevMap[parsedDoc.fileName] = typeMap to !
+				else if .prevMap.containsKey(parsedDoc.fileName)
+					typeMap = .prevMap[parsedDoc.fileName]
+				
+				if typeMap <> nil
+					for node in typeMap.keys
+						if node.getType == NameSpace
+							for d in _getNamespaceCompletionData(node to NameSpace)
+								if dataSet.add(d.toString)
+									uniqueData.add(d)
+						if node.getType == Class
+							for d in _getClassMemberCompletionData(node to Class)
+								if dataSet.add(d.toString)
+									uniqueData.add(d)
+						if node.getType == AbstractMethod
+							for d in _getMethodVarCompletionData(node to AbstractMethod)
+								if dataSet.add(d.toString)
+									uniqueData.add(d)
+						else
+							pass
+							
+				completionData.addRange(uniqueData)
+				return completionData
+				
+		return nil
 
 	def handleParameterCompletion(context as CodeCompletionContext?, completionChar as char) _
 		as IParameterDataProvider? is override
@@ -270,16 +307,11 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 	def _getGlobalDeclCompletionData(preceedingText as String, currText as String) as ICompletionDataList
 		"""
 		Returns completion data when we are in the context of the global namespace.
+		
+		TODO: Use RegEx's instead of crossing our fingers and usings string literals
 		"""
 		dataList = CompletionDataList()
 		if preceedingText.endsWith("use ")
-			# provide namespaces from implicit references (actually, why? they are implicit)
-			dataList.add("System", .iconNamespace)
-			dataList.add("System.Collections.Generic", .iconNamespace)
-			dataList.add("System.IO", .iconNamespace)
-			dataList.add("System.Text", .iconNamespace)
-			dataList.add("Cobra.Core", .iconNamespace)
-			
 			# provide namespaces from explicit references
 			dataList.addRange(_getNamespacesFromProjectRefs)
 			
@@ -294,6 +326,17 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 			dataList.add("enum", .iconKeyword)
 			dataList.add("sig", .iconKeyword)
 			dataList.add("extend", .iconKeyword)
+			
+		else if preceedingText.endsWith(" is ")
+			dataList.add("public", .iconKeyword)
+			dataList.add("protected", .iconKeyword)
+			dataList.add("private", .iconKeyword)
+			dataList.add("internal", .iconKeyword)
+			dataList.add("partial", .iconKeyword)
+			dataList.add("extern", .iconKeyword)
+			dataList.add("abstract", .iconKeyword)
+			dataList.add("override", .iconKeyword)
+		
 		else
 			#TODO: finer context
 			dataList.add("adds", .iconKeyword)
@@ -301,13 +344,6 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 			dataList.add("implements", .iconKeyword)
 			dataList.add("has", .iconKeyword)
 			dataList.add("is", .iconKeyword)
-			dataList.add("abstract", .iconKeyword)
-			dataList.add("public", .iconKeyword)
-			dataList.add("protected", .iconKeyword)
-			dataList.add("private", .iconKeyword)
-			dataList.add("internal", .iconKeyword)
-			dataList.add("partial", .iconKeyword)
-			dataList.add("extern", .iconKeyword)
 			
 		return dataList
 
@@ -344,7 +380,6 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 				dataList.add("mixin", .iconKeyword)
 				dataList.add("enum", .iconKeyword)
 				dataList.add("sig", .iconKeyword)
-				dataList.add("extend", .iconKeyword)
 			
 			else if firstFoldLine.startsWith("def ") or firstFoldLine.startsWith("get ") or firstFoldLine.startsWith("set ")
 				#TODO being inside a method gives us access to all its local variables and also to a lot more Cobra keywords
@@ -363,12 +398,17 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 				dataList.add("assert", .iconKeyword)
 				dataList.add("trace", .iconKeyword)
 				dataList.add("if", .iconKeyword)
+				dataList.add("and", .iconKeyword)
+				dataList.add("or", .iconKeyword)
+				dataList.add("not", .iconKeyword)
+				dataList.add("in", .iconKeyword)
 				dataList.add("else", .iconKeyword)
 				dataList.add("branch", .iconKeyword)
 				dataList.add("on", .iconKeyword)
 				dataList.add("for", .iconKeyword)
 				dataList.add("while", .iconKeyword)
 				dataList.add("post", .iconKeyword)
+				dataList.add("return", .iconKeyword)
 			return dataList
 
 	def _getNamespacesFromProjectRefs as ICompletionDataList
@@ -402,19 +442,63 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 		"""
 		Given a namespace node, return the namespaces and types it provides.
 		"""
-		#TODO
-		return CompletionDataList()
+		
+		decls = CompletionDataList()
+		
+		for d in n.declsInOrder
+			if d inherits Class
+				decls.add(d.name, .iconClass)
+			else if d inherits MethodSig
+				decls.add(d.name, .iconDelegate)
+			else if d inherits Struct
+				decls.add(d.name, .iconStruct)
+			else if d inherits Interface
+				decls.add(d.name, .iconInterface)
+			else if d inherits NameSpace
+				decls.add(d.name, .iconNamespace)
+			else if d inherits EnumDecl
+				decls.add(d.name, .iconEnum)
+						
+		return decls
 		
 	def _getClassMemberCompletionData(c as Class) as ICompletionDataList
 		"""
 		Given a class node, return the members associated with it.
 		"""
-		#TODO
-		return CompletionDataList()
+		
+		decls = CompletionDataList()
+		
+		for d in c.declsInOrder
+			if d inherits AbstractMethod
+				if not d.token.text.startsWith("_")
+					decls.add("." + d.name, .iconMethod)
+				else
+					decls.add(d.name, .iconMethod)
+			else
+				if not d.token.text.startsWith("_")
+					decls.add("." + d.name, .iconField)
+				else
+					decls.add(d.name, .iconField)
+		
+		return decls
 		
 	def _getMethodVarCompletionData(m as AbstractMethod) as ICompletionDataList
 		"""
-		Given a method node, return the members associated with it.
+		Given a method node, return the local variables associated with it.
 		"""
-		#TODO
-		return CompletionDataList()
+		
+		vars = CompletionDataList()
+		
+		/#
+		Do if need to run some binding phases to make this work?
+		
+		for v in m.locals
+			vars.add(v.name)
+		#/
+		
+		#TODO: Don't do it this way
+		for s in m.statements
+			if s inherits AbstractAssignExpr
+				vars.add(s.left.token.text)
+		
+		return vars

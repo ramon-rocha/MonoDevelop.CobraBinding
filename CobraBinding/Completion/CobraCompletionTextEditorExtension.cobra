@@ -322,7 +322,6 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 		
 		TODO: Use RegEx's instead of crossing our fingers and using string literals
 		"""
-		trace preceedingText
 		
 		dataList = CompletionDataList()
 		if preceedingText.endsWith("use ")
@@ -336,7 +335,9 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 		else if preceedingText.endsWith(" as ")
 			for kw in .keywordsCobraTypes
 				dataList.add(kw, .iconKeyword)
-			#TODO: return all types from explicit and implicit references
+			
+			# return all types from explicit and implicit references TODO FASTER!!!
+			dataList.addRange(_getTypesFromRefs)
 		
 		else if preceedingText.endsWith(" inherits ")
 			#TODO: return class names
@@ -424,6 +425,54 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 		
 		return dataList
 		
+	def _getTypesFromRefs as ICompletionDataList
+		"""
+		Returns all types from the assemblies referenced by the project and
+		implicitly referenced by Cobra.
+		"""
+		dataList = CompletionDataList()
+		
+		#TODO: memoize to improve performance
+		
+		# add types from explicit references
+		proj = .document.project to DotNetProject
+		for r in proj.references
+			for asmFileName in r.getReferencedFileNames(DefaultConfigurationSelector())
+				try
+					asm = System.Reflection.Assembly.loadFile(asmFileName)
+					if asm <> nil
+						for t in asm.getTypes
+						
+							if t.isPublic
+						
+								fullName = t.fullName
+								name = t.name
+								if t.isGenericType
+									#TODO: format to Cobra name
+									name = t.name
+									fullName = t.fullName
+									
+								if t.isClass
+									dataList.add(name, .iconClass)
+									dataList.add(fullName, .iconClass)
+								else if t.isInterface
+									dataList.add(name, .iconInterface)
+									dataList.add(fullName, .iconInterface)
+								else if t.isEnum
+									dataList.add(name, .iconEnum)
+									dataList.add(fullName, .iconEnum)
+								else if false #TODO: the rest
+									pass
+							
+				catch ex as Exception
+					# failed to load assembly, just ignore it for now
+					trace ex.message
+					
+		# add types from implicit references
+		#TODO
+		
+		return dataList
+		
 	def _getNamespaceCompletionData(n as NameSpace) as ICompletionDataList
 		"""
 		Given a namespace node, return the namespaces and types it provides.
@@ -472,15 +521,81 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 		for v in m.locals
 			vars.add(v.name, .iconField)
 		
-		for s in m.statements
-			if s inherits AssignExpr
-				if s.left inherits IdentifierExpr
-					idExpr = s.left to IdentifierExpr
-					vars.add(idExpr.name, .iconField)
-			else if s inherits ForStmt
-				vars.add(s.varExpr.name, .iconField)
+		vars.addRange(_getVarsFromStatements(m.statements))
 		
 		for p in m.params
 			vars.add(p.name, .iconField)
 		
 		return vars
+		
+	def _getVarsFromForLoop(forLoop as ForStmt) as ICompletionDataList
+		"""
+		Returns the variables declared in the given for loop syntax node.
+		"""
+		vars = CompletionDataList()
+		vars.add(forLoop.varExpr.name, .iconField)
+		vars.addRange(_getVarsFromBlock(forLoop.block))
+		return vars
+		
+	def _getVarsFromWhileLoop(whileLoop as AbstractWhileStmt) as ICompletionDataList
+		"""
+		Returns the variables declared in the given for loop syntax node.
+		"""
+		vars = CompletionDataList()
+		vars.addRange(_getVarsFromBlock(whileLoop.block))
+		return vars
+		
+	def _getVarsFromTryCatchBlock(tryCatchBlock as TryStmt) as ICompletionDataList
+		"""
+		Returns the variables declared in the given try-catch statement block.
+		"""
+		vars = CompletionDataList()
+		
+		vars.addRange(_getVarsFromBlock(tryCatchBlock.tryBlock))
+		
+		if tryCatchBlock.successBlock <> nil
+			vars.addRange(_getVarsFromBlock(tryCatchBlock.successBlock to !))
+		
+		if tryCatchBlock.successBlock <> nil
+			vars.addRange(_getVarsFromBlock(tryCatchBlock.finallyBlock to !))
+			
+		for catchBlock in tryCatchBlock.catchBlocks
+			vars.addRange(_getVarsFromBlock(catchBlock.block))
+		
+		return vars
+		
+	def _getVarsFromBlock(block as BlockStmt) as ICompletionDataList
+		"""
+		Returns the variables declared in the given block of statements.
+		"""
+		return _getVarsFromStatements(block.stmts)
+		
+	def _getVarsFromStatements(stmts as List<of Stmt>) as ICompletionDataList
+		"""
+		Returns the variables declared in the given list of statements.
+		"""
+		vars = CompletionDataList()
+		
+		for s in stmts
+			if s inherits AssignExpr
+				vars.add(_getVarFromAssignExpr(s), .iconField)
+			else if s inherits ForStmt
+				vars.addRange(_getVarsFromForLoop(s))
+			else if s inherits AbstractWhileStmt
+				vars.addRange(_getVarsFromWhileLoop(s))
+			else if s inherits TryStmt
+				vars.addRange(_getVarsFromTryCatchBlock(s))
+			else if s inherits IfStmt
+				vars.addRange(_getVarsFromBlock(s.trueStmts))
+				if s.falseStmts <> nil
+					vars.addRange(_getVarsFromBlock(s.falseStmts to !))
+		
+		return vars
+	
+		
+	def _getVarFromAssignExpr(expr as AssignExpr) as String
+		"""
+		Given an assignment expression, returns the identifier on the left hand side.
+		"""
+		return (expr.left to IdentifierExpr).name
+		

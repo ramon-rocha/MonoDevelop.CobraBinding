@@ -39,6 +39,8 @@ class CobraBindingAddinInstaller
 		# needs to be shared so we can use in list initializers
 		var __s = Path.directorySeparatorChar.toString
 
+	var _verbosity = 0
+
 	var _isWindows = Environment.osVersion.toString.startsWith("Microsoft Windows")
 
 	var _embeddedResources = [
@@ -84,6 +86,8 @@ class CobraBindingAddinInstaller
 	]
 
 	def main
+		v = _verbosity
+
 		if not .verifyWorkingDirectory
 			print
 			print "========================================================="
@@ -107,13 +111,14 @@ class CobraBindingAddinInstaller
 			print outPath
 			print "==============================================================================="
 			print
-			print "Do you wish to continue? \[Y/N\] "
-			response = Console.readLine
-			
-			if not response.toLower.startsWith("y")
-				print
-				print "The addin was not installed."
-				CobraCore.exit(1)
+			continueVar = Environment.getEnvironmentVariable('COBRA_BINDING_CONTINUE') ? ''
+			if continueVar.trim.toLower not in ['1', 'yes', 'true']
+				print "Do you wish to continue? \[Y/N\] "
+				response = Console.readLine
+				if not response.toLower.startsWith("y")
+					print
+					print "The addin was not installed."
+					CobraCore.exit(1)
 		
 		cmds = .getCompilerCmds	
 		for c in cmds
@@ -123,13 +128,23 @@ class CobraBindingAddinInstaller
 				Directory.createDirectory(binDir)
 
 			print "Running [c.startInfo.fileName]..."
+			if v >= 1, print "  args: [c.startInfo.arguments]"
 			#trace c.startInfo.arguments
 			c.start
+			if v >= 1, print '.waitForExit ...'
 			c.waitForExit
-			if c.exitCode <> 0
+			if v >= 1, print 'finished .waitForExit'
+			if v
+				# the output of the command is passed through, so not much to do
+				pass
+			else if c.exitCode <> 0
+				# print command output on failure of the command
 				print "Failed!"
+				print 'std out:'
 				print c.standardOutput.readToEnd
+				print 'std err:'
 				print c.standardError.readToEnd
+			if c.exitCode <> 0
 				print
 				print "The addin was not installed due to compilation errors."
 				CobraCore.exit(c.exitCode)
@@ -185,12 +200,8 @@ class CobraBindingAddinInstaller
 				
 			else
 				home = Environment.getEnvironmentVariable("HOME")
-				
-				if Directory.exists("/Applications") and _
-					Directory.exists("/Users") and _
-					Directory.exists("/Library")
-					#ehhhh...I guess this is a Mac...right?
-				
+
+				if CobraCore.isRunningOnMac
 					path = "[home]/Library/Application Support"
 				else
 					path = "[home]/.local/share"
@@ -206,8 +217,6 @@ class CobraBindingAddinInstaller
 			for p in procs
 				i = p.startInfo
 				assert i.useShellExecute == false
-				assert i.redirectStandardOutput == true
-				assert i.redirectStandardError == true
 				assert i.createNoWindow == true
 				assert i.windowStyle == ProcessWindowStyle.Hidden
 				assert i.fileName.length > 0
@@ -238,6 +247,9 @@ class CobraBindingAddinInstaller
 				info.fileName = "xbuild"
 			
 			info.arguments = "Gui.csproj /p:Configuration=Debug"
+			if _verbosity >= 2, info.arguments += " /verbosity:detailed"
+			else if _verbosity >= 1, info.arguments += " /verbosity:normal"
+
 			if _isWindows
 				progFiles = Environment.getEnvironmentVariable("PROGRAMFILES")
 				if progFiles.endsWith("(x86)")
@@ -257,11 +269,22 @@ class CobraBindingAddinInstaller
 				Workaround an inability of Mono to find the dependencies
 				of MonoDevelop.Ide.dll when loaded via reflection.
 				#/
-				if not _isWindows
-					# not sure if this is correct for Mac...
-					info.environmentVariables["MONO_PATH"] = "/usr/lib/monodevelop/bin"
-				else
+				if _isWindows
 					info.environmentVariables["MONO_PATH"] = "[progFiles]\\MonoDevelop\\bin"
+				else if CobraCore.isRunningOnMac
+					info.environmentVariables["MONO_PATH"] = "/Applications/MonoDevelop.app/Contents/MacOS/lib/monodevelop/bin"
+					monoDevPkgConfigPath = '/Applications/MonoDevelop.app/Contents/MacOS/lib/pkgconfig'
+					pkgConfigPath = Environment.getEnvironmentVariable('PKG_CONFIG_PATH') ? ''
+					if monoDevPkgConfigPath not in pkgConfigPath
+						if pkgConfigPath <> '', pkgConfigPath += ':'
+						info.environmentVariables["PKG_CONFIG_PATH"] = pkgConfigPath + monoDevPkgConfigPath
+				else
+					# Presumably Linux or BSD...
+					info.environmentVariables["MONO_PATH"] = "/usr/lib/monodevelop/bin"
+
+			if _verbosity >= 3
+				info.environmentVariables['MONO_LOG_LEVEL'] = "debug"
+				info.environmentVariables['MONO_LOG_MASK'] = "dll"
 
 			info.fileName = CobraCore.findCobraExe
 			info.arguments = _getCobraArguments
@@ -279,9 +302,9 @@ class CobraBindingAddinInstaller
 			result.workingDirectory.endsWith(__s)
 		body
 			i = ProcessStartInfo()
+			if _verbosity == 0
+				i.redirectStandardOutput = i.redirectStandardError = true
 			i.useShellExecute = false
-			i.redirectStandardOutput = true
-			i.redirectStandardError = true
 			i.createNoWindow = true
 			i.windowStyle = ProcessWindowStyle.Hidden
 			i.workingDirectory = Directory.getCurrentDirectory + __s
@@ -296,7 +319,10 @@ class CobraBindingAddinInstaller
 		cobraArgs = StringBuilder(
 			'-compile -copy-core -target:lib -out:"bin[__s]Debug[__s]MonoDevelop.CobraBinding.dll"'
 		)
-		
+
+		if _verbosity >= 2, cobraArgs.append(' -v -verbosity-ref:2')
+		else if _verbosity >= 1, cobraArgs.append(' -v -verbosity-ref:1')
+
 		for r in _refs
 			cobraArgs.append(" -ref:[r]")
 		

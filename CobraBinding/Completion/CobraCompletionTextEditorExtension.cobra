@@ -215,9 +215,10 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 			return completionData
 			
 		else if completionChar <> c' '
-			# do this so that the letter just typed is considered part of the word to complete 
-			triggerWordLength += 1
-			col -= 1
+			# do this so that the letter just typed is considered part of the word to complete
+			while col > 0 and lineText[col - 1] not in @[c'\t', c' ']
+				triggerWordLength += 1
+				col -= 1
 			
 		if col < 0
 			# this can happen on manual triggering of code completion via Ctrl+Space from the start of a blank line
@@ -332,7 +333,7 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 			for kw in .keywordsFollowingIs
 				dataList.add(kw, .iconKeyword)
 				
-		else if preceedingText.endsWith(" as ")
+		else if preceedingText.endsWith(" as ") or preceedingText.endsWith(" = ")
 			for kw in .keywordsCobraTypes
 				dataList.add(kw, .iconKeyword)
 			
@@ -441,37 +442,107 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 				try
 					asm = System.Reflection.Assembly.loadFile(asmFileName)
 					if asm <> nil
-						for t in asm.getTypes
-						
-							if t.isPublic
-						
-								fullName = t.fullName
-								name = t.name
-								if t.isGenericType
-									#TODO: format to Cobra name
-									name = t.name
-									fullName = t.fullName
-									
-								if t.isClass
-									dataList.add(name, .iconClass)
-									dataList.add(fullName, .iconClass)
-								else if t.isInterface
-									dataList.add(name, .iconInterface)
-									dataList.add(fullName, .iconInterface)
-								else if t.isEnum
-									dataList.add(name, .iconEnum)
-									dataList.add(fullName, .iconEnum)
-								else if false #TODO: the rest
-									pass
+						dataList.addRange(_getPublicTypesFromAssembly(asm))
 							
 				catch ex as Exception
 					# failed to load assembly, just ignore it for now
 					trace ex.message
 					
 		# add types from implicit references
-		#TODO
+		dataList.addRange(_getImplicitTypes)
 		
 		return dataList
+
+
+
+	sig TypeFilter(t as Type) as bool is protected
+
+
+	def _getPublicTypesFromAssembly(asm as System.Reflection.Assembly) as ICompletionDataList
+		"""
+		Given an assembly, return its public types in a completion list.
+		"""
+		/#
+		TODO: Maybe not in this function, but somewhere...
+		Filter out non-fully-qualified-type names if
+		there is no use statement for their namespace.
+		#/
+		filter as TypeFilter = do(t as Type)
+			return t.isPublic
+
+		dataList = CompletionDataList()
+		dataList.addRange(_typesToCompletionList(asm.getTypes, filter))
+		return dataList
+
+
+	def _typesToCompletionList(types as Type[]?, filter as TypeFilter) as ICompletionDataList
+		"""
+		Returns a completion data list containing the types in the given array for
+		which the given filter method reference returns true.
+		"""
+		dataList = CompletionDataList()
+
+		if types == nil
+			return dataList
+
+		for t in types to !
+
+			if filter(t)
+
+				fullName = t.fullName
+				name = t.name
+
+				if t.isGenericType
+					#TODO: format to Cobra name
+					name = t.name
+					fullName = t.fullName
+
+				if t.isClass
+					dataList.add(name, .iconClass)
+					dataList.add(fullName, .iconClass)
+				else if t.isInterface
+					dataList.add(name, .iconInterface)
+					dataList.add(fullName, .iconInterface)
+				else if t.isEnum
+					dataList.add(name, .iconEnum)
+					dataList.add(fullName, .iconEnum)
+				else #TODO: the rest
+					dataList.add(name, .iconEvent)
+					dataList.add(fullName, .iconEvent)
+
+		return dataList
+
+
+	def _getImplicitTypes as ICompletionDataList
+		"""
+		Returns the public types made available by the implicit use directives.
+		"""
+		dataList = CompletionDataList()
+
+		# include all public types from these namespaces
+		implicitNamespaces = @[
+			'System',
+			'System.Collections.Generic',
+			'System.IO',
+			'System.Text',
+		]
+
+		filter as TypeFilter = do(t as Type)
+			return t.isPublic and t.namespace in implicitNamespaces
+
+		asm = System.Reflection.Assembly.load('mscorlib.dll')
+		dataList.addRange(_typesToCompletionList(asm.getTypes, filter))
+
+		# System.dll
+		asm = System.Diagnostics.Process.getType.assembly
+		dataList.addRange(_typesToCompletionList(asm.getTypes, filter))
+
+		# include all public types from Cobra.Core.dll
+		asm = Cobra.Core.CobraCore.getType.assembly
+		dataList.addRange(_getPublicTypesFromAssembly(asm to !))
+
+		return dataList
+
 		
 	def _getNamespaceCompletionData(n as NameSpace) as ICompletionDataList
 		"""
@@ -578,7 +649,8 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 		
 		for s in stmts
 			if s inherits AssignExpr
-				vars.add(_getVarFromAssignExpr(s), .iconField)
+				if s.left inherits IdentifierExpr
+					vars.add(_getVarFromAssignExpr(s), .iconField)
 			else if s inherits ForStmt
 				vars.addRange(_getVarsFromForLoop(s))
 			else if s inherits AbstractWhileStmt
@@ -593,9 +665,14 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 		return vars
 	
 		
-	def _getVarFromAssignExpr(expr as AssignExpr) as String
+	def _getVarFromAssignExpr(expr as AssignExpr) as String?
 		"""
 		Given an assignment expression, returns the identifier on the left hand side.
 		"""
-		return (expr.left to IdentifierExpr).name
-		
+		if expr.left inherits IdentifierExpr
+			return (expr.left to IdentifierExpr).name
+
+		# the assignment is probably not declaring a variable (e.g. foo.bar = 1)
+		return nil
+
+

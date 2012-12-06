@@ -32,7 +32,9 @@ class Visitor inherits Cobra.Core.Visitor
 		bc = node.token.colNum
 		el = node.endToken.lineNum
 		ec = node.endToken.colNum
-		_regionMap[node] = DomRegion(node.token.fileName, bl, bc, el, ec)
+		region = DomRegion(node.token.fileName, bl, bc, el, ec)
+		node.addOnValues["DomRegion"] = region
+		_regionMap[node] = region
 	
 	get methodName as String is override
 		return "visit"

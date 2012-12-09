@@ -110,6 +110,17 @@ namespace MonoDevelop.CobraBinding
 				if configuration.platform <> nil and configuration.platform.length > 0
 					argsBuilder.append(" -clr-platform:[configuration.platform]")
 
+
+				# a project always exists in memory, but not on disk for single files
+				if not File.exists(configuration.parentItem.fileName.toString)
+					/#
+					This is a fake project. We get this when a user directly opens a
+					source file without creating a project/solution. We'll use the
+					location of the single source file as the working directory.
+					#/
+					standAloneFile = items[0] to IFileItem
+					configuration.parentItem.baseDirectory = standAloneFile.fileName.parentDirectory
+
 				# what will we call the generated assembly?
 				asmName = configuration.compiledOutputName
 				argsBuilder.append(' -out:"[asmName.fullPath]"')
@@ -161,12 +172,10 @@ namespace MonoDevelop.CobraBinding
 					failedResult.addError(errMsg)
 					return failedResult
 
-				# use the project directory as the working directory unless it's not defined
-				try
-					workingDir = configuration.parentItem.baseDirectory.toString
-				catch
-					workingDir = "."
+				# use the project directory as the working directory
+				workingDir = configuration.parentItem.baseDirectory.toString
 
+				# compile the code
 				proc = _spawnCobraCompilerProcess(cobraExe to !, argsBuilder.toString, workingDir)
 
 				monitor.log.writeLine("Working directory: " + workingDir)

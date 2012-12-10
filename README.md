@@ -130,15 +130,17 @@ Contributing
 ============
 Any and all help is appreciated.  See below for tips on getting started.
 
-You can can launch MonoDevelop from the command line with --no-redirect
-which will allow you to see all 'print' and 'trace' statements.
+You can launch MonoDevelop from the command line with --no-redirect which 
+will allow you to see all 'print' and 'trace' statements.
 
-On Linux on Windows:
-monodevelop --no-redirect
+On Linux:
+
+    monodevelop --no-redirect
 
 On Mac:
-$ cd /Applications/MonoDevelop.app/Contents/MacOS/
-$ ./MonoDevelop --no-redirect
+
+    cd /Applications/MonoDevelop.app/Contents/MacOS/
+    ./MonoDevelop --no-redirect
 
 
 Low-hanging Fruit

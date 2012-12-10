@@ -1,7 +1,5 @@
 use Cobra.Compiler
 
-use MonoDevelop.Ide.TypeSystem
-
 namespace MonoDevelop.CobraBinding
 
 class CompilerManager

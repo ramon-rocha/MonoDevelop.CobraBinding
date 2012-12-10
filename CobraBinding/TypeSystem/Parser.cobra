@@ -7,6 +7,8 @@ use MonoDevelop.Projects
 use ICSharpCode.NRefactory
 use ICSharpCode.NRefactory.TypeSystem
 
+use MonoDevelop.CobraBinding
+
 namespace MonoDevelop.CobraBinding.TypeSystem
 
 class Parser implements ITypeSystemParser, IFoldingParser
@@ -23,7 +25,8 @@ class Parser implements ITypeSystemParser, IFoldingParser
 	var _tabsToSpaces = false
 	var _indentToken = "\t"
 	
-	def parse(storeAst as bool, fileName as String, content as TextReader, project as Project?) as ParsedDocument
+	def parse(storeAst as bool, fileName as String, content as TextReader,
+				project as MonoDevelop.Projects.Project?) as ParsedDocument
 		"""
 		implements ITypeSystemParser.parse
 		
@@ -31,40 +34,22 @@ class Parser implements ITypeSystemParser, IFoldingParser
 		Stores the resultant AST in the ParsedDocument when storeAst is true.
 		"""
 		source = content.readToEnd
-		parser = CobraParser()
+		if source == nil, source = ""
 		
-		# the parser needs a valid compiler and backend
-		compiler = Compiler(0) # verbosity = 0
-		
-		options = OptionValues()
-		options.add("compile", true)
-		options.add("back-end", "clr")
-		options.add("turbo", true)
-		options.add("number", "decimal")
-		
-		compiler.options = options
-		compiler.initBackEnd
-		
-		Node.setCompiler(compiler)
-		Node.typeProvider = compiler
-		
-		# initialize the parser
-		parser.typeProvider = compiler
-		parser.warningRecorder = compiler
-		parser.errorRecorder = compiler
-		parser.globalNS = compiler.globalNS
-		parser.backEnd = compiler.backEnd
-		
-		# parse the code
-		module as CobraModule? = nil
 		parseErr as ParserException? = nil
+		module as CobraModule? = nil
 		visitor as MonoDevelop.CobraBinding.TypeSystem.Visitor? = nil
-		try
-			module = parser.parseSource(fileName, source)
+		
+		parseResult = CompilerManager.instance.parse(fileName, source to !)
+		if parseResult inherits CobraModule
+			module = parseResult
+		else
+			parseErr = parseResult #to ParserException
+		
+		if module <> nil
+			# create type and region maps
 			visitor = MonoDevelop.CobraBinding.TypeSystem.Visitor()
 			visitor.visit(module)
-		catch ex as ParserException
-			parseErr = ex
 		
 		# add folds
 		parsedDoc = .parse(fileName, source) to ParsedCobraDocument

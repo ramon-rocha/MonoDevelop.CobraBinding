@@ -56,6 +56,7 @@ class CobraBindingAddinInstaller
 	var _filesToCompile = [
 		"AssemblyInfo.cs",
 		"CobraLanguageBinding.cobra",
+		"CompilerManager.cobra",
 		"Project[__s]CobraCompilerParameters.cobra",
 		"Project[__s]CompilerBuildOptionsPanel.cobra",
 		"TypeSystem[__s]Parser.cobra",

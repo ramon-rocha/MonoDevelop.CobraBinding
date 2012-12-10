@@ -1,0 +1,96 @@
+use Cobra.Compiler
+
+use MonoDevelop.Ide.TypeSystem
+
+namespace MonoDevelop.CobraBinding
+
+class CompilerManager
+	"""
+	This class provides serial access to the Cobra compiler. If multiple
+	threads attempt to invoke conflicting methods, the thread will be
+	blocked until the compiler is available.  This class utilizes a single
+	lock to avoid deadlocks for conflicting resources.
+	"""
+	test
+		cm1 = CompilerManager.instance
+		cm2 = CompilerManager.instance
+		assert cm1 is cm2
+	
+	shared
+		var _instance as CompilerManager? = nil
+	
+		get instance as CompilerManager
+			if _instance == nil
+				_instance = CompilerManager()
+			return _instance to !
+			
+		# only the thread holding the conch can use the compiler
+		var _theConch = Object()
+
+	# Callers have to use CompilerManager.instance instead
+	cue init is protected
+		base.init
+		
+
+	def parse(fileName as String, source as String) as dynamic
+		"""
+		Invokes the Cobra parser on the given source code and returns
+		the resulting CobraModule.  If a parser error occurs, this
+		method returns a ParserException.  It's up to the caller
+		to determine the type of the returned object.
+		"""
+		test successfulParse
+			cm = CompilerManager.instance
+			
+			fileName = "hello.cobra"
+			source = "class Hello\n\tdef main\n\t\tprint 'Hello, World!'\n"
+			
+			module = cm.parse(fileName, source)
+			
+			assert module inherits CobraModule
+			d = module.topNameSpace.declsInOrder[0]
+			assert d inherits Class
+			assert d.idToken.text == "Hello"
+		test parserError
+			cm = CompilerManager.instance
+			
+			fileName = "error.cobra"
+			source = "class Hello\n\tdef main\n"
+			
+			err = cm.parse(fileName, source)
+			
+			assert err inherits ParserException
+			assert err.lineNum == 2
+			assert err.colNum == 10
+			assert err.message == 'Missing method body for "main".'
+		body
+			lock _theConch
+				parser = CobraParser()
+				
+				# the parser needs a valid compiler and backend
+				compiler = Compiler(0) # verbosity = 0
+				
+				options = OptionValues()
+				options.add("compile", true)
+				options.add("back-end", "clr")
+				options.add("turbo", true)
+				options.add("number", "decimal")
+				
+				compiler.options = options
+				compiler.initBackEnd
+				
+				Node.setCompiler(compiler)
+				Node.typeProvider = compiler
+				
+				# initialize the parser
+				parser.typeProvider = compiler
+				parser.warningRecorder = compiler
+				parser.errorRecorder = compiler
+				parser.globalNS = compiler.globalNS
+				parser.backEnd = compiler.backEnd
+				
+				# parse the code
+				try
+					return parser.parseSource(fileName, source)
+				catch ex as ParserException
+					return ex

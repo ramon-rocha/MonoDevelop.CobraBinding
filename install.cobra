@@ -78,6 +78,7 @@ class CobraBindingAddinInstaller
 	]
 	
 	var _winRefsPartialPaths = [
+		r"\MonoDevelop\bin\Mono.TextEditor.dll",
 		r"\MonoDevelop\bin\MonoDevelop.Core.dll",
 		r"\MonoDevelop\bin\MonoDevelop.Ide.dll",
 		r"\MonoDevelop\bin\ICSharpCode.NRefactory.dll",

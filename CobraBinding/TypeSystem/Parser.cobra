@@ -43,8 +43,10 @@ class Parser implements ITypeSystemParser, IFoldingParser
 		parseResult = CompilerManager.instance.parse(fileName, source to !)
 		if parseResult inherits CobraModule
 			module = parseResult
+		else if parseResult inherits ParserException
+			parseErr = parseResult
 		else
-			parseErr = parseResult #to ParserException
+			trace parseResult.getType.toString
 		
 		if module <> nil
 			# create type and region maps

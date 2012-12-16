@@ -1,5 +1,7 @@
 use Cobra.Compiler
 
+use ICSharpCode.NRefactory.TypeSystem
+
 namespace MonoDevelop.CobraBinding
 
 class CompilerManager
@@ -28,7 +30,158 @@ class CompilerManager
 	# Callers have to use CompilerManager.instance instead
 	cue init is protected
 		base.init
+	
+	
+	get __compiler as Compiler
+		"""
+		Returns a fresh instance of the compiler.
 		
+		Should only be called if we have _theConch.
+		"""
+		compiler = Compiler(0) # verbosity = 0
+		
+		options = OptionValues()
+		options.add("compile", true)
+		options.add("back-end", "clr")
+		options.add("turbo", true)
+		options.add("number", "decimal")
+		
+		compiler.options = options
+		compiler.initBackEnd
+		
+		# Set some shared information which gets reset everytime we instantiate a compiler.
+		Node.setCompiler(compiler)
+		Node.typeProvider = compiler
+		
+		return compiler
+		
+		
+	def __getParser(c as Compiler) as CobraParser
+		"""
+		Returns a fresh instance of the Cobra parser.
+		"""
+		parser = CobraParser()
+		parser.typeProvider = c
+		parser.warningRecorder = c
+		parser.errorRecorder = c
+		parser.globalNS = c.globalNS
+		parser.backEnd = c.backEnd
+		
+		return parser
+	
+	
+	def parseAndBind(sourceMap as Dictionary<of String, String>) as List<of dynamic>
+		"""
+		Simulates the various phases of the Cobra compiler.
+		
+		The phases are not instantiated directly as there is no way to provide
+		raw source code to the compiler as Strings.
+		
+		The sourceMap is a dictionary whose values are source file contents keyed
+		by filename.
+		
+		Returns a mixed list of Cobra modules and SourceExceptions.
+		It's up to the caller to determine the type of objects in the list.
+		
+		TODO: Split out the psuedo-phases into functions
+		"""
+		results = List<of dynamic>()
+		
+		if sourceMap.count == 0
+			# nothing to do
+			return results
+		
+		lock _theConch
+			compiler = __compiler
+			
+			# BindRunTimeLibraryPhase
+			compiler.addRunTimeRef(compiler.options)
+			
+			# ReadLibrariesPhase
+			compiler.readSystemTypes
+			compiler.readAssemblyTypes(compiler.options)
+			
+			# ParsePhase
+			parser = __getParser(compiler)
+			
+			modules = List<of CobraModule>()
+			
+			# parse the source files to generate our preliminary AST
+			for fileName, sourceCode in sourceMap
+				try
+					m = parser.parseSource(fileName, sourceCode)
+					modules.add(m)
+					
+				catch ex as SourceException
+					results.add(ex)
+			
+			if compiler.errors.count == 0
+				# BindUsePhase
+				i = 0
+				while i < compiler.modules.count  # new modules can be added, say by the UseDirective
+					compiler.curModule = compiler.modules[i]
+					try
+						compiler.curModule.bindUse
+					catch ex as SourceException
+						compiler.recordError(ex)
+					i += 1
+			
+			if compiler.errors.count == 0
+				# BindInheritancePhase
+				for basicType in compiler.basicTypes
+					basicType.bindInh
+					compiler.objectType.bindInh
+					compiler.stringType.bindInh
+					compiler.dynamicType.bindInh
+					compiler.passThroughType.bindInh
+					compiler.voidType.bindInh
+					for mod in compiler.modules.clone
+						compiler.curModule = mod
+						try
+							mod.bindInh
+						catch ex as SourceException
+							compiler.recordError(ex)
+			
+			if compiler.errors.count == 0
+				# BindInterfacePhase
+				compiler.fixMemberSigs
+				for basicType in compiler.basicTypes
+					basicType.bindInt
+				compiler.objectType.bindInt
+				compiler.stringType.bindInt
+				compiler.dynamicType.bindInt
+				compiler.passThroughType.bindInt
+				compiler.voidType.bindInt
+				for mod in compiler.modules.clone
+					compiler.curModule = mod
+					try
+						mod.bindInt
+					catch ex as SourceException
+						compiler.recordError(ex)
+			
+			if compiler.errors.count == 0
+				# ComputeMatchingBaseMembersPhase
+				for mod in compiler.modules
+					compiler.curModule = mod
+					try
+						mod.computeMatchingBaseMembers
+					catch ex as SourceException
+						compiler.recordError(ex)
+			
+			if compiler.errors.count == 0
+				# BindImplementationPhase
+				for mod in compiler.modules.clone
+					compiler.curModule = mod
+					try
+						mod.bindImp
+					catch ex as SourceException
+						compiler.recordError(ex)
+			
+
+			for module in compiler.modules
+				results.add(module)
+			
+		return results
 
 	def parse(fileName as String, source as String) as dynamic
 		"""
@@ -63,31 +216,8 @@ class CompilerManager
 			assert err.message == 'Missing method body for "main".'
 		body
 			lock _theConch
-				parser = CobraParser()
-				
-				# the parser needs a valid compiler and backend
-				compiler = Compiler(0) # verbosity = 0
-				
-				options = OptionValues()
-				options.add("compile", true)
-				options.add("back-end", "clr")
-				options.add("turbo", true)
-				options.add("number", "decimal")
-				
-				compiler.options = options
-				compiler.initBackEnd
-				
-				Node.setCompiler(compiler)
-				Node.typeProvider = compiler
-				
-				# initialize the parser
-				parser.typeProvider = compiler
-				parser.warningRecorder = compiler
-				parser.errorRecorder = compiler
-				parser.globalNS = compiler.globalNS
-				parser.backEnd = compiler.backEnd
-				
-				# parse the code
+				compiler = __compiler
+				parser = __getParser(compiler)
 				try
 					return parser.parseSource(fileName, source)
 				catch ex as ParserException

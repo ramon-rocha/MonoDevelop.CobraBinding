@@ -104,13 +104,11 @@ class CompilerManager
 			# ParsePhase
 			parser = __getParser(compiler)
 			
-			modules = List<of CobraModule>()
-			
 			# parse the source files to generate our preliminary AST
 			for fileName, sourceCode in sourceMap
 				try
 					m = parser.parseSource(fileName, sourceCode)
-					modules.add(m)
+					compiler.modules.add(m)
 					
 				catch ex as SourceException
 					results.add(ex)

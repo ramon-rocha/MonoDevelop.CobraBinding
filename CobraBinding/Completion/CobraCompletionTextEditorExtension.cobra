@@ -175,7 +175,9 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 		for fold in parsedDoc.foldings
 			if fold.type == FoldType.Comment
 				commentRegions.add(fold.region)
-		if .getContainingRegions(line, col, commentRegions).count > 0
+		
+		if .getContainingRegions(line, col, commentRegions).count > 0 _
+		or lineText.trimStart.startsWith("#")
 			return nil
 		
 		# get code regions from last valid parse tree
@@ -189,6 +191,7 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 		if regionMap == nil
 			# not enough information to provide completion
 			return nil
+			
 		
 		# extend code regions to include blank lines and generate a reverse map
 		codeRegions = List<of DomRegion>()
@@ -201,6 +204,12 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 		for extendedRegion, node in nodeMap
 			regionMap[node] = extendedRegion
 		
+		# DEBUGGING
+		/#
+		for node, region in regionMap to !
+			trace node.getType.toString
+			trace region.toString
+		#/
 		__prevRegionMap[parsedDoc.fileName] = regionMap to !
 		
 		containingRegions = .getContainingRegions(line, col, codeRegions)
@@ -382,7 +391,12 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 				# being inside a namespace means we have access to all the classes inside of it
 				dataList.addRange(_getNamespaceCompletionData(nodeMap[region] to NameSpace))
 				
-			else if firstRegionLine.startsWith("class ")
+			else if firstRegionLine.startsWith("class ") and nodeMap[region] inherits Class
+				/#
+				Implicit class initializers would also fall into this block if we didn't check
+				to make sure that the node inherits from 'Class.'
+				#/
+			
 				# being inside a class gives us access to all its fields and methods
 				for kw in .keywordsInBox
 					dataList.add(kw, .iconKeyword)

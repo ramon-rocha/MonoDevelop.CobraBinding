@@ -33,20 +33,42 @@ class Parser implements ITypeSystemParser, IFoldingParser
 		Generates folds and parses the specified file using the Cobra Parser.
 		Stores the resultant AST in the ParsedDocument when storeAst is true.
 		"""
-		source = content.readToEnd
-		if source == nil, source = ""
-		
-		parseErr as ParserException? = nil
 		module as CobraModule? = nil
 		visitor as MonoDevelop.CobraBinding.TypeSystem.Visitor? = nil
 		
-		parseResult = CompilerManager.instance.parse(fileName, source to !)
-		if parseResult inherits CobraModule
-			module = parseResult
-		else if parseResult inherits ParserException
-			parseErr = parseResult
-		else
-			trace parseResult.getType.toString
+		source = content.readToEnd
+		if source == nil, source = ""
+
+		sourceMap = Dictionary<of String, String>()
+		sourceMap[fileName] = source to !
+		
+		refs = List<of String>()
+
+		if project <> nil
+			proj = project to DotNetProject #TODO to CobraProject
+
+			# we need to include the paths to any referenced assemblies
+			refs.addRange(proj.getReferencedAssemblies(ConfigurationSelector.default))
+			
+			# to generate a full AST, we need all the Cobra source files in this project
+			for projFile in proj.files
+				
+				path = projFile.filePath.toString
+				
+				if path <> fileName
+					if path.endsWith(CobraLanguageBinding.sourceFileExtension)
+						if projFile.buildAction == BuildAction.compile
+							
+							reader = StreamReader(path)
+							otherSource = reader.readToEnd
+							if otherSource == nil, otherSource = ""
+							sourceMap[path] = otherSource to !
+			
+		compilerResults = CompilerManager.instance.parseAndBind(sourceMap, refs)
+				
+		for entry in compilerResults
+			if entry inherits CobraModule and entry.fileName == fileName
+				module = entry
 		
 		if module <> nil
 			# create type and region maps
@@ -60,8 +82,15 @@ class Parser implements ITypeSystemParser, IFoldingParser
 			parsedDoc.regionMap = visitor.regionMap
 			parsedDoc.typeMap = visitor.typeMap
 		
-		if parseErr <> nil
-			parsedDoc.add(Error(ErrorType.Error, parseErr.message, parseErr.lineNum, parseErr.colNum - 1))
+		# underline errors
+		for err in compilerResults
+			if not err inherits Module
+				if err inherits ParserException
+					parsedDoc.add(Error(ErrorType.Error, err.message, err.lineNum, err.colNum - 1))
+				else if err inherits SourceException
+					parsedDoc.add(Error(ErrorType.Error, err.message, err.lineNum, err.colNum))
+				else
+					trace err.toString
 		
 		if storeAst
 			parsedDoc.ast = module

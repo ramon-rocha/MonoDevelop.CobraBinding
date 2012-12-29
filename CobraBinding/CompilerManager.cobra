@@ -70,7 +70,7 @@ class CompilerManager
 		return parser
 	
 	
-	def parseAndBind(sourceMap as Dictionary<of String, String>) as List<of dynamic>
+	def parseAndBind(sourceMap as Dictionary<of String, String>, refs as List<of String>) as List<of dynamic>
 		"""
 		Simulates the various phases of the Cobra compiler.
 		
@@ -93,6 +93,7 @@ class CompilerManager
 		
 		lock _theConch
 			compiler = __compiler
+			compiler.options['reference'] = refs
 			
 			# BindRunTimeLibraryPhase
 			compiler.addRunTimeRef(compiler.options)

@@ -38,33 +38,37 @@ class Visitor inherits Cobra.Core.Visitor
 		This is the generic "catch-all" method for nodes that don't
 		provide meaningul type information.
 		"""
+		pass
+		/#
 		if n implements INamedNode
 			print "***[n.name] : [n.getType.toString]"
+		#/
 		
 	def visit(m as CobraModule)
 		"""
 		This is the externally called "top-level" method.
 		"""
-		print m.fileName
+		#print m.fileName
 		.visit(m.topNameSpace)
 		
 	def visit(ns as NameSpace)
-		print ns.name
+		#print ns.name
 		_addRegion(ns)
 		.dispatch(ns.declsInOrder)
 		
 	def visit(c as Class)
+		/#
 		print "\t[c.name] ([c.qualifiedName])"
 		baseClass = c.baseClass
 		while baseClass <> nil
 			print "inherits from [baseClass.name]"
 			baseClass = baseClass.baseClass
-			
+		#/
 		_addRegion(c)
 		.dispatch(c.declsInOrder)
 
 	def visit(i as Interface)
-		print "\t[i.name]"
+		#print "\t[i.name]"
 		_addRegion(i)
 
 	def visit(s as Struct)
@@ -80,14 +84,14 @@ class Visitor inherits Cobra.Core.Visitor
 		_addRegion(m)
 		
 	def visit(m as AbstractMethod)
-		print "\t\t[m.name] : [m.resultType.name]"
+		#print "\t\t[m.name] : [m.resultType.name]"
 		_addRegion(m)
 		
 	def visit(v as BoxVar)
-		print "\t\t[v.name] : [v.type.name]"
+		#print "\t\t[v.name] : [v.type.name]"
 		
 	def visit(c as BoxConst)
-		print "\t\t[c.name] : [c.type.name]"
+		#print "\t\t[c.name] : [c.type.name]"
 
 	def visit(p as Property)
-		print "\t\t[p.name] : [p.returnType.name]"
+		#print "\t\t[p.name] : [p.returnType.name]"

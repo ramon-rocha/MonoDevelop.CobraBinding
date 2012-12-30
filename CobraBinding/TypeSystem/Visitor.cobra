@@ -89,9 +89,12 @@ class Visitor inherits Cobra.Core.Visitor
 		
 	def visit(v as BoxVar)
 		#print "\t\t[v.name] : [v.type.name]"
+		pass
 		
 	def visit(c as BoxConst)
 		#print "\t\t[c.name] : [c.type.name]"
+		pass
 
 	def visit(p as Property)
 		#print "\t\t[p.name] : [p.returnType.name]"
+		pass

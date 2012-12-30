@@ -29,6 +29,7 @@ class Visitor inherits Cobra.Core.Visitor
 		region = DomRegion(node.token.fileName, bl, bc, el, ec)
 		node.addOnValues["DomRegion"] = region
 		_regionMap[node] = region
+				
 	
 	get methodName as String is override
 		return "visit"
@@ -66,6 +67,8 @@ class Visitor inherits Cobra.Core.Visitor
 		#/
 		_addRegion(c)
 		.dispatch(c.declsInOrder)
+		trace c.name
+		trace _regionMap[c].toString
 
 	def visit(i as Interface)
 		#print "\t[i.name]"

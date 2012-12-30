@@ -168,15 +168,8 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 		if String.isNullOrEmpty(lineText), lineText = ""
 		
 		parsedDoc = .document.parsedDocument to ParsedCobraDocument
-		
-		# do not provide completion results inside comments
-		commentRegions = List<of DomRegion>()
-		for fold in parsedDoc.foldings
-			if fold.type == FoldType.Comment
-				commentRegions.add(fold.region)
-		
-		if .getContainingRegions(line, col, commentRegions).count > 0 _
-		or lineText.trimStart.startsWith("#")
+					
+		if _isInsideComment(line, col, lineText to !)
 			return nil
 		
 		# get code regions from last valid parse tree
@@ -210,19 +203,8 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 			trace region.toString
 		#/
 		__prevRegionMap[parsedDoc.fileName] = regionMap to !
-		
-		containingRegions = .getContainingRegions(line, col, codeRegions)
-		completionData = CompletionDataList()
-		
-		if completionChar == c'.'
-			# return fields and methods in the context of the current class
-			for region in containingRegions
-				node = nodeMap[region]
-				if node inherits Class
-					completionData.addRange(_getClassMemberCompletionData(node))
-			return completionData
-			
-		else if completionChar <> c' '
+				
+		if completionChar <> c' '
 			# do this so that the letter just typed is considered part of the word to complete
 			while col > 0 and lineText[col - 1] not in @[c'\t', c' ']
 				triggerWordLength += 1
@@ -232,10 +214,38 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 			# this can happen on manual triggering of code completion via Ctrl+Space from the start of a blank line
 			col = 0
 		
+		containingRegions = .getContainingRegions(line, col, codeRegions)
+		completionData = CompletionDataList()
+		preceedingText = lineText.substring(0, .document.editor.caret.column - 1)
+		
+		if completionChar == c'.'
+			# member completion
+			
+			# don't include the dot in the trigger word length
+			triggerWordLength -= 1
+			
+			id = _getIdFromText(preceedingText)
+			if true
+				# return fields and methods in the context of the current class
+				for region in containingRegions
+					node = nodeMap[region]
+					if node inherits Class
+						completionData.addRange(_getClassMemberCompletionData(node))
+				return completionData
+			else
+				# return fields and methods for the corresponding node
+				try
+					node = _getNodeFromId(id)
+					if node inherits Class
+						completionData.addRange(_getClassMemberCompletionData(node))
+					return completionData
+				catch
+					# not a valid identifier
+					return nil
+		
 		# return unique completion data entries
 		dataSet = HashSet<of String>()
 		uniqueData = List<of ICompletionData>()
-		preceedingText = lineText.substring(0, .document.editor.caret.column - 1)
 				
 		for region in containingRegions
 			for d in _getCompletionData(region, preceedingText, "TODO", nodeMap)
@@ -254,6 +264,27 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 		as IParameterDataProvider? is override
 
 		return nil
+
+		
+	def _isInsideComment(line as int, col as int, lineText as String) as bool
+		"""
+		Returns true if the cursor is inside a comment region.
+		"""
+		if line < 1, line = 1
+		if col < 0, col = 0
+		
+		if lineText.trimStart.startsWith("#")
+			#TODO: Detect cases when inside a string or inside trailing comments
+			return true
+		
+		parsedDoc = .document.parsedDocument to ParsedCobraDocument
+		
+		for fold in parsedDoc.foldings
+			if fold.type == FoldType.Comment and fold.region.isInside(line, col)
+				return true
+				
+		return false
+		
 
 	def getContainingRegions(line as int, col as int, regions as DomRegion*) as List<of DomRegion>
 		"""
@@ -284,6 +315,7 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 			for r in regions
 				if r.isInside(line, col)
 					containingRegions.add(r)
+
 			return containingRegions
 			
 			
@@ -323,6 +355,25 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 		"""
 		# Crap!  This function already exists in Parser.  Shouldn't be repeated here.
 		return line.length - line.trimStart.length
+
+	def _getIdFromText(text as String) as String
+		"""
+		Given arbitrary text, returns the last identifier
+		"""
+		#TODO
+		id = text.trim
+		print id
+		return ""
+		
+	def _getNodeFromId(id as String) as ISyntaxNode
+		"""
+		Given a valid identifier, returns the corresponding syntax node in the AST.
+		
+		Throws an ArgumentException if no node is found.
+		"""
+		#TODO
+		throw ArgumentException()
+		
 
 	def _getTopLevelCompletionData(preceedingText as String, currText as String) as ICompletionDataList
 		"""
@@ -592,6 +643,12 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 				decls.add(d.name, .iconMethod)
 			else
 				decls.add(d.name, .iconField)
+				
+		baseClass = c.baseClass
+		while baseClass <> nil
+			baseDecls = _getClassMemberCompletionData(baseClass to !)
+			decls.addRange(baseDecls to CompletionDataList)
+			baseClass = baseClass.baseClass
 		
 		return decls
 		

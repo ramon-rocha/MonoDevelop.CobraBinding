@@ -80,7 +80,6 @@ class Parser implements ITypeSystemParser, IFoldingParser
 
 		if visitor <> nil
 			parsedDoc.regionMap = visitor.regionMap
-			parsedDoc.typeMap = visitor.typeMap
 		
 		# underline errors
 		for err in compilerResults

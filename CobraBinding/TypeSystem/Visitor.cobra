@@ -11,21 +11,15 @@ class Visitor inherits Cobra.Core.Visitor
 
 	The region of each declaration is added to a dictionary keyed by
 	the declaration itself (as an ISyntaxNode).
-
-	Similiary, the type of each declaration (e.g. Class, Method, etc.)
-	is added to a different dictionary using the same key.
 	"""
 
 	var _regionMap as Dictionary<of ISyntaxNode, DomRegion>
-	var _typeMap as Dictionary<of ISyntaxNode, Type>
 
 	get regionMap from var
-	get typeMap from var
 
 	cue init
 		base.init
 		_regionMap = Dictionary<of ISyntaxNode, DomRegion>()
-		_typeMap = Dictionary<of ISyntaxNode, Type>()
 
 	def _addRegion(node as ISyntaxNode)
 		bl = node.token.lineNum
@@ -57,7 +51,6 @@ class Visitor inherits Cobra.Core.Visitor
 	def visit(ns as NameSpace)
 		print ns.name
 		_addRegion(ns)
-		_typeMap[ns] = NameSpace
 		.dispatch(ns.declsInOrder)
 		
 	def visit(c as Class)
@@ -68,34 +61,27 @@ class Visitor inherits Cobra.Core.Visitor
 			baseClass = baseClass.baseClass
 			
 		_addRegion(c)
-		_typeMap[c] = Class
 		.dispatch(c.declsInOrder)
 
 	def visit(i as Interface)
 		print "\t[i.name]"
 		_addRegion(i)
-		_typeMap[i] = Interface
 
 	def visit(s as Struct)
 		_addRegion(s)
-		_typeMap[s] = Struct
 
 	def visit(e as EnumDecl)
 		_addRegion(e)
-		_typeMap[e] = EnumDecl
 
 	def visit(e as Extension)
 		_addRegion(e)
-		_typeMap[e] = Extension
 
 	def visit(m as Mixin)
 		_addRegion(m)
-		_typeMap[m] = Mixin
 		
 	def visit(m as AbstractMethod)
 		print "\t\t[m.name] : [m.resultType.name]"
 		_addRegion(m)
-		_typeMap[m] = m.getType
 		
 	def visit(v as BoxVar)
 		print "\t\t[v.name] : [v.type.name]"

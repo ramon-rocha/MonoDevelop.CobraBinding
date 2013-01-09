@@ -32,6 +32,7 @@ class Parser implements ITypeSystemParser, IFoldingParser
 	shared
 		var _md5s = Dictionary<of String, String>()
 		var _moduleCache = Dictionary<of String, CobraModule>()
+		var _errorCache = Dictionary<of String, List<of dynamic>>()
 
 
 	def _getCachedModule(fileName as String, md5s as Dictionary<of String, String>) as CobraModule?
@@ -76,7 +77,6 @@ class Parser implements ITypeSystemParser, IFoldingParser
 			if not _moduleCache.containsKey(fileName)
 				return nil
 
-			trace "cache hit for [fileName]"
 			return _moduleCache[fileName]
 		
 
@@ -104,6 +104,7 @@ class Parser implements ITypeSystemParser, IFoldingParser
 	def _clearCache
 		_moduleCache.clear
 		_md5s.clear
+		_errorCache.clear
 	
 	
 	def parse(storeAst as bool, fileName as String, content as TextReader,
@@ -153,7 +154,13 @@ class Parser implements ITypeSystemParser, IFoldingParser
 		
 		lock _moduleCache # seems kind of brittle to lock directly on the dictionary but...meh
 			module = _getCachedModule(fileName, md5s)
-			if module == nil
+			if module <> nil
+				#cache hit
+				trace "cache hit for [fileName]"
+				if _errorCache.containsKey(module.fileName)
+					compilerResults.addRange(_errorCache[module.fileName])
+				
+			else
 				# cache miss
 				trace "cache miss for [fileName]"
 				_clearCache
@@ -170,6 +177,12 @@ class Parser implements ITypeSystemParser, IFoldingParser
 						if entry.fileName == fileName
 							# this was the requested module
 							module = entry
+					else
+						# this entry is an error
+						if not _errorCache.containsKey(entry.fileName)
+							_errorCache[entry.fileName] = List<of dynamic>()
+						else
+							_errorCache[entry.fileName].add(entry)
 
 		if module <> nil
 			# create type and region maps
@@ -185,10 +198,10 @@ class Parser implements ITypeSystemParser, IFoldingParser
 		# underline errors
 		for err in compilerResults
 			if not err inherits Module
-				if err inherits ParserException
+				if err inherits ParserException and err.fileName == fileName
 					parsedDoc.add(Error(ErrorType.Error, err.message, err.lineNum, err.colNum - 1))
 					trace err.message
-				else if err inherits SourceException
+				else if err inherits SourceException and err.fileName == fileName
 					parsedDoc.add(Error(ErrorType.Error, err.message, err.lineNum, err.colNum))
 					trace err.message + " " + err.lineNum.toString + " " + err.colNum.toString
 				else

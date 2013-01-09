@@ -1,3 +1,5 @@
+use System.Security.Cryptography
+
 use Cobra.Compiler
 
 use MonoDevelop.Ide.TypeSystem
@@ -24,6 +26,85 @@ class Parser implements ITypeSystemParser, IFoldingParser
 		
 	var _tabsToSpaces = false
 	var _indentToken = "\t"
+	var _md5Computer = MD5.create
+
+	# these dictionaries are keyed by filename
+	shared
+		var _md5s = Dictionary<of String, String>()
+		var _moduleCache = Dictionary<of String, CobraModule>()
+
+
+	def _getCachedModule(fileName as String, md5s as Dictionary<of String, String>) as CobraModule?
+		"""
+		Returns the CobraModule with the given fileName from the cache or nil
+		if the module is not in the cache.
+		
+		IMPORTANT! Do not include tests in compilation otherwise calls to this
+		method will clear the cache.
+		"""
+		test miss
+			p = Parser()
+			p._clearCache
+			md5s = Dictionary<of String, String>()
+			assert p._getCachedModule('test.cobra', md5s) == nil
+
+			md5s['test.cobra'] = p._getMd5Hash('hello')
+			assert p._getCachedModule('test.cobra', md5s) == nil
+
+		test hit
+			p = Parser()
+			p._clearCache
+			hash = p._getMd5Hash('hello')
+			Parser._md5s['test.cobra'] = hash
+			t = Token('test.cobra', 1, 1, 1, 'hello', 'hello', nil)
+			ns = NameSpace(t, 'TestingNameSpace')
+			Parser._moduleCache['test.cobra'] = CobraModule('test.cobra', 0, "testing", ns)
+
+			md5s = Dictionary<of String, String>()
+			md5s['test.cobra'] = hash
+
+			module = p._getCachedModule('test.cobra', md5s)
+			assert module <> nil
+			assert module is Parser._moduleCache['test.cobra']
+
+		body
+			for key, hash in md5s
+				if not _md5s.containsKey(key) or _md5s[key] <> hash
+					# one or more of the source files has changed
+					return nil
+
+			if not _moduleCache.containsKey(fileName)
+				return nil
+
+			trace "cache hit for [fileName]"
+			return _moduleCache[fileName]
+		
+
+	def _getMd5Hash(fileContents as String) as String
+		"""
+		Returns String representation of the  MD5 hash code for the given
+		input string.
+
+		See http://msdn.microsoft.com/en-us/library/system.security.cryptography.md5.aspx
+		"""
+		test
+			input = "class MD5Test"
+			p = Parser()
+			assert p._getMd5Hash(input) == "d8b8c1c757769993506767adab256d57"
+		body
+			hash = _md5Computer.computeHash(Encoding.utf8.getBytes(fileContents))
+
+			sb = StringBuilder()
+			for byte in hash
+				sb.append(byte.toString("x2"))
+
+			return sb.toString
+
+	
+	def _clearCache
+		_moduleCache.clear
+		_md5s.clear
+	
 	
 	def parse(storeAst as bool, fileName as String, content as TextReader,
 				project as MonoDevelop.Projects.Project?) as ParsedDocument
@@ -38,6 +119,9 @@ class Parser implements ITypeSystemParser, IFoldingParser
 		
 		source = content.readToEnd
 		if source == nil, source = ""
+
+		md5s = Dictionary<of String, String>()
+		md5s[fileName] = _getMd5Hash(source to !)
 
 		sourceMap = Dictionary<of String, String>()
 		sourceMap[fileName] = source to !
@@ -62,14 +146,31 @@ class Parser implements ITypeSystemParser, IFoldingParser
 							reader = StreamReader(path)
 							otherSource = reader.readToEnd
 							if otherSource == nil, otherSource = ""
+							md5s[path] = _getMd5Hash(otherSource to !)
 							sourceMap[path] = otherSource to !
-			
-		compilerResults = CompilerManager.instance.parseAndBind(sourceMap, refs)
-				
-		for entry in compilerResults
-			if entry inherits CobraModule and entry.fileName == fileName
-				module = entry
+
+		compilerResults = List<of dynamic>(proj.files.count)
 		
+		lock _moduleCache # seems kind of brittle to lock directly on the dictionary but...meh
+			module = _getCachedModule(fileName, md5s)
+			if module == nil
+				# cache miss
+				trace "cache miss for [fileName]"
+				_clearCache
+
+				# parse the source files and bind the AST nodes to their types
+				compilerResults.addRange(CompilerManager.instance.parseAndBind(sourceMap, refs))
+				
+				for entry in compilerResults
+					if entry inherits CobraModule
+						# cache this module for next time
+						_moduleCache[entry.fileName] = entry
+						_md5s[entry.fileName] = md5s[entry.fileName]
+
+						if entry.fileName == fileName
+							# this was the requested module
+							module = entry
+
 		if module <> nil
 			# create type and region maps
 			visitor = MonoDevelop.CobraBinding.TypeSystem.Visitor()
@@ -86,8 +187,10 @@ class Parser implements ITypeSystemParser, IFoldingParser
 			if not err inherits Module
 				if err inherits ParserException
 					parsedDoc.add(Error(ErrorType.Error, err.message, err.lineNum, err.colNum - 1))
+					trace err.message
 				else if err inherits SourceException
 					parsedDoc.add(Error(ErrorType.Error, err.message, err.lineNum, err.colNum))
+					trace err.message + " " + err.lineNum.toString + " " + err.colNum.toString
 				else
 					trace err.toString
 		

@@ -321,6 +321,7 @@ class CobraBindingAddinInstaller
 		cobraArgs = StringBuilder(
 			'-compile -copy-core -target:lib -out:"bin[__s]Debug[__s]MonoDevelop.CobraBinding.dll"'
 		)
+		cobraArgs.append(' -include-tests:no')
 
 		if _verbosity >= 2, cobraArgs.append(' -v -verbosity-ref:2')
 		else if _verbosity >= 1, cobraArgs.append(' -v -verbosity-ref:1')

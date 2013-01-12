@@ -23,13 +23,17 @@ class Parser implements ITypeSystemParser, IFoldingParser
 	var _tabsToSpaces = false
 	var _indentToken = "\t"
 	
-	def parse(storeAst as bool, fileName as String, content as TextReader, project as Project?) as ParsedDocument
+	def parse(storeAst as bool, fileName as String?, content as TextReader, project as Project?) as ParsedDocument
 		"""
 		implements ITypeSystemParser.parse
 		
 		Generates folds and parses the specified file using the Cobra Parser.
 		Stores the resultant AST in the ParsedDocument when storeAst is true.
 		"""
+		if fileName == nil
+			# brand new file created outside the context of a Cobra project
+			return DefaultParsedDocument(fileName)
+		
 		source = content.readToEnd
 		parser = CobraParser()
 		
@@ -74,7 +78,7 @@ class Parser implements ITypeSystemParser, IFoldingParser
 
 		return parsedDoc
 		
-	def parse(fileName as String, content as String) as ParsedDocument
+	def parse(fileName as String?, content as String) as ParsedDocument
 		"""
 		implements IFoldingParser.parse
 		

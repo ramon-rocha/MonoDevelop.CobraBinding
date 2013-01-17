@@ -67,8 +67,6 @@ class Visitor inherits Cobra.Core.Visitor
 		#/
 		_addRegion(c)
 		.dispatch(c.declsInOrder)
-		trace c.name
-		trace _regionMap[c].toString
 
 	def visit(i as Interface)
 		#print "\t[i.name]"

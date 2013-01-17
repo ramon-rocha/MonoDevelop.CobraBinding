@@ -32,7 +32,7 @@ class CompilerManager
 		base.init
 	
 	
-	get __compiler as Compiler
+	def __createCompiler as Compiler
 		"""
 		Returns a fresh instance of the compiler.
 		
@@ -56,7 +56,7 @@ class CompilerManager
 		return compiler
 		
 		
-	def __getParser(c as Compiler) as CobraParser
+	def __createParser(c as Compiler) as CobraParser
 		"""
 		Returns a fresh instance of the Cobra parser.
 		"""
@@ -70,7 +70,8 @@ class CompilerManager
 		return parser
 	
 	
-	def parseAndBind(sourceMap as Dictionary<of String, String>, refs as List<of String>) as List<of dynamic>
+	def parseAndBind(sourceMap as Dictionary<of String, String>, refs as List<of String>,
+					fileToBind as String) as List<of dynamic>
 		"""
 		Simulates the various phases of the Cobra compiler.
 		
@@ -92,7 +93,7 @@ class CompilerManager
 			return results
 		
 		lock _theConch
-			compiler = __compiler
+			compiler = __createCompiler
 			compiler.options['reference'] = refs
 			
 			# BindRunTimeLibraryPhase
@@ -103,7 +104,7 @@ class CompilerManager
 			compiler.readAssemblyTypes(compiler.options)
 			
 			# ParsePhase
-			parser = __getParser(compiler)
+			parser = __createParser(compiler)
 			
 			# parse the source files to generate our preliminary AST
 			for fileName, sourceCode in sourceMap
@@ -169,13 +170,19 @@ class CompilerManager
 			
 			if compiler.errors.count == 0
 				# BindImplementationPhase
+				/#
+				This phase takes a while so only run it on the requested module.
+				This hasn't been proven as entirely stable but due to performance
+				issues it's not practical to run the binding phases on all modules.
+				#/
 				for mod in compiler.modules.clone
-					compiler.curModule = mod
-					try
-						mod.bindImp
-					catch ex as SourceException
-						compiler.recordError(ex)
-			
+					if mod.fileName == fileToBind
+						compiler.curModule = mod
+						try
+							mod.bindImp
+						catch ex as SourceException
+							compiler.recordError(ex)
+						break
 
 			for module in compiler.modules
 				results.add(module)
@@ -215,8 +222,8 @@ class CompilerManager
 			assert err.message == 'Missing method body for "main".'
 		body
 			lock _theConch
-				compiler = __compiler
-				parser = __getParser(compiler)
+				compiler = __createCompiler
+				parser = __createParser(compiler)
 				try
 					return parser.parseSource(fileName, source)
 				catch ex as ParserException

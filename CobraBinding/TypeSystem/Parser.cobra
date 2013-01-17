@@ -141,17 +141,16 @@ class Parser implements ITypeSystemParser, IFoldingParser
 				_clearCache
 
 				# parse the source files and bind the AST nodes to their types
-				compilerResults.addRange(CompilerManager.instance.parseAndBind(sourceMap, refs))
+				compilerResults.addRange(CompilerManager.instance.parseAndBind(sourceMap, refs, fileName))
 				
 				for entry in compilerResults
 					if entry inherits CobraModule
-						# cache this module for next time
-						_moduleCache[entry.fileName] = entry
-						_md5s[entry.fileName] = md5s[entry.fileName]
-
 						if entry.fileName == fileName
 							# this was the requested module
 							module = entry
+							# cache this module for next time
+							_moduleCache[fileName] = module to !
+							_md5s[fileName] = md5s[fileName]
 					else
 						# this entry is an error
 						if not _errorCache.containsKey(entry.fileName)

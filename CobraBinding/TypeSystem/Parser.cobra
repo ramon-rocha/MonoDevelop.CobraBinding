@@ -133,13 +133,11 @@ class Parser implements ITypeSystemParser, IFoldingParser
 			module = _getCachedModule(fileName, md5s)
 			if module <> nil
 				#cache hit
-				trace "cache hit for [fileName]"
 				if _errorCache.containsKey(module.fileName)
 					compilerResults.addRange(_errorCache[module.fileName])
 				
 			else
 				# cache miss
-				trace "cache miss for [fileName]"
 				_clearCache
 
 				# parse the source files and bind the AST nodes to their types
@@ -177,10 +175,10 @@ class Parser implements ITypeSystemParser, IFoldingParser
 			if not err inherits Module
 				if err inherits ParserException and err.fileName == fileName
 					parsedDoc.add(Error(ErrorType.Error, err.message, err.lineNum, err.colNum - 1))
-					trace err.message
+					
 				else if err inherits SourceException and err.fileName == fileName
 					parsedDoc.add(Error(ErrorType.Error, err.message, err.lineNum, err.colNum))
-					trace err.message + " " + err.lineNum.toString + " " + err.colNum.toString
+					
 				else
 					trace err.toString
 		

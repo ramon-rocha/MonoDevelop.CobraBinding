@@ -26,7 +26,6 @@ class Parser implements ITypeSystemParser, IFoldingParser
 		
 	var _tabsToSpaces = false
 	var _indentToken = "\t"
-	var _md5Computer = MD5.create
 
 	# these dictionaries are keyed by filename
 	shared
@@ -49,13 +48,13 @@ class Parser implements ITypeSystemParser, IFoldingParser
 			md5s = Dictionary<of String, String>()
 			assert p._getCachedModule('test.cobra', md5s) == nil
 
-			md5s['test.cobra'] = p._getMd5Hash('hello')
+			md5s['test.cobra'] = 'hello'.md5HashInHex
 			assert p._getCachedModule('test.cobra', md5s) == nil
 
 		test hit
 			p = Parser()
 			p._clearCache
-			hash = p._getMd5Hash('hello')
+			hash = 'hello'.md5HashInHex
 			Parser._md5s['test.cobra'] = hash
 			t = Token('test.cobra', 1, 1, 1, 'hello', 'hello', nil)
 			ns = NameSpace(t, 'TestingNameSpace')
@@ -78,28 +77,6 @@ class Parser implements ITypeSystemParser, IFoldingParser
 				return nil
 
 			return _moduleCache[fileName]
-		
-
-	def _getMd5Hash(fileContents as String) as String
-		"""
-		Returns String representation of the  MD5 hash code for the given
-		input string.
-
-		See http://msdn.microsoft.com/en-us/library/system.security.cryptography.md5.aspx
-		"""
-		test
-			input = "class MD5Test"
-			p = Parser()
-			assert p._getMd5Hash(input) == "d8b8c1c757769993506767adab256d57"
-		body
-			hash = _md5Computer.computeHash(Encoding.utf8.getBytes(fileContents))
-
-			sb = StringBuilder()
-			for byte in hash
-				sb.append(byte.toString("x2"))
-
-			return sb.toString
-
 	
 	def _clearCache
 		_moduleCache.clear
@@ -122,7 +99,7 @@ class Parser implements ITypeSystemParser, IFoldingParser
 		if source == nil, source = ""
 
 		md5s = Dictionary<of String, String>()
-		md5s[fileName] = _getMd5Hash(source to !)
+		md5s[fileName] = source.md5HashInHex
 
 		sourceMap = Dictionary<of String, String>()
 		sourceMap[fileName] = source to !
@@ -147,7 +124,7 @@ class Parser implements ITypeSystemParser, IFoldingParser
 							reader = StreamReader(path)
 							otherSource = reader.readToEnd
 							if otherSource == nil, otherSource = ""
-							md5s[path] = _getMd5Hash(otherSource to !)
+							md5s[path] = otherSource.md5HashInHex
 							sourceMap[path] = otherSource to !
 
 		compilerResults = List<of dynamic>(proj.files.count)

@@ -123,6 +123,7 @@ class CompilerManager
 					try
 						compiler.curModule.bindUse
 					catch ex as SourceException
+						results.add(ex)
 						compiler.recordError(ex)
 					i += 1
 			
@@ -136,55 +137,13 @@ class CompilerManager
 					compiler.passThroughType.bindInh
 					compiler.voidType.bindInh
 					for mod in compiler.modules.clone
-						compiler.curModule = mod
-						try
-							mod.bindInh
-						catch ex as SourceException
-							compiler.recordError(ex)
-			
-			if compiler.errors.count == 0
-				# BindInterfacePhase
-				compiler.fixMemberSigs
-				for basicType in compiler.basicTypes
-					basicType.bindInt
-				compiler.objectType.bindInt
-				compiler.stringType.bindInt
-				compiler.dynamicType.bindInt
-				compiler.passThroughType.bindInt
-				compiler.voidType.bindInt
-				for mod in compiler.modules.clone
-					compiler.curModule = mod
-					try
-						mod.bindInt
-					catch ex as SourceException
-						compiler.recordError(ex)
-			
-			if compiler.errors.count == 0
-				# ComputeMatchingBaseMembersPhase
-				for mod in compiler.modules
-					compiler.curModule = mod
-					try
-						mod.computeMatchingBaseMembers
-					catch ex as SourceException
-						compiler.recordError(ex)
-			
-			if compiler.errors.count == 0
-				# BindImplementationPhase
-				/#
-				This phase takes a while so only run it on the requested module.
-				This hasn't been proven as entirely stable but due to performance
-				issues it's not practical to run the binding phases on all modules.
-				#/
-				for mod in compiler.modules.clone
-					if mod.fileName == fileToBind
-						compiler.curModule = mod
-						try
-							mod.bindImp
-						catch ex as SourceException
-							compiler.recordError(ex)
-						catch unknownEx as Exception
-							trace unknownEx
-						break
+						if mod.fileName == fileToBind
+							compiler.curModule = mod
+							try
+								mod.bindInh
+							catch ex as SourceException
+								results.add(ex)
+								compiler.recordError(ex)
 
 			for module in compiler.modules
 				results.add(module)

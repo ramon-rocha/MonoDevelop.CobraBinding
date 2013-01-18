@@ -26,63 +26,6 @@ class Parser implements ITypeSystemParser, IFoldingParser
 		
 	var _tabsToSpaces = false
 	var _indentToken = "\t"
-
-	# these dictionaries are keyed by filename
-	shared
-		var _md5s = Dictionary<of String, String>()
-		var _moduleCache = Dictionary<of String, CobraModule>()
-		var _errorCache = Dictionary<of String, List<of dynamic>>()
-
-
-	def _getCachedModule(fileName as String, md5s as Dictionary<of String, String>) as CobraModule?
-		"""
-		Returns the CobraModule with the given fileName from the cache or nil
-		if the module is not in the cache.
-		
-		IMPORTANT! Do not include tests in compilation otherwise calls to this
-		method will clear the cache.
-		"""
-		test miss
-			p = Parser()
-			p._clearCache
-			md5s = Dictionary<of String, String>()
-			assert p._getCachedModule('test.cobra', md5s) == nil
-
-			md5s['test.cobra'] = 'hello'.md5HashInHex
-			assert p._getCachedModule('test.cobra', md5s) == nil
-
-		test hit
-			p = Parser()
-			p._clearCache
-			hash = 'hello'.md5HashInHex
-			Parser._md5s['test.cobra'] = hash
-			t = Token('test.cobra', 1, 1, 1, 'hello', 'hello', nil)
-			ns = NameSpace(t, 'TestingNameSpace')
-			Parser._moduleCache['test.cobra'] = CobraModule('test.cobra', 0, "testing", ns)
-
-			md5s = Dictionary<of String, String>()
-			md5s['test.cobra'] = hash
-
-			module = p._getCachedModule('test.cobra', md5s)
-			assert module <> nil
-			assert module is Parser._moduleCache['test.cobra']
-
-		body
-			for key, hash in md5s
-				if not _md5s.containsKey(key) or _md5s[key] <> hash
-					# one or more of the source files has changed
-					return nil
-
-			if not _moduleCache.containsKey(fileName)
-				return nil
-
-			return _moduleCache[fileName]
-	
-	def _clearCache
-		_moduleCache.clear
-		_md5s.clear
-		_errorCache.clear
-	
 	
 	def parse(storeAst as bool, fileName as String, content as TextReader,
 				project as MonoDevelop.Projects.Project?) as ParsedDocument
@@ -97,9 +40,6 @@ class Parser implements ITypeSystemParser, IFoldingParser
 		
 		source = content.readToEnd
 		if source == nil, source = ""
-
-		md5s = Dictionary<of String, String>()
-		md5s[fileName] = source.md5HashInHex
 
 		sourceMap = Dictionary<of String, String>()
 		sourceMap[fileName] = source to !
@@ -124,39 +64,17 @@ class Parser implements ITypeSystemParser, IFoldingParser
 							reader = StreamReader(path)
 							otherSource = reader.readToEnd
 							if otherSource == nil, otherSource = ""
-							md5s[path] = otherSource.md5HashInHex
 							sourceMap[path] = otherSource to !
 
-		compilerResults = List<of dynamic>(proj.files.count)
 		
-		lock _moduleCache # seems kind of brittle to lock directly on the dictionary but...meh
-			module = _getCachedModule(fileName, md5s)
-			if module <> nil
-				#cache hit
-				if _errorCache.containsKey(module.fileName)
-					compilerResults.addRange(_errorCache[module.fileName])
-				
-			else
-				# cache miss
-				_clearCache
-
-				# parse the source files and bind the AST nodes to their types
-				compilerResults.addRange(CompilerManager.instance.parseAndBind(sourceMap, refs, fileName))
-				
-				for entry in compilerResults
-					if entry inherits CobraModule
-						if entry.fileName == fileName
-							# this was the requested module
-							module = entry
-							# cache this module for next time
-							_moduleCache[fileName] = module to !
-							_md5s[fileName] = md5s[fileName]
-					else
-						# this entry is an error
-						if not _errorCache.containsKey(entry.fileName)
-							_errorCache[entry.fileName] = List<of dynamic>()
-						
-						_errorCache[entry.fileName].add(entry)
+		# parse the source files and bind the AST nodes to their types
+		compilerResults = CompilerManager.instance.parseAndBind(sourceMap, refs, fileName)
+		
+		for entry in compilerResults
+			if entry inherits CobraModule
+				if entry.fileName == fileName
+					# this was the requested module
+					module = entry
 
 		if module <> nil
 			# create type and region maps

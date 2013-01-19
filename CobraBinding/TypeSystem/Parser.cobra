@@ -9,7 +9,7 @@ use ICSharpCode.NRefactory.TypeSystem
 
 namespace MonoDevelop.CobraBinding.TypeSystem
 
-class Parser implements ITypeSystemParser, IFoldingParser
+class Parser inherits AbstractTypeSystemParser implements IFoldingParser
 	"""
 	The type system parser provides a ParsedDocument required for adding 
 	information to the type system service to make the file contents available 
@@ -23,7 +23,7 @@ class Parser implements ITypeSystemParser, IFoldingParser
 	var _tabsToSpaces = false
 	var _indentToken = "\t"
 	
-	def parse(storeAst as bool, fileName as String?, content as TextReader, project as Project?) as ParsedDocument
+	def parse(storeAst as bool, fileName as String?, content as TextReader?, project as Project?) as ParsedDocument is override
 		"""
 		implements ITypeSystemParser.parse
 		
@@ -77,23 +77,17 @@ class Parser implements ITypeSystemParser, IFoldingParser
 			parsedDoc.ast = module
 
 		return parsedDoc
-		
-	def parse(fileName as String?, content as String) as ParsedDocument
-		"""
-		implements IFoldingParser.parse
-		
-		Parse the specified file to generate folds.
-		"""
+
+	def parse(fileName as String?, content as String?) as ParsedDocument
 		parsedDoc = DefaultParsedDocument(fileName)
-		
+
 		reader = StringReader(content)
 		folds = List<of FoldingRegion>()
 		_addFolds(_getLineInformation(reader), folds)
-		
+
 		parsedDoc.add(folds)
 
 		return parsedDoc
-	
 	
 	def _getLineInformation(reader as StringReader) as List<of LineInformation>
 		lines = List<of String>(.TYPICAL_LINE_COUNT)

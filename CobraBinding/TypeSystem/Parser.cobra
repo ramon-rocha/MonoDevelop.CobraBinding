@@ -79,6 +79,11 @@ class Parser inherits AbstractTypeSystemParser implements IFoldingParser
 		return parsedDoc
 
 	def parse(fileName as String?, content as String?) as ParsedDocument
+		"""
+		implements IFoldingParser.parse
+
+		Parse the specified file only to generate folds.  Does not generate an AST.
+		"""
 		parsedDoc = DefaultParsedDocument(fileName)
 
 		reader = StringReader(content)

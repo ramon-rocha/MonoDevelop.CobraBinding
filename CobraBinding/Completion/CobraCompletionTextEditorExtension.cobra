@@ -1,3 +1,5 @@
+use System.Text.RegularExpressions
+
 use Cobra.Compiler
 
 use MonoDevelop.CobraBinding.TypeSystem
@@ -143,14 +145,14 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 		"""
 		This method is called indirectly by .keyPress or when the user hits Ctrl+Space.
 		"""
-		
+
 		if completionChar in .charsToIgnore
 			return nil
-		
+
 		if completionChar == c'('
 			#TODO handle parameter completion
 			return nil
-		
+
 		/#
 		.document is a MonoDevelop.Ide.Gui.Document
 		.document.editor.document is a Mono.TextEditor.Document
@@ -159,19 +161,19 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 		if context == nil or .document == nil or .document.parsedDocument == nil
 			# not enough information to be able to provide completion results
 			return nil
-			
+
 		line = context.triggerLine
 		col = context.triggerLineOffset
-		
+
 		textDoc = .document.editor.document
 		lineText = textDoc.getLineText(line)
 		if String.isNullOrEmpty(lineText), lineText = ""
-		
+
 		parsedDoc = .document.parsedDocument to ParsedCobraDocument
-					
+
 		if _isInsideComment(line, col, lineText to !)
 			return nil
-		
+
 		# get code regions from last valid parse tree
 		regionMap as Dictionary<of ISyntaxNode, DomRegion>? = nil
 		if parsedDoc.regionMap <> nil
@@ -179,12 +181,12 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 			__prevRegionMap[parsedDoc.fileName] = regionMap to !
 		else if __prevRegionMap.containsKey(parsedDoc.fileName)
 			regionMap = __prevRegionMap[parsedDoc.fileName]
-		
+
 		if regionMap == nil
 			# not enough information to provide completion
 			return nil
-			
-		
+
+
 		# extend code regions to include blank lines and generate a reverse map
 		codeRegions = List<of DomRegion>()
 		nodeMap = Dictionary<of DomRegion, ISyntaxNode>()
@@ -192,10 +194,10 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 			extendedRegion = _extendRegion(region)
 			codeRegions.add(extendedRegion)
 			nodeMap[extendedRegion] = node
-			
+
 		for extendedRegion, node in nodeMap
 			regionMap[node] = extendedRegion
-		
+
 		# DEBUGGING
 		/#
 		for node, region in regionMap to !
@@ -203,69 +205,80 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 			trace region.toString
 		#/
 		__prevRegionMap[parsedDoc.fileName] = regionMap to !
-				
+
 		if completionChar <> c' '
 			# do this so that the letter just typed is considered part of the word to complete
 			while col > 0 and lineText[col - 1] not in @[c'\t', c' ']
 				triggerWordLength += 1
 				col -= 1
-			
+
 		if col < 0
 			# this can happen on manual triggering of code completion via Ctrl+Space from the start of a blank line
 			col = 0
-		
+
 		containingRegions = .getContainingRegions(line, col, codeRegions)
 		completionData = CompletionDataList()
 		preceedingText = lineText.substring(0, .document.editor.caret.column - 1)
-		
+
 		if completionChar == c'.'
 			# member completion
-			
-			# don't include the dot in the trigger word length
-			triggerWordLength -= 1
-			
-			id = _getIdFromText(preceedingText)
-			if true
+
+			# don't include the dot or anything before it in the trigger word length
+			triggerWordLength = 0
+
+			ids = _getIdsFromText(preceedingText)
+
+			/#
+			for id in ids
+				trace id
+			#/
+
+			if ids.count == 0
 				# return fields and methods in the context of the current class
 				for region in containingRegions
 					node = nodeMap[region]
 					if node inherits Class
-						completionData.addRange(_getClassMemberCompletionData(node))
+						completionData.addRange(_getBoxMemberCompletionData(node))
 				return completionData
 			else
 				# return fields and methods for the corresponding node
 				try
-					node = _getNodeFromId(id)
-					if node inherits Class
-						completionData.addRange(_getClassMemberCompletionData(node))
+					node = _getNodeFromIds(ids, containingRegions, nodeMap)
+					#trace node.toString
+
+					if node inherits AbstractLocalVar
+						if node.type inherits Box
+							completionData.addRange(_getBoxMemberCompletionData(node.type to Box))
+
 					return completionData
-				catch
+				catch ArgumentException
 					# not a valid identifier
+					#print "not a valid identifier"
 					return nil
-		
+
 		# return unique completion data entries
 		dataSet = HashSet<of String>()
 		uniqueData = List<of ICompletionData>()
-				
+
 		for region in containingRegions
 			for d in _getCompletionData(region, preceedingText, "TODO", nodeMap)
 				if dataSet.add(d.toString)
 					uniqueData.add(d)
-		
+
 		completionData.addRange(uniqueData)
-		
+
 		if completionData.count <> 0
 			return completionData
 		else
 			return nil
-		
+
 
 	def handleParameterCompletion(context as CodeCompletionContext?, completionChar as char) _
 		as IParameterDataProvider? is override
 
 		return nil
-
 		
+
 	def _isInsideComment(line as int, col as int, lineText as String) as bool
 		"""
 		Returns true if the cursor is inside a comment region.
@@ -356,25 +369,100 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 		# Crap!  This function already exists in Parser.  Shouldn't be repeated here.
 		return line.length - line.trimStart.length
 
-	def _getIdFromText(text as String) as String
+
+	shared
+		var rexIdentifier = Regex( _
+			r'[a-zA-z0-9]*', _
+			RegexOptions.Compiled _
+		)
+
+	def _getIdsFromText(text as String) as List<of String>
 		"""
-		Given arbitrary text, returns the last identifier
+		Given a line of text, returns a list of trailing identifiers.
+
+		For example, given "foo = SomeSharedClass.someProp.", then this
+		method would return ['SomeSharedClass', 'someProp'].
 		"""
-		#TODO
-		id = text.trim
-		print id
-		return ""
-		
-	def _getNodeFromId(id as String) as ISyntaxNode
+		test
+			sampleText = "foo = SomeSharedClass.someProp."
+			completionExtension = CobraCompletionTextEditorExtension()
+			ids = completionExtension._getIdsFromText(sampleText)
+			assert ids.count == 2
+			assert ids[0] == "SomeSharedClass"
+			assert ids[1] == "someProp"
+		body
+			ids = List<of String>()
+			text = text.trim
+
+			# split the text by whitespace
+			pieces = text.split
+			lastPiece = pieces[pieces.length - 1]
+
+			match = CobraCompletionTextEditorExtension.rexIdentifier.match(lastPiece)
+			while match.success
+				if match.value.length > 0
+					ids.add(match.value)
+				match = match.nextMatch to !
+
+			return ids
+
+	def _getNodeFromIds(ids as List<of String>,
+						containingRegions as List<of DomRegion>,
+						nodeMap as Dictionary<of DomRegion, ISyntaxNode>) as ISyntaxNode
 		"""
 		Given a valid identifier, returns the corresponding syntax node in the AST.
-		
+
 		Throws an ArgumentException if no node is found.
 		"""
-		#TODO
-		throw ArgumentException()
-		
+		require
+			ids.count > 0
+			containingRegions.count > 0
+			all for region in containingRegions get nodeMap.containsKey(region)
 
+		test singleIdentifier
+			# setup
+			ids = ['Object']
+			regions = [DomRegion(1,1)]
+			bogusNode = Class('Object', List<of Cobra.Compiler.IType>())
+			nodeMap = Dictionary<of DomRegion, ISyntaxNode>()
+			nodeMap[regions[0]] = bogusNode
+
+			completionExtension = CobraCompletionTextEditorExtension()
+			assert completionExtension._getNodeFromIds(ids, regions, nodeMap) is bogusNode
+
+		body
+			#TODO: do this right
+			parent as ISyntaxNode? = nil
+
+			for region in containingRegions
+
+				node = nodeMap[region]
+				if node inherits NamedNode
+					#trace node.name
+					#trace ids[0]
+					if node.name == ids[0]
+						parent = node
+						break
+					else if node inherits AbstractMethod
+						for v in node.locals
+							if v.name == ids[0]
+								return v
+
+						for p in node.params
+							if p.name == ids[0]
+								return p
+
+			if ids.count == 1
+				if parent <> nil
+					return parent
+				else
+					throw ArgumentException()
+
+			# TODO: follow the chain
+			for i in 1:ids.count
+				pass
+			throw ArgumentException()
+			
 	def _getTopLevelCompletionData(preceedingText as String, currText as String) as ICompletionDataList
 		"""
 		Returns completion data when we are in the context of a namespace and can
@@ -396,8 +484,8 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 			for kw in .keywordsCobraTypes
 				dataList.add(kw, .iconKeyword)
 			
-			# return all types from explicit and implicit references TODO FASTER!!!
-			dataList.addRange(_getTypesFromRefs)
+			# return all imported decls
+			dataList.addRange(_getAvailableDecls)
 		
 		else if preceedingText.endsWith(" inherits ")
 			#TODO: return class names
@@ -451,7 +539,7 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 				for kw in .keywordsInBox
 					dataList.add(kw, .iconKeyword)
 				
-				dataList.addRange(_getClassMemberCompletionData(nodeMap[region] to Class))
+				dataList.addRange(_getBoxMemberCompletionData(nodeMap[region] to Class))
 				
 			else if firstRegionLine.startsWith("def ") or firstRegionLine.startsWith("get ") or firstRegionLine.startsWith("set ")
 				# being inside a method gives us access to all its local variables and more Cobra keywords
@@ -490,259 +578,136 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 		
 		return dataList
 		
-	def _getTypesFromRefs as ICompletionDataList
+	def _getAvailableDecls as ICompletionDataList
 		"""
-		Returns all types from the assemblies referenced by the project and
-		implicitly referenced by Cobra.
+		Returns all declarations visible in the current context.
 		"""
-		dataList = CompletionDataList()
-		
-		#TODO: memoize to improve performance
-		
-		# add types from explicit references
-		proj = .document.project to DotNetProject
-		for r in proj.references
-			for asmFileName in r.getReferencedFileNames(DefaultConfigurationSelector())
-				try
-					asm = System.Reflection.Assembly.loadFile(asmFileName)
-					if asm <> nil
-						dataList.addRange(_getPublicTypesFromAssembly(asm))
-							
-				catch ex as Exception
-					# failed to load assembly, just ignore it for now
-					trace ex.message
-					
-		# add types from implicit references
-		dataList.addRange(_getImplicitTypes)
-		
-		return dataList
-
-
-
-	sig TypeFilter(t as Type) as bool is protected
-
-
-	def _getPublicTypesFromAssembly(asm as System.Reflection.Assembly) as ICompletionDataList
-		"""
-		Given an assembly, return its public types in a completion list.
-		"""
-		/#
-		TODO: Maybe not in this function, but somewhere...
-		Filter out non-fully-qualified-type names if
-		there is no use statement for their namespace.
-		#/
-		filter as TypeFilter = do(t as Type)
-			return t.isPublic
-
-		dataList = CompletionDataList()
-		dataList.addRange(_typesToCompletionList(asm.getTypes, filter))
-		return dataList
-
-
-	def _typesToCompletionList(types as Type[]?, filter as TypeFilter) as ICompletionDataList
-		"""
-		Returns a completion data list containing the types in the given array for
-		which the given filter method reference returns true.
-		"""
-		dataList = CompletionDataList()
-
-		if types == nil
+		require
+			.document
+			.document.parsedDocument
+		body
+			dataList = CompletionDataList()
+			ast as CobraModule? = .document.parsedDocument.getAst<of CobraModule>
+			if ast == nil
+				return dataList
+			
+			dataList.addRange(_getNamespaceCompletionData(ast.topNameSpace))
+			
+			for useStmt in ast.topNameSpace.useDirectives
+				if useStmt.boundNameSpace <> nil
+					ns = useStmt.boundNameSpace to !
+					dataList.addRange(_getNamespaceCompletionData(ns))
+			
 			return dataList
-
-		for t in types to !
-
-			if filter(t)
-
-				fullName = t.fullName
-				name = t.name
-
-				if t.isGenericType
-					#TODO: format to Cobra name
-					name = t.name
-					fullName = t.fullName
-
-				if t.isClass
-					dataList.add(name, .iconClass)
-					dataList.add(fullName, .iconClass)
-				else if t.isInterface
-					dataList.add(name, .iconInterface)
-					dataList.add(fullName, .iconInterface)
-				else if t.isEnum
-					dataList.add(name, .iconEnum)
-					dataList.add(fullName, .iconEnum)
-				else #TODO: the rest
-					dataList.add(name, .iconEvent)
-					dataList.add(fullName, .iconEvent)
-
-		return dataList
-
-
-	def _getImplicitTypes as ICompletionDataList
-		"""
-		Returns the public types made available by the implicit use directives.
-		"""
-		dataList = CompletionDataList()
-
-		# include all public types from these namespaces
-		implicitNamespaces = @[
-			'System',
-			'System.Collections.Generic',
-			'System.IO',
-			'System.Text',
-		]
-
-		filter as TypeFilter = do(t as Type)
-			return t.isPublic and t.namespace in implicitNamespaces
-
-		asm = System.Reflection.Assembly.load('mscorlib.dll')
-		dataList.addRange(_typesToCompletionList(asm.getTypes, filter))
-
-		# System.dll
-		asm = System.Diagnostics.Process.getType.assembly
-		dataList.addRange(_typesToCompletionList(asm.getTypes, filter))
-
-		# include all public types from Cobra.Core.dll
-		asm = Cobra.Core.CobraCore.getType.assembly
-		dataList.addRange(_getPublicTypesFromAssembly(asm to !))
-
-		return dataList
-
+		
 		
 	def _getNamespaceCompletionData(n as NameSpace) as ICompletionDataList
 		"""
 		Given a namespace node, return the namespaces and types it provides.
 		"""
-		
 		decls = CompletionDataList()
+		
+		if n.name.startsWith('(')
+			# an unnamed top-level namespace for a module
+			naNamePrefix = ""
+		else
+			nsNamePrefix = n.name + "."
 		
 		for d in n.declsInOrder
-			if d inherits Class
-				decls.add(d.name, .iconClass)
-			else if d inherits MethodSig
-				decls.add(d.name, .iconDelegate)
+			if d inherits MethodSig
+				decls.add(d.name, .iconDelegate, d.qualifiedName)
+			else if d inherits Class
+				decls.add(d.name, .iconClass, d.qualifiedName)
 			else if d inherits Struct
-				decls.add(d.name, .iconStruct)
+				decls.add(d.name, .iconStruct, d.qualifiedName)
 			else if d inherits Interface
-				decls.add(d.name, .iconInterface)
+				decls.add(d.name, .iconInterface, d.qualifiedName)
 			else if d inherits NameSpace
-				decls.add(d.name, .iconNamespace)
+				decls.add(d.name, .iconNamespace, nsNamePrefix + d.name)
 			else if d inherits EnumDecl
-				decls.add(d.name, .iconEnum)
+				decls.add(d.name, .iconEnum, nsNamePrefix + d.name)
 		
 		return decls
 		
-	def _getClassMemberCompletionData(c as Class) as ICompletionDataList
+		
+	def _getBoxMemberCompletionData(b as Box) as ICompletionDataList
 		"""
-		Given a class node, return the members associated with it.
+		Given a box node, return the unique members associated with it.
 		"""
+		seen = HashSet<of String>()
 		
-		decls = CompletionDataList()
+		# pretend we've already seen 'cue.init' so it's not included in the final list
+		seen.add("cue.init")
 		
-		for d in c.declsInOrder
-			if d inherits AbstractMethod
-				decls.add(d.name, .iconMethod)
-			else
-				decls.add(d.name, .iconField)
-				
-		baseClass = c.baseClass
-		while baseClass <> nil
-			baseDecls = _getClassMemberCompletionData(baseClass to !)
-			decls.addRange(baseDecls to CompletionDataList)
-			baseClass = baseClass.baseClass
+		members = CompletionDataList()
+
+		#TODO: clean this up
+		for m in b.declsInOrder
+			if seen.add(m.name)
+				try
+					if m inherits MethodSig
+						members.add(m.name, .iconDelegate, m.qualifiedName)
+					else if m inherits AbstractMethod
+						members.add(m.name, .iconMethod, m.resultType.name)
+					else if m inherits BoxEvent
+						members.add(m.name, .iconEvent, m.resultType.name)
+					else if m inherits Property
+						members.add(m.name, .iconProperty, m.resultType.name)
+					else if m inherits BoxVar
+						members.add(m.name, .iconField, m.type.name)
+					else if m inherits BoxConst
+						members.add(m.name, .iconLiteral, m.type.name)
+					else
+						members.add(m.name, .iconEvent, "TODO: use correct icon")
+				catch
+					if m inherits MethodSig
+						members.add(m.name, .iconDelegate, "Failed to evaluate 'm.qualifiedName'")
+					else if m inherits AbstractMethod
+						members.add(m.name, .iconMethod, "Failed to evaluate 'm.resultType.name'")
+					else if m inherits BoxEvent
+						members.add(m.name, .iconEvent, "Failed to evaluate 'm.resultType.name'")
+					else if m inherits Property
+						members.add(m.name, .iconProperty, "Failed to evaluate 'm.resultType.name'")
+					else if m inherits BoxVar
+						members.add(m.name, .iconField, "Failed to evaluate 'm.type.name'")
+					else if m inherits BoxConst
+						members.add(m.name, .iconLiteral, "Failed to evaluate 'm.type.name'")
+					else
+						members.add(m.name, .iconEvent, "TODO: use correct icon")
 		
-		return decls
+		try
+			for m in b.allMembers
+				if seen.add(m.name)
+					if m inherits MethodSig
+						members.add(m.name, .iconDelegate, m.qualifiedName)
+					else if m inherits AbstractMethod
+						members.add(m.name, .iconMethod, m.resultType.name)
+					else if m inherits BoxEvent
+						members.add(m.name, .iconEvent, m.resultType.name)
+					else if m inherits Property
+						members.add(m.name, .iconProperty, m.resultType.name)
+					else if m inherits BoxVar
+						members.add(m.name, .iconField, m.type.name)
+					else if m inherits BoxConst
+						members.add(m.name, .iconLiteral, m.type.name)
+					else
+						members.add(m.name, .iconEvent, "TODO: use correct icon")
+		catch
+			print "Failed to add [m.toString] to completion data list via .allMembers"
+
+		return members
+		
 		
 	def _getMethodVarCompletionData(m as AbstractMethod) as ICompletionDataList
 		"""
 		Given a method node, return the local variables and parameters associated with it.
 		"""
-		
 		vars = CompletionDataList()
 		
 		for v in m.locals
-			vars.add(v.name, .iconField)
-		
-		vars.addRange(_getVarsFromStatements(m.statements))
+			vars.add(v.name, .iconField, v.type.name)
 		
 		for p in m.params
-			vars.add(p.name, .iconField)
+			vars.add(p.name, .iconField, p.type.name)
 		
 		return vars
-		
-	def _getVarsFromForLoop(forLoop as ForStmt) as ICompletionDataList
-		"""
-		Returns the variables declared in the given for loop syntax node.
-		"""
-		vars = CompletionDataList()
-		vars.add(forLoop.varExpr.name, .iconField)
-		vars.addRange(_getVarsFromBlock(forLoop.block))
-		return vars
-		
-	def _getVarsFromWhileLoop(whileLoop as AbstractWhileStmt) as ICompletionDataList
-		"""
-		Returns the variables declared in the given for loop syntax node.
-		"""
-		vars = CompletionDataList()
-		vars.addRange(_getVarsFromBlock(whileLoop.block))
-		return vars
-		
-	def _getVarsFromTryCatchBlock(tryCatchBlock as TryStmt) as ICompletionDataList
-		"""
-		Returns the variables declared in the given try-catch statement block.
-		"""
-		vars = CompletionDataList()
-		
-		vars.addRange(_getVarsFromBlock(tryCatchBlock.tryBlock))
-		
-		if tryCatchBlock.successBlock <> nil
-			vars.addRange(_getVarsFromBlock(tryCatchBlock.successBlock to !))
-		
-		if tryCatchBlock.successBlock <> nil
-			vars.addRange(_getVarsFromBlock(tryCatchBlock.finallyBlock to !))
-			
-		for catchBlock in tryCatchBlock.catchBlocks
-			vars.addRange(_getVarsFromBlock(catchBlock.block))
-		
-		return vars
-		
-	def _getVarsFromBlock(block as BlockStmt) as ICompletionDataList
-		"""
-		Returns the variables declared in the given block of statements.
-		"""
-		return _getVarsFromStatements(block.stmts)
-		
-	def _getVarsFromStatements(stmts as List<of Stmt>) as ICompletionDataList
-		"""
-		Returns the variables declared in the given list of statements.
-		"""
-		vars = CompletionDataList()
-		
-		for s in stmts
-			if s inherits AssignExpr
-				if s.left inherits IdentifierExpr
-					vars.add(_getVarFromAssignExpr(s), .iconField)
-			else if s inherits ForStmt
-				vars.addRange(_getVarsFromForLoop(s))
-			else if s inherits AbstractWhileStmt
-				vars.addRange(_getVarsFromWhileLoop(s))
-			else if s inherits TryStmt
-				vars.addRange(_getVarsFromTryCatchBlock(s))
-			else if s inherits IfStmt
-				vars.addRange(_getVarsFromBlock(s.trueStmts))
-				if s.falseStmts <> nil
-					vars.addRange(_getVarsFromBlock(s.falseStmts to !))
-		
-		return vars
-	
-		
-	def _getVarFromAssignExpr(expr as AssignExpr) as String?
-		"""
-		Given an assignment expression, returns the identifier on the left hand side.
-		"""
-		if expr.left inherits IdentifierExpr
-			return (expr.left to IdentifierExpr).name
-
-		# the assignment is probably not declaring a variable (e.g. foo.bar = 1)
-		return nil
-
-

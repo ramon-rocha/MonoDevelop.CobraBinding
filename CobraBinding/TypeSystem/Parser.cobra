@@ -30,7 +30,7 @@ class Parser inherits AbstractTypeSystemParser implements IFoldingParser
 		Generates folds and parses the specified file using the Cobra Parser.
 		Stores the resultant AST in the ParsedDocument when storeAst is true.
 		"""
-		if fileName == nil
+		if fileName == nil or content == nil
 			# brand new file created outside the context of a Cobra project
 			return DefaultParsedDocument(fileName)
 		

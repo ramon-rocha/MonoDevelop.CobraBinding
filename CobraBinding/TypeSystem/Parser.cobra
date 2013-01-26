@@ -1,5 +1,3 @@
-use System.Security.Cryptography
-
 use Cobra.Compiler
 
 use MonoDevelop.Ide.TypeSystem

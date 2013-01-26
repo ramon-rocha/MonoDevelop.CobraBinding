@@ -1,7 +1,5 @@
 use Cobra.Compiler
 
-use ICSharpCode.NRefactory.TypeSystem
-
 namespace MonoDevelop.CobraBinding
 
 class CompilerManager
@@ -144,6 +142,47 @@ class CompilerManager
 							catch ex as SourceException
 								results.add(ex)
 								compiler.recordError(ex)
+
+			if compiler.errors.count == 0
+				# BindInterfacePhase
+				compiler.fixMemberSigs
+				for basicType in compiler.basicTypes
+					basicType.bindInt
+				compiler.objectType.bindInt
+				compiler.stringType.bindInt
+				compiler.dynamicType.bindInt
+				compiler.passThroughType.bindInt
+				compiler.voidType.bindInt
+				for mod in compiler.modules.clone
+					compiler.curModule = mod
+					try
+						mod.bindInt
+					catch ex as SourceException
+						results.add(ex)
+						compiler.recordError(ex)
+			
+			if compiler.errors.count == 0
+				# ComputeMatchingBaseMembersPhase
+				for mod in compiler.modules
+					compiler.curModule = mod
+					try
+						mod.computeMatchingBaseMembers
+					catch ex as SourceException
+						results.add(ex)
+						compiler.recordError(ex)
+			
+			if compiler.errors.count == 0
+				# BindImplementationPhase
+				for mod in compiler.modules.clone
+					if mod.fileName == fileToBind
+						compiler.curModule = mod
+						try
+							mod.bindImp
+						catch ex as SourceException
+							results.add(ex)
+							compiler.recordError(ex)
+						catch wtf as Exception
+							print "[fileToBind] triggers a compiler bug"
 
 			for module in compiler.modules
 				results.add(module)

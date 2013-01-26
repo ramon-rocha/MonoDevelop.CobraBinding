@@ -319,7 +319,7 @@ class CobraBindingAddinInstaller
 		to compile the CobraBinding project.
 		"""
 		cobraArgs = StringBuilder(
-			'-compile -copy-core -target:lib -out:"bin[__s]Debug[__s]MonoDevelop.CobraBinding.dll"'
+			'-compile -turbo -copy-core -target:lib -out:"bin[__s]Debug[__s]MonoDevelop.CobraBinding.dll"'
 		)
 		cobraArgs.append(' -include-tests:no')
 

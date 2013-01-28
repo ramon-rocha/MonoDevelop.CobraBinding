@@ -266,23 +266,12 @@ class CobraBindingAddinInstaller
 			# and we'll use cobra to compile the CobraBinding project
 			info = _createProcessStartInfo
 			
-			if CobraCore.isRunningOnMono
-				/#
-				Workaround an inability of Mono to find the dependencies
-				of MonoDevelop.Ide.dll when loaded via reflection.
-				#/
-				if _isWindows
-					info.environmentVariables["MONO_PATH"] = "[progFiles]\\MonoDevelop\\bin"
-				else if CobraCore.isRunningOnMac
-					info.environmentVariables["MONO_PATH"] = "/Applications/MonoDevelop.app/Contents/MacOS/lib/monodevelop/bin"
-					monoDevPkgConfigPath = '/Applications/MonoDevelop.app/Contents/MacOS/lib/pkgconfig'
-					pkgConfigPath = Environment.getEnvironmentVariable('PKG_CONFIG_PATH') ? ''
-					if monoDevPkgConfigPath not in pkgConfigPath
-						if pkgConfigPath <> '', pkgConfigPath += ':'
-						info.environmentVariables["PKG_CONFIG_PATH"] = pkgConfigPath + monoDevPkgConfigPath
-				else
-					# Presumably Linux or BSD...
-					info.environmentVariables["MONO_PATH"] = "/usr/lib/monodevelop/bin"
+			if CobraCore.isRunningOnMac
+				monoDevPkgConfigPath = '/Applications/MonoDevelop.app/Contents/MacOS/lib/pkgconfig'
+				pkgConfigPath = Environment.getEnvironmentVariable('PKG_CONFIG_PATH') ? ''
+				if monoDevPkgConfigPath not in pkgConfigPath
+					if pkgConfigPath <> '', pkgConfigPath += ':'
+					info.environmentVariables["PKG_CONFIG_PATH"] = pkgConfigPath + monoDevPkgConfigPath
 
 			if _verbosity >= 3
 				info.environmentVariables['MONO_LOG_LEVEL'] = "debug"

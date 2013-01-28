@@ -48,7 +48,7 @@ Requirements
 
 * MonoDevelop 3.0
 
-* Cobra svn:2870 post(0.9.3)
+* Cobra svn:2928 (post 0.9.3)
 
 Additional Requirements for Windows 64-bit
 --------------------------------------------

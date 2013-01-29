@@ -99,7 +99,7 @@
     <Compile Include="TypeSystem\Parser.cobra" />
     <Compile Include="TypeSystem\LineInformation.cobra" />
     <Compile Include="Completion\CobraCompletionTextEditorExtension.cobra" />
-    <Compile Include="TypeSystem\Visitor.cobra" />
+    <Compile Include="TypeSystem\CobraModuleVisitor.cobra" />
     <Compile Include="TypeSystem\ParsedCobraDocument.cobra" />
     <Compile Include="CompilerManager.cobra" />
   </ItemGroup>

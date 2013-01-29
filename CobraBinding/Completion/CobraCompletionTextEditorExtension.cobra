@@ -218,13 +218,6 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 		for extendedRegion, node in nodeMap
 			regionMap[node] = extendedRegion
 
-		# DEBUGGING
-		/#
-		for node, region in regionMap to !
-			trace node.getType.toString
-			trace region.toString
-		#/
-		__prevRegionMap[parsedDoc.fileName] = regionMap to !
 
 		if completionChar <> c' '
 			# do this so that the letter just typed is considered part of the word to complete
@@ -248,11 +241,6 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 
 			ids = _getIdsFromText(preceedingText)
 
-			/#
-			for id in ids
-				trace id
-			#/
-
 			if ids.count == 0
 				# return fields and methods in the context of the current class
 				for region in containingRegions
@@ -264,7 +252,6 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 				# return fields and methods for the corresponding node
 				try
 					node = _getNodeFromIds(ids, containingRegions, symbolTable)
-					#trace node.toString
 
 					if node inherits AbstractLocalVar
 						if node.type inherits Box
@@ -488,7 +475,6 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 			if found
 				# we found a node with this name, limit the rest of our search to this node
 				try
-					print correspondingNode
 					return _getNodeFromIds(ids[1:ids.count], correspondingNode)
 				catch
 					return correspondingNode to !

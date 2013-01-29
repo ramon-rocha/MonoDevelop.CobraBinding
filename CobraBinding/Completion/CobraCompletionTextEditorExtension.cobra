@@ -280,7 +280,6 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 					return completionData
 				catch ArgumentException
 					# not a valid identifier
-					#print "not a valid identifier"
 					return nil
 
 		# return unique completion data entries
@@ -466,25 +465,11 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 			pass
 
 		body
-			print ids
-		
-			#TODO: do this right
+			#TODO: still feels ugly...
 			correspondingNode as ISyntaxNode? = nil
 			idMap as Dictionary<of String, INamedNode>? = nil
 
 			for region in containingRegions
-				
-				/# DEBUGGING #/
-				/#
-				if .document <> nil and .document.parsedDocument <> nil
-					symbolTable as Dictionary<of DomRegion, Dictionary<of String, INamedNode>?>? = nil
-					if __prevSymbolTable.tryGetValue(.document.parsedDocument.fileName, out symbolTable)					
-						idMap as Dictionary<of String, INamedNode>? = nil
-						if symbolTable.tryGetValue(region, out idMap)
-							print region.toString
-							for id, namedNode in idMap
-								print "\tID = [id] : [namedNode.getType.toString] -> [namedNode.typeForIdentifier.getType.fullName]"
-				#/
 				
 				found = false
 
@@ -517,10 +502,7 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 
 		Throws an ArgumentException if no node is found.
 		"""
-		print ids
-		
 		if ids.count == 0
-			print parent
 			return parent
 		
 		if parent implements INamedNode
@@ -538,15 +520,6 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 									return _getNodeFromIds(ids[1:ids.count], nsMember to ISyntaxNode)
 								catch
 									return parent to ISyntaxNode
-							/#
-							for nsMember in useDirective.boundNameSpace.declsInOrder
-								print "comparing to [nsMember.name]..."
-								if nsMember.name == ids[0]
-									try
-										return _getNodeFromIds(ids[1:ids.count], nsMember)
-									catch
-										return parent to ISyntaxNode
-							#/
 		
 				m = t.memberForName(ids[0])
 				if m <> nil
@@ -554,27 +527,6 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 						return _getNodeFromIds(ids[1:ids.count], m to ISyntaxNode)
 					catch
 						return parent to ISyntaxNode
-					/#
-					for nsMember in t.declsInOrder
-						print "comparing to [nsMember.name]..."
-						if nsMember.name == ids[0]
-							try
-								return _getNodeFromIds(ids[1:ids.count], nsMember)
-							catch
-								return parent to ISyntaxNode
-					#/
-
-					
-					/#
-					for boxMember in t.allMembers
-						print "comparing to [boxMember.name]..."
-						if boxMember implements ISyntaxNode and boxMember.name == ids[0]
-							try
-								return _getNodeFromIds(ids[1:ids.count], boxMember to ISyntaxNode)
-							catch
-								return parent to ISyntaxNode
-					#/
-				
 			else
 				print "[parent.typeForIdentifier.name] does not implement IContainer"
 		

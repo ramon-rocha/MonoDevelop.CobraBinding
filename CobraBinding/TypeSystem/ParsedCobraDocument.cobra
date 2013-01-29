@@ -8,7 +8,7 @@ namespace MonoDevelop.CobraBinding.TypeSystem
 
 class ParsedCobraDocument inherits DefaultParsedDocument
 
-	test
+	test regionMap
 		doc = ParsedCobraDocument("test.cobra", "class Foo\n\tpass")
 		assert doc.regionMap == nil
 		doc.regionMap = Dictionary<of ISyntaxNode, DomRegion>()
@@ -17,8 +17,18 @@ class ParsedCobraDocument inherits DefaultParsedDocument
 		expect ArgumentNullException
 			doc.regionMap = nil
 
+	test symbolTable
+		doc = ParsedCobraDocument("test.cobra", "class Foo\n\tpass")
+		assert doc.symbolTable == nil
+		doc.symbolTable = Dictionary<of DomRegion, Dictionary<of String, INamedNode>>()
+		assert doc.symbolTable.count == 0
+
+		expect ArgumentNullException
+			doc.symbolTable = nil
+
 	var _content as String
 	var _regionMap as Dictionary<of ISyntaxNode, DomRegion>?
+	var _symbolTable as Dictionary<of DomRegion, Dictionary<of String, INamedNode>?>?
 
 	cue init(fileName as String, content as String)
 		base.init(fileName)
@@ -33,3 +43,11 @@ class ParsedCobraDocument inherits DefaultParsedDocument
 			if value == nil
 				throw ArgumentNullException()
 			_regionMap = value
+
+	pro symbolTable as Dictionary<of DomRegion, Dictionary<of String, INamedNode>?>?
+		get
+			return _symbolTable
+		set
+			if value == nil
+				throw ArgumentNullException()
+			_symbolTable = value

@@ -11,91 +11,124 @@ class Visitor inherits Cobra.Core.Visitor
 
 	The region of each declaration is added to a dictionary keyed by
 	the declaration itself (as an ISyntaxNode).
+
+	All identifiers and their types are stored in a symbol table
+	which is constructed using nested dictionaries.  The first
+	level is keyed by "scope" which is a DomRegion.  The second
+	level is keyed by the identifier name as a String.  The value
+	in the second level is the node corresponding to the identifier
+	declaration (as an INamedNode).
 	"""
 
+	var _fileName as String
 	var _regionMap as Dictionary<of ISyntaxNode, DomRegion>
+	var _symbolTable as Dictionary<of DomRegion, Dictionary<of String, INamedNode>?>
 
+	get fileName from var
 	get regionMap from var
+	get symbolTable from var
 
 	cue init
 		base.init
+		_fileName = ""
 		_regionMap = Dictionary<of ISyntaxNode, DomRegion>()
+		_symbolTable = Dictionary<of DomRegion, Dictionary<of String, INamedNode>?>()
 
 	def _addRegion(node as ISyntaxNode)
 		bl = node.token.lineNum
 		bc = node.token.colNum
 		el = node.endToken.lineNum
 		ec = node.endToken.colNum
-		region = DomRegion(node.token.fileName, bl, bc, el, ec)
+		region = DomRegion(_fileName, bl, bc, el, ec)
 		node.addOnValues["DomRegion"] = region
 		_regionMap[node] = region
+
+		if node implements INamedNode
+			if node implements IContainer
+				# this would be something like a Box or NameSpace and probably
+				# has stuff like fields, methods, or other Boxes in it
+				__addIdentifiers(node, region)
 				
-	
+			else if node inherits AbstractMethod
+				# this probably has local variables in it
+				__addIdentifiers(node, region)
+
+
+	def __addIdentifiers(parent as INamedNode, region as DomRegion)
+		"""
+		Should only be called by _addRegion
+		"""
+		if not _symbolTable.containsKey(region)
+			_symbolTable[region] = Dictionary<of String, INamedNode>()
+		
+		idMap = _symbolTable[region]
+		
+		print "PARENT = [parent.name] : [parent.getType]"
+		
+		if parent inherits NameSpace
+			for useDirective in parent.useDirectives
+				if useDirective.boundNameSpace <> nil
+					for nsMember in useDirective.boundNameSpace.declsInOrder
+						idMap[nsMember.name] = nsMember
+		
+			for nsMember in parent.declsInOrder
+				idMap[nsMember.name] = nsMember
+
+		else if parent inherits Box
+			for boxMember in parent.allMembers
+				idMap[boxMember.name] = boxMember
+
+		else if parent inherits AbstractMethod
+			for v in parent.locals
+				idMap[v.name] = v
+
+			for p in parent.params
+				idMap[p.name] = p
+				
+			print "ID_MAP = [idMap]"
+
+		else
+			print "Unkown IContainer: [parent.toString] for region [region.toString]"
+
+
 	get methodName as String is override
 		return "visit"
 		
+	def visit(m as CobraModule)
+		"""
+		This is the externally called "top-level" method.
+
+		You shouldn't re-use a Visitor instance on a different module
+		without manually clearing out the dictionaries first.
+		"""
+		_fileName = m.fileName
+		.visit(m.topNameSpace)
+		
+	def visit(ns as NameSpace)
+		_addRegion(ns)
+		.dispatch(ns.declsInOrder)
+		
+	def visit(b as Box)
+		_addRegion(b)
+		.dispatch(b.declsInOrder)
+
+	def visit(m as AbstractMethod)
+		_addRegion(m)
+		
+	def visit(p as Property)
+		if p.getPart <> nil
+			_addRegion(p.getPart to !)
+
+		if p.setPart <> nil
+			_addRegion(p.setPart to !)
+
 	def visit(n as INode)
 		"""
 		This is the generic "catch-all" method for nodes that don't
-		provide meaningul type information.
+		provide meaningful region/type information.
 		"""
 		pass
 		/#
 		if n implements INamedNode
 			print "***[n.name] : [n.getType.toString]"
 		#/
-		
-	def visit(m as CobraModule)
-		"""
-		This is the externally called "top-level" method.
-		"""
-		#print m.fileName
-		.visit(m.topNameSpace)
-		
-	def visit(ns as NameSpace)
-		#print ns.name
-		_addRegion(ns)
-		.dispatch(ns.declsInOrder)
-		
-	def visit(c as Class)
-		/#
-		print "\t[c.name] ([c.qualifiedName])"
-		baseClass = c.baseClass
-		while baseClass <> nil
-			print "inherits from [baseClass.name]"
-			baseClass = baseClass.baseClass
-		#/
-		_addRegion(c)
-		.dispatch(c.declsInOrder)
-
-	def visit(i as Interface)
-		#print "\t[i.name]"
-		_addRegion(i)
-
-	def visit(s as Struct)
-		_addRegion(s)
-
-	def visit(e as EnumDecl)
-		_addRegion(e)
-
-	def visit(e as Extension)
-		_addRegion(e)
-
-	def visit(m as Mixin)
-		_addRegion(m)
-		
-	def visit(m as AbstractMethod)
-		#print "\t\t[m.name] : [m.resultType.name]"
-		_addRegion(m)
-		
-	def visit(v as BoxVar)
-		#print "\t\t[v.name] : [v.type.name]"
-		pass
-		
-	def visit(c as BoxConst)
-		#print "\t\t[c.name] : [c.type.name]"
-		pass
-
-	def visit(p as Property)
-		#print "\t\t[p.name] : [p.returnType.name]"
-		pass

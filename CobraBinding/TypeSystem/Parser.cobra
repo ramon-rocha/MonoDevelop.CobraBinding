@@ -20,11 +20,14 @@ class Parser implements ITypeSystemParser, IFoldingParser
 	This parser also provides folds and underlines syntax errors.
 	"""
 	
+	shared
+		var __filesSeen = HashSet<of String>()
+	
 	const TYPICAL_LINE_COUNT = 512 # 4 kB
-		
+	
 	var _tabsToSpaces = false
 	var _indentToken = "\t"
-	
+		
 	def parse(storeAst as bool, fileName as String, content as TextReader,
 				project as MonoDevelop.Projects.Project?) as ParsedDocument
 		"""
@@ -38,6 +41,18 @@ class Parser implements ITypeSystemParser, IFoldingParser
 		
 		source = content.readToEnd
 		if source == nil, source = ""
+		
+		/#
+		HACK: Don't generate ASTs for files we've never seen before.
+		This improves project load time.  An AST will be generated
+		on the next parse request.
+		#/
+		lock __filesSeen
+			skip = __filesSeen.add(fileName)
+
+		if skip
+			# just add folds
+			return .parse(fileName, source) to ParsedCobraDocument
 
 		sourceMap = Dictionary<of String, String>()
 		sourceMap[fileName] = source to !
@@ -84,6 +99,7 @@ class Parser implements ITypeSystemParser, IFoldingParser
 
 		if visitor <> nil
 			parsedDoc.regionMap = visitor.regionMap
+			parsedDoc.symbolTable = visitor.symbolTable
 		
 		# underline errors
 		for err in compilerResults
@@ -92,7 +108,7 @@ class Parser implements ITypeSystemParser, IFoldingParser
 					parsedDoc.add(Error(ErrorType.Error, err.message, err.lineNum, err.colNum - 1))
 					
 				else if err inherits SourceException and err.fileName == fileName
-					parsedDoc.add(Error(ErrorType.Error, err.message, err.lineNum, err.colNum))
+					parsedDoc.add(Error(ErrorType.Error, err.message, err.lineNum, err.colNum - 1))
 					
 				else
 					trace err.toString

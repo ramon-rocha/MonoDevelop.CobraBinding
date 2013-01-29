@@ -24,7 +24,12 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 		It's used when the current document has parser errors.
 		The containing dictionary is keyed by the document filename.
 		#/
-		var __prevRegionMap = Dictionary<of String, Dictionary<of ISyntaxNode, DomRegion>>()
+		var __prevRegionMap = Dictionary<of String, _
+			Dictionary<of ISyntaxNode, DomRegion>>()
+
+		# likewise with the previous symbol table
+		var __prevSymbolTable = Dictionary<of String, _
+			Dictionary<of DomRegion, Dictionary<of String, INamedNode>?>?>()
 
 		# the various icons that show up next to completion entries
 		var iconKeyword = IconId("md-keyword")
@@ -186,6 +191,17 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 			# not enough information to provide completion
 			return nil
 
+		# get symbol table
+		symbolTable as Dictionary<of DomRegion, Dictionary<of String, INamedNode>?>? = nil
+		if parsedDoc.symbolTable <> nil
+			symbolTable = parsedDoc.symbolTable
+			__prevSymbolTable[parsedDoc.fileName] = symbolTable to !
+		else if __prevSymbolTable.containsKey(parsedDoc.fileName)
+			symbolTable = __prevSymbolTable[parsedDoc.fileName]
+
+		if symbolTable == nil
+			# not enough information to provide completion
+			return nil
 
 		# extend code regions to include blank lines and generate a reverse map
 		codeRegions = List<of DomRegion>()
@@ -194,6 +210,10 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 			extendedRegion = _extendRegion(region)
 			codeRegions.add(extendedRegion)
 			nodeMap[extendedRegion] = node
+			idMap as Dictionary<of String, INamedNode>? = nil
+			if symbolTable.tryGetValue(region, out idMap)
+				symbolTable.remove(region)
+				symbolTable[extendedRegion] = idMap
 
 		for extendedRegion, node in nodeMap
 			regionMap[node] = extendedRegion
@@ -243,12 +263,19 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 			else
 				# return fields and methods for the corresponding node
 				try
-					node = _getNodeFromIds(ids, containingRegions, nodeMap)
+					node = _getNodeFromIds(ids, containingRegions, symbolTable)
 					#trace node.toString
 
 					if node inherits AbstractLocalVar
 						if node.type inherits Box
 							completionData.addRange(_getBoxMemberCompletionData(node.type to Box))
+					else if node inherits NameSpace
+						completionData.addRange(_getNamespaceCompletionData(node))
+					else if node implements Cobra.Compiler.IMember
+						if node.resultType inherits Box
+							completionData.addRange(_getBoxMemberCompletionData(node.resultType to Box))
+					
+					print "should be displaying members for [node]"
 
 					return completionData
 				catch ArgumentException
@@ -408,60 +435,151 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 
 	def _getNodeFromIds(ids as List<of String>,
 						containingRegions as List<of DomRegion>,
-						nodeMap as Dictionary<of DomRegion, ISyntaxNode>) as ISyntaxNode
+						symbolTable as Dictionary<of DomRegion, Dictionary<of String, INamedNode>>) as ISyntaxNode
 		"""
-		Given a valid identifier, returns the corresponding syntax node in the AST.
+		Given a list of identifiers, returns the syntax node in the AST
+		corresponding to the last valid idenfiier.
 
 		Throws an ArgumentException if no node is found.
 		"""
 		require
 			ids.count > 0
 			containingRegions.count > 0
-			all for region in containingRegions get nodeMap.containsKey(region)
 
 		test singleIdentifier
 			# setup
 			ids = ['Object']
 			regions = [DomRegion(1,1)]
 			bogusNode = Class('Object', List<of Cobra.Compiler.IType>())
-			nodeMap = Dictionary<of DomRegion, ISyntaxNode>()
-			nodeMap[regions[0]] = bogusNode
+			symbolTable = Dictionary<of DomRegion, Dictionary<of String, INamedNode>>()
+			symbolTable[regions[0]] = Dictionary<of String, INamedNode>()
+			symbolTable[regions[0]]['Object'] = bogusNode
 
+			# the test
 			completionExtension = CobraCompletionTextEditorExtension()
-			assert completionExtension._getNodeFromIds(ids, regions, nodeMap) is bogusNode
+			assert completionExtension._getNodeFromIds(ids, regions, symbolTable) is bogusNode
+			
+		test multipleIdentifiers
+			#TODO
+			# setup
+			# the test
+			pass
 
 		body
+			print ids
+		
 			#TODO: do this right
-			parent as ISyntaxNode? = nil
+			correspondingNode as ISyntaxNode? = nil
+			idMap as Dictionary<of String, INamedNode>? = nil
 
 			for region in containingRegions
+				
+				/# DEBUGGING #/
+				/#
+				if .document <> nil and .document.parsedDocument <> nil
+					symbolTable as Dictionary<of DomRegion, Dictionary<of String, INamedNode>?>? = nil
+					if __prevSymbolTable.tryGetValue(.document.parsedDocument.fileName, out symbolTable)					
+						idMap as Dictionary<of String, INamedNode>? = nil
+						if symbolTable.tryGetValue(region, out idMap)
+							print region.toString
+							for id, namedNode in idMap
+								print "\tID = [id] : [namedNode.getType.toString] -> [namedNode.typeForIdentifier.getType.fullName]"
+				#/
+				
+				found = false
 
-				node = nodeMap[region]
-				if node inherits NamedNode
-					#trace node.name
-					#trace ids[0]
-					if node.name == ids[0]
-						parent = node
-						break
-					else if node inherits AbstractMethod
-						for v in node.locals
-							if v.name == ids[0]
-								return v
-
-						for p in node.params
-							if p.name == ids[0]
-								return p
-
-			if ids.count == 1
-				if parent <> nil
-					return parent
-				else
-					throw ArgumentException()
-
-			# TODO: follow the chain
-			for i in 1:ids.count
-				pass
+				if symbolTable.tryGetValue(region, out idMap)
+				
+					for id, node in idMap
+					
+						if id == ids[0]
+							correspondingNode = node to ISyntaxNode
+							found = true
+							break
+							
+					if found, break
+				if found, break
+			
+			if found
+				# we found a node with this name, limit the rest of our search to this node
+				try
+					print correspondingNode
+					return _getNodeFromIds(ids[1:ids.count], correspondingNode)
+				catch
+					return correspondingNode to !
+					
 			throw ArgumentException()
+			
+	def _getNodeFromIds(ids as List<of String>, parent as ISyntaxNode) as ISyntaxNode
+		"""
+		Given a list of identifiers, returns the syntax node in the AST
+		corresponding to the last valid idenfiier.
+
+		Throws an ArgumentException if no node is found.
+		"""
+		print ids
+		
+		if ids.count == 0
+			print parent
+			return parent
+		
+		if parent implements INamedNode
+		
+			if parent.typeForReceiver implements IContainer
+		
+				t = parent.typeForReceiver
+		
+				if t inherits NameSpace
+					for useDirective in t.useDirectives
+						if useDirective.boundNameSpace <> nil
+							nsMember = useDirective.boundNameSpace.memberForName(ids[0])
+							if nsMember <> nil
+								try
+									return _getNodeFromIds(ids[1:ids.count], nsMember to ISyntaxNode)
+								catch
+									return parent to ISyntaxNode
+							/#
+							for nsMember in useDirective.boundNameSpace.declsInOrder
+								print "comparing to [nsMember.name]..."
+								if nsMember.name == ids[0]
+									try
+										return _getNodeFromIds(ids[1:ids.count], nsMember)
+									catch
+										return parent to ISyntaxNode
+							#/
+		
+				m = t.memberForName(ids[0])
+				if m <> nil
+					try
+						return _getNodeFromIds(ids[1:ids.count], m to ISyntaxNode)
+					catch
+						return parent to ISyntaxNode
+					/#
+					for nsMember in t.declsInOrder
+						print "comparing to [nsMember.name]..."
+						if nsMember.name == ids[0]
+							try
+								return _getNodeFromIds(ids[1:ids.count], nsMember)
+							catch
+								return parent to ISyntaxNode
+					#/
+
+					
+					/#
+					for boxMember in t.allMembers
+						print "comparing to [boxMember.name]..."
+						if boxMember implements ISyntaxNode and boxMember.name == ids[0]
+							try
+								return _getNodeFromIds(ids[1:ids.count], boxMember to ISyntaxNode)
+							catch
+								return parent to ISyntaxNode
+					#/
+				
+			else
+				print "[parent.typeForIdentifier.name] does not implement IContainer"
+		
+		throw ArgumentException()
+				
 			
 	def _getTopLevelCompletionData(preceedingText as String, currText as String) as ICompletionDataList
 		"""
@@ -569,7 +687,7 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 								nsList.add(t.namespace)
 				catch ex as Exception
 					# failed to load assembly, just ignore it for now
-					trace ex.message
+					print ex.message
 		
 		dataList = CompletionDataList()
 		

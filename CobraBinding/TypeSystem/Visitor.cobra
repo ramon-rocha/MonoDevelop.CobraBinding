@@ -4,7 +4,7 @@ use ICSharpCode.NRefactory.TypeSystem
 
 namespace MonoDevelop.CobraBinding.TypeSystem
 
-class Visitor inherits Cobra.Core.Visitor
+class CobraModuleVisitor inherits Cobra.Core.Visitor
 	"""
 	This class visits every declaration in every namespace in the
 	given CobraModule.
@@ -98,8 +98,9 @@ class Visitor inherits Cobra.Core.Visitor
 		"""
 		This is the externally called "top-level" method.
 
-		You shouldn't re-use a Visitor instance on a different module
-		without manually clearing out the dictionaries first.
+		You shouldn't re-use a CobraModuleVisitor instance on
+		a different module without manually clearing out the
+		dictionaries first.
 		"""
 		_fileName = m.fileName
 		.visit(m.topNameSpace)

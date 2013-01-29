@@ -37,7 +37,7 @@ class Parser implements ITypeSystemParser, IFoldingParser
 		Stores the resultant AST in the ParsedDocument when storeAst is true.
 		"""
 		module as CobraModule? = nil
-		visitor as MonoDevelop.CobraBinding.TypeSystem.Visitor? = nil
+		visitor as CobraModuleVisitor? = nil
 		
 		source = content.readToEnd
 		if source == nil, source = ""
@@ -91,7 +91,7 @@ class Parser implements ITypeSystemParser, IFoldingParser
 
 		if module <> nil
 			# create type and region maps
-			visitor = MonoDevelop.CobraBinding.TypeSystem.Visitor()
+			visitor = CobraModuleVisitor()
 			visitor.visit(module)
 		
 		# add folds

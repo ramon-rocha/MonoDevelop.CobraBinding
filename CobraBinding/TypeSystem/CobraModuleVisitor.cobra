@@ -63,7 +63,7 @@ class CobraModuleVisitor inherits Cobra.Core.Visitor
 		
 		idMap = _symbolTable[region]
 		
-		print "PARENT = [parent.name] : [parent.getType]"
+		#print "PARENT = [parent.name] : [parent.getType]"
 		
 		if parent inherits NameSpace
 			for useDirective in parent.useDirectives
@@ -85,7 +85,7 @@ class CobraModuleVisitor inherits Cobra.Core.Visitor
 			for p in parent.params
 				idMap[p.name] = p
 				
-			print "ID_MAP = [idMap]"
+			#print "ID_MAP = [idMap]"
 
 		else
 			print "Unkown IContainer: [parent.toString] for region [region.toString]"

@@ -58,6 +58,9 @@ class Parser implements ITypeSystemParser, IFoldingParser
 		sourceMap[fileName] = source to !
 		
 		refs = List<of String>()
+		
+		# workaround an issue with some types from .NET 4 on Mono such as HashSet<of T>
+		refs.add("System.Core")
 
 		if project <> nil
 			proj = project to DotNetProject #TODO to CobraProject
@@ -111,7 +114,7 @@ class Parser implements ITypeSystemParser, IFoldingParser
 					parsedDoc.add(Error(ErrorType.Error, err.message, err.lineNum, err.colNum - 1))
 					
 				else
-					trace err.toString
+					print err.toString
 		
 		if storeAst
 			parsedDoc.ast = module

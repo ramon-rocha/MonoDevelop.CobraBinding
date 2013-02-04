@@ -84,110 +84,302 @@ class CompilerManager
 		
 		TODO: Split out the psuedo-phases into functions
 		"""
-		results = List<of dynamic>()
 		
-		if sourceMap.count == 0
-			# nothing to do
-			return results
-		
-		lock _theConch
-			compiler = __createCompiler
-			compiler.options['reference'] = refs
+		test validFiles
+			# Valid files produce fully bound ASTs without any errors.
 			
-			# BindRunTimeLibraryPhase
-			compiler.addRunTimeRef(compiler.options)
+			refs = List<of String>()
+			cm = CompilerManager.instance
+			testData = __readTestData("no_errors")
+			astCount = 0
+
+			for filePath, code in testData
+				# process each file individually
+				sourceMap = Dictionary<of String, String>()
+				sourceMap[filePath] = code
+				results = cm.parseAndBind(sourceMap, refs, filePath)
+				assert results.count > 0
+
+				for r in results
+					assert not r inherits SourceException
+					assert r inherits Module
+
+					if r inherits CobraModule
+						# validate the AST
+						astCount += 1
+						ast as CobraModule = r
+						assert ast.didBindImp
+
+						name =  FileInfo(filePath).name
+						branch name
+							on "Point.cobra"
+								pointClass = ast.topNameSpace.memberForName("Point") to Class
+								assert pointClass.memberForName("toString")
+								assert pointClass.memberForName("getHashCode")
+								assert pointClass.name == "Point"
+								assert pointClass.typeForReceiver is pointClass
+								assert pointClass.testMethods.count == 1
+								p = pointClass.memberForName("x")
+								assert p.getType == Property
+								assert p.typeForReceiver inherits IntType
+								m = pointClass.memberForName("movedBy")
+								assert m.getType == Method
+								assert m.typeForReceiver is pointClass
+
+							on "Shapes.cobra"
+								assert ast.topNameSpace.memberForName("Shape")
+								assert ast.topNameSpace.memberForName("Rectangle")
+								assert ast.topNameSpace.memberForName("Circle")
+								assert ast.topNameSpace.memberForName("Program")
+
+							on "FractalBenchmark.cobra"
+								prog = ast.topNameSpace.memberForName("Program") to Class
+								assert prog.memberForName("bailOut")
+								assert prog.memberForName("maxIterations")
+								assert prog.memberForName("mandelbrot")
+								assert prog.memberForName("calc")
+								assert prog.memberForName("main")
+
+							else
+								# unhandled file, a case should be added for it
+								print "******* You need to add a test case for [name]!"
+								assert false
+
+			assert testData.count == astCount
+				
+		test parseErrors
+			# Files with parse errors do not provide an AST.
 			
-			# ReadLibrariesPhase
-			compiler.readSystemTypes
-			compiler.readAssemblyTypes(compiler.options)
-			
-			# ParsePhase
-			parser = __createParser(compiler)
-			
-			# parse the source files to generate our preliminary AST
-			for fileName, sourceCode in sourceMap
-				try
-					m = parser.parseSource(fileName, sourceCode)
-					compiler.modules.add(m)
+			refs = List<of String>()
+			cm = CompilerManager.instance
+			testData = __readTestData("parser_errors")
+			errorCount = 0
+
+			for filePath, code in testData
+				# process each file individually
+				sourceMap = Dictionary<of String, String>()
+				sourceMap[filePath] = code
+				results = cm.parseAndBind(sourceMap, refs, filePath)
+				assert results.count > 0
+
+				for r in results
+					if r inherits Module, continue # ignore modules for libraries
 					
-				catch ex as SourceException
-					results.add(ex)
+					assert r inherits ParserException
+
+					ex as ParserException = r
+					errorCount += 1
+					
+					name =  FileInfo(filePath).name
+					branch name
+						on "ExpectingEol.cobra"
+							assert ex.lineNum == 3
+							assert ex.colNum == 1
+							assert ex.message == 'Expecting EOL, but got "var" instead.'
+
+						on "ExpectingExpression.cobra"
+							assert ex.lineNum == 5
+							assert ex.colNum == 12
+							assert ex.message == "Expecting an expression."
+
+						on "ExpectingIndent.cobra"
+							assert ex.lineNum == 3
+							assert ex.colNum == 15
+							assert ex.message == 'Expecting INDENT, but got "DEDENT" instead.'
+							
+						on "MissingMethodBody.cobra"
+							assert ex.lineNum == 2
+							assert ex.colNum == 16
+							assert ex.message == 'Missing method body for "someMethod".'
+							
+						on "UnexpectedIndent.cobra"
+							assert ex.lineNum == 2
+							assert ex.colNum == 1
+							assert ex.message == 'Unexpected indent.'
+
+						else
+							# unhandled file, a case should be added for it
+							print "******* You need to add a test case for [name]!"
+							assert false
+
+			assert testData.count == errorCount
+
+		test bindErrors
+			# Files with binding errors still provide an AST.
 			
-			if compiler.errors.count == 0
-				# BindUsePhase
-				i = 0
-				while i < compiler.modules.count  # new modules can be added, say by the UseDirective
-					compiler.curModule = compiler.modules[i]
+			refs = List<of String>()
+			cm = CompilerManager.instance
+			testData = __readTestData("binding_errors")
+			astCount = 0
+			errorCount = 0
+
+			for filePath, code in testData
+				# process each file individually
+				sourceMap = Dictionary<of String, String>()
+				sourceMap[filePath] = code
+				results = cm.parseAndBind(sourceMap, refs, filePath)
+				assert results.count > 0
+
+				for r in results
+					if r inherits CobraModule or r inherits SourceException
+					
+						name = FileInfo(r.fileName).name
+					
+						if r inherits SourceException
+							errorCount += 1
+							
+							branch name
+								on "CannotFindType.cobra"
+									assert r.lineNum == 3
+									assert r.colNum > 0 # binding errors don't provide a column number
+									assert r.message == 'Cannot find "Fake".'
+									
+								on "NilError.cobra"
+									assert r.lineNum == 5
+									assert r.colNum > 0
+									assert r.message == 'Cannot return String? because "method" is declared to return a String.'
+									
+								on "TypeMismatch.cobra"
+									assert r.lineNum == 4
+									assert r.colNum > 0
+									assert r.message == 'Incompatible types. Cannot assign value of type int on the right to String on the left.'
+									
+								else
+									# unhandled file, a case should be added for it
+									print "******* You need to add a test case for [name]!"
+									assert false
+						
+						else if r inherits CobraModule
+							astCount += 1
+							
+							branch name
+								on "CannotFindType.cobra"
+									c = r.topNameSpace.memberForName("CannotFindType") to Class
+									assert c.memberForName("method")
+									
+								on "NilError.cobra"
+									c = r.topNameSpace.memberForName("NilError") to Class
+									assert c.memberForName("a")
+									assert c.memberForName("method")
+									
+								on "TypeMismatch.cobra"
+									c = r.topNameSpace.memberForName("TypeMismatch") to Class
+									assert c.memberForName("method")
+									
+								else
+									# unhandled file, a case should be added for it
+									print "******* You need to add a test case for [name]!"
+									assert false
+					
+			assert testData.count == astCount
+			# TODO: assert astCount == errorCount
+			# Well how do you like that?  I've been missing binding errors this whole time...+1 for tests...
+
+		body
+			results = List<of dynamic>()
+			
+			if sourceMap.count == 0
+				# nothing to do
+				return results
+			
+			lock _theConch
+				compiler = __createCompiler
+				compiler.options['reference'] = refs
+				
+				# BindRunTimeLibraryPhase
+				compiler.addRunTimeRef(compiler.options)
+				
+				# ReadLibrariesPhase
+				compiler.readSystemTypes
+				compiler.readAssemblyTypes(compiler.options)
+				
+				# ParsePhase
+				parser = __createParser(compiler)
+				
+				# parse the source files to generate our preliminary AST
+				for fileName, sourceCode in sourceMap
 					try
-						compiler.curModule.bindUse
+						m = parser.parseSource(fileName, sourceCode)
+						compiler.modules.add(m)
+						
 					catch ex as SourceException
 						results.add(ex)
-						compiler.recordError(ex)
-					i += 1
-			
-			if compiler.errors.count == 0
-				# BindInheritancePhase
-				for basicType in compiler.basicTypes
-					basicType.bindInh
-					compiler.objectType.bindInh
-					compiler.stringType.bindInh
-					compiler.dynamicType.bindInh
-					compiler.passThroughType.bindInh
-					compiler.voidType.bindInh
+				
+				if compiler.errors.count == 0
+					# BindUsePhase
+					i = 0
+					while i < compiler.modules.count  # new modules can be added, say by the UseDirective
+						compiler.curModule = compiler.modules[i]
+						try
+							compiler.curModule.bindUse
+						catch ex as SourceException
+							results.add(ex)
+							compiler.recordError(ex)
+						i += 1
+				
+				if compiler.errors.count == 0
+					# BindInheritancePhase
+					for basicType in compiler.basicTypes
+						basicType.bindInh
+						compiler.objectType.bindInh
+						compiler.stringType.bindInh
+						compiler.dynamicType.bindInh
+						compiler.passThroughType.bindInh
+						compiler.voidType.bindInh
+						for mod in compiler.modules.clone
+							if mod.fileName == fileToBind
+								compiler.curModule = mod
+								try
+									mod.bindInh
+								catch ex as SourceException
+									results.add(ex)
+									compiler.recordError(ex)
+
+				if compiler.errors.count == 0
+					# BindInterfacePhase
+					compiler.fixMemberSigs
+					for basicType in compiler.basicTypes
+						basicType.bindInt
+					compiler.objectType.bindInt
+					compiler.stringType.bindInt
+					compiler.dynamicType.bindInt
+					compiler.passThroughType.bindInt
+					compiler.voidType.bindInt
+					for mod in compiler.modules.clone
+						compiler.curModule = mod
+						try
+							mod.bindInt
+						catch ex as SourceException
+							results.add(ex)
+							compiler.recordError(ex)
+				
+				if compiler.errors.count == 0
+					# ComputeMatchingBaseMembersPhase
+					for mod in compiler.modules
+						compiler.curModule = mod
+						try
+							mod.computeMatchingBaseMembers
+						catch ex as SourceException
+							results.add(ex)
+							compiler.recordError(ex)
+				
+				if compiler.errors.count == 0
+					# BindImplementationPhase
 					for mod in compiler.modules.clone
 						if mod.fileName == fileToBind
 							compiler.curModule = mod
 							try
-								mod.bindInh
+								mod.bindImp
 							catch ex as SourceException
 								results.add(ex)
 								compiler.recordError(ex)
+							catch
+								print "[fileToBind] triggers a compiler bug"
 
-			if compiler.errors.count == 0
-				# BindInterfacePhase
-				compiler.fixMemberSigs
-				for basicType in compiler.basicTypes
-					basicType.bindInt
-				compiler.objectType.bindInt
-				compiler.stringType.bindInt
-				compiler.dynamicType.bindInt
-				compiler.passThroughType.bindInt
-				compiler.voidType.bindInt
-				for mod in compiler.modules.clone
-					compiler.curModule = mod
-					try
-						mod.bindInt
-					catch ex as SourceException
-						results.add(ex)
-						compiler.recordError(ex)
-			
-			if compiler.errors.count == 0
-				# ComputeMatchingBaseMembersPhase
-				for mod in compiler.modules
-					compiler.curModule = mod
-					try
-						mod.computeMatchingBaseMembers
-					catch ex as SourceException
-						results.add(ex)
-						compiler.recordError(ex)
-			
-			if compiler.errors.count == 0
-				# BindImplementationPhase
-				for mod in compiler.modules.clone
-					if mod.fileName == fileToBind
-						compiler.curModule = mod
-						try
-							mod.bindImp
-						catch ex as SourceException
-							results.add(ex)
-							compiler.recordError(ex)
-						catch wtf as Exception
-							print "[fileToBind] triggers a compiler bug"
-
-			for module in compiler.modules
-				results.add(module)
-			
-		return results
+				for module in compiler.modules
+					results.add(module)
+				
+			return results
 
 	def parse(fileName as String, source as String) as dynamic
 		"""
@@ -228,3 +420,25 @@ class CompilerManager
 					return parser.parseSource(fileName, source)
 				catch ex as ParserException
 					return ex
+
+
+	shared
+		def __readTestData(folder as String) as Dictionary<of String, String>
+			"""
+			This function is only for supporting test methods.  The 'folder'
+			parameter should exist under '../../test_data'.
+			"""
+			s = Path.directorySeparatorChar
+			testDir = "..[s]..[s]test_data[s][folder]"
+			assert Directory.exists(testDir)
+
+			sourceMap = Dictionary<of String, String>()
+
+			files = Directory.getFiles(testDir)
+			for filePath in files
+				reader = StreamReader(filePath)
+				code = reader.readToEnd ? ""
+
+				sourceMap[filePath] = code
+
+			return sourceMap

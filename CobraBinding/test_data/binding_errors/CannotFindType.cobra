@@ -1,0 +1,3 @@
+class CannotFindType
+	def method
+		print Fake().toString

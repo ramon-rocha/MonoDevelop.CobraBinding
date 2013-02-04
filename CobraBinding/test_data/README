@@ -1,0 +1,3 @@
+These files are not part of the addin and are not included in the compiled
+assemblies. They are used as sample input to generate (or fail to generate)
+abstract syntax trees with a known structure for testing purposes.

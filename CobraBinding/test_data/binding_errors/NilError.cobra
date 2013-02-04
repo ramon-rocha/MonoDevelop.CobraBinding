@@ -1,0 +1,5 @@
+class NilError
+	var a as String?
+
+	def method as String
+		return .a

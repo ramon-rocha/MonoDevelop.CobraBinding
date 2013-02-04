@@ -1,0 +1,3 @@
+class UnusedVar
+	def method
+		a = 1

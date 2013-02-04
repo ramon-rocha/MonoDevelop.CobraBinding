@@ -1,0 +1,5 @@
+class ExpectingExpression
+	var l = List<of String>()
+
+	def method as int
+		return i.

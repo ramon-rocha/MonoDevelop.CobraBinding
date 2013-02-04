@@ -1,0 +1,5 @@
+class TypeMismatch
+	def method
+		a = 1
+		b as String = a
+		print b

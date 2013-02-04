@@ -1,0 +1,3 @@
+class ExpectingIndent
+	def method
+		for i in 10

@@ -1,0 +1,5 @@
+class AlwaysOfType
+	def method as bool
+		l = List<of String>()
+		if l implements IList<of String>
+			return true

@@ -426,7 +426,8 @@ class CompilerManager
 		def __readTestData(folder as String) as Dictionary<of String, String>
 			"""
 			This function is only for supporting test methods.  The 'folder'
-			parameter should exist under '../../test_data'.
+			parameter should exist under '../../test_data' which is relative
+			to the location of the 'scripts/refs' path under 'CobraBinding'.
 			"""
 			s = Path.directorySeparatorChar
 			testDir = "..[s]..[s]test_data[s][folder]"

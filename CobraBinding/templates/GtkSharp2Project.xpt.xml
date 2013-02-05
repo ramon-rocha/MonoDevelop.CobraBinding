@@ -3,7 +3,7 @@
 <Template
 	originator = "Ramón Rocha"
 	created = "07/31/2012"
-	lastModified = "07/31/2012">
+	lastModified = "02/05/2013">
 
 	<!-- Template Header -->
 	<TemplateConfiguration>
@@ -30,6 +30,8 @@
 
 			<References>
 				<References type="Package" SpecificVersion="false" refto="gtk-sharp, Version=2.4.0.0, Culture=neutral, PublicKeyToken=35e10195dab3c99f" />
+				<References type="Package" SpecificVersion="false" refto="glib-sharp, Version=2.12.0.0, Culture=neutral, PublicKeyToken=35e10195dab3c99f" />
+				<References type="Package" SpecificVersion="false" refto="atk-sharp, Version=2.12.0.0, Culture=neutral, PublicKeyToken=35e10195dab3c99f" />
 			</References>
 
 			<Files>

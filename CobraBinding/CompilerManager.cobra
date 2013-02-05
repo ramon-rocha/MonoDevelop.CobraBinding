@@ -231,17 +231,17 @@ class CompilerManager
 							branch name
 								on "CannotFindType.cobra"
 									assert r.lineNum == 3
-									assert r.colNum > 0 # binding errors don't provide a column number
+									assert r.colNum == 0 # binding errors don't provide a column number
 									assert r.message == 'Cannot find "Fake".'
 									
 								on "NilError.cobra"
 									assert r.lineNum == 5
-									assert r.colNum > 0
+									assert r.colNum == 0
 									assert r.message == 'Cannot return String? because "method" is declared to return a String.'
 									
 								on "TypeMismatch.cobra"
 									assert r.lineNum == 4
-									assert r.colNum > 0
+									assert r.colNum == 0
 									assert r.message == 'Incompatible types. Cannot assign value of type int on the right to String on the left.'
 									
 								else
@@ -272,8 +272,7 @@ class CompilerManager
 									assert false
 					
 			assert testData.count == astCount
-			# TODO: assert astCount == errorCount
-			# Well how do you like that?  I've been missing binding errors this whole time...+1 for tests...
+			assert astCount == errorCount
 
 		body
 			results = List<of dynamic>()
@@ -312,6 +311,8 @@ class CompilerManager
 						compiler.curModule = compiler.modules[i]
 						try
 							compiler.curModule.bindUse
+							for err in compiler.errors
+								results.add(err)
 						catch ex as SourceException
 							results.add(ex)
 							compiler.recordError(ex)
@@ -321,19 +322,20 @@ class CompilerManager
 					# BindInheritancePhase
 					for basicType in compiler.basicTypes
 						basicType.bindInh
-						compiler.objectType.bindInh
-						compiler.stringType.bindInh
-						compiler.dynamicType.bindInh
-						compiler.passThroughType.bindInh
-						compiler.voidType.bindInh
-						for mod in compiler.modules.clone
-							if mod.fileName == fileToBind
-								compiler.curModule = mod
-								try
-									mod.bindInh
-								catch ex as SourceException
-									results.add(ex)
-									compiler.recordError(ex)
+					compiler.objectType.bindInh
+					compiler.stringType.bindInh
+					compiler.dynamicType.bindInh
+					compiler.passThroughType.bindInh
+					compiler.voidType.bindInh
+					for mod in compiler.modules.clone
+						compiler.curModule = mod
+						try
+							mod.bindInh
+							for err in compiler.errors
+								results.add(err)
+						catch ex as SourceException
+							results.add(ex)
+							compiler.recordError(ex)
 
 				if compiler.errors.count == 0
 					# BindInterfacePhase
@@ -349,6 +351,8 @@ class CompilerManager
 						compiler.curModule = mod
 						try
 							mod.bindInt
+							for err in compiler.errors
+								results.add(err)
 						catch ex as SourceException
 							results.add(ex)
 							compiler.recordError(ex)
@@ -359,6 +363,8 @@ class CompilerManager
 						compiler.curModule = mod
 						try
 							mod.computeMatchingBaseMembers
+							for err in compiler.errors
+								results.add(err)
 						catch ex as SourceException
 							results.add(ex)
 							compiler.recordError(ex)
@@ -370,6 +376,8 @@ class CompilerManager
 							compiler.curModule = mod
 							try
 								mod.bindImp
+								for err in compiler.errors
+									results.add(err)
 							catch ex as SourceException
 								results.add(ex)
 								compiler.recordError(ex)

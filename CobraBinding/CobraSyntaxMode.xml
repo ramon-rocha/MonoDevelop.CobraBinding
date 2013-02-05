@@ -98,7 +98,14 @@
 	</Span>
 	
 	<!-- Generics -->
-	<Span color="keyword.parameter" tagColor="keyword.type">
+	<Rule name="Generic">
+		<Span color="keyword.parameter" tagColor="keyword.type" rule="Generic">
+			<Begin>&lt;of </Begin>
+			<End>&gt;</End>
+		</Span>
+	</Rule>
+	
+	<Span color="keyword.parameter" tagColor="keyword.type" rule="Generic">
 		<Begin>&lt;of </Begin>
 		<End>&gt;</End>
 	</Span>

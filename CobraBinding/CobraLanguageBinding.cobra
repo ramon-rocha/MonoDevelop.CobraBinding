@@ -80,28 +80,74 @@ namespace MonoDevelop.CobraBinding
 				# references (add each one only once)
 				refs = HashSet<of String>()
 				pkgs = HashSet<of String>()
-				
-				/#
-				Workaround an issue where some System.Core types from .NET 4.0 cannot
-				be resolved without an explicit reference.  The irony is that HashSet
-				is one of those that cannot be resolved :)
-				
-				This issue seems to only exist on Mono. We shouldn't check to see if
-				we should only include this workaround on non-Windows systems because
-				you can also use the Mono runtime on Windows.
-				#/								
-				refs.add("System.Core")
-				argsBuilder.append(" -ref:System.Core")
+				referencedSysCore = false
+				slash = Path.directorySeparatorChar
+
+				libPaths = List<of String>()
+				sysAsmService = MonoDevelop.Core.Runtime.systemAssemblyService
+				runTime as Assemblies.TargetRuntime = sysAsmService.defaultRuntime to !
+				if configuration.parentItem <> nil
+					proj = configuration.parentItem to !
+					runTime = proj.targetRuntime to !
 
 				for projRef in items.getAll<of ProjectReference>
 					branch projRef.referenceType
 						on ReferenceType.Package
-							if pkgs.add(projRef.package.name)
-								argsBuilder.append(' -pkg:"[projRef.package.name]"')
+						
+							pkg = projRef.package
+						
+							if _isWindows
+								/#
+								The '-pkg' option isn't available on Windows. We need
+								to explicitly specify all the referenced assemblies and
+								their dependencies.
+								#/
+								for fileName in projRef.getReferencedFileNames(configSelector)
+									if refs.add(fileName)
+										argsBuilder.append(' -ref:"[fileName]"')
+										if not referencedSysCore
+											referencedSysCore = fileName.endsWith("[slash]System.Core.dll")
+											
+								if pkg.gacRoot and not libPaths.contains(pkg.gacRoot)
+									libPaths.add(pkg.gacRoot)
+									
+								if pkg.requires
+									for requiredPkg in pkg.requires.split(' ')
+										rpkg = runTime.assemblyContext.getPackage(requiredPkg)
+										if not rpkg, continue
+										for asm in rpkg.assemblies
+											if refs.add(asm.location)
+												argsBuilder.append(' -ref:"[asm.location]"')
+												if not referencedSysCore
+													referencedSysCore = asm.location.endsWith("[slash]System.Core.dll")
+							else
+								# when not on Windows, we can use the -pkg option directly
+								if pkgs.add(pkg.name)
+									argsBuilder.append(' -pkg:"[pkg.name]"')
 						else
+							# this is either a direct assembly reference or a project reference
 							for fileName in projRef.getReferencedFileNames(configSelector)
 								if refs.add(fileName)
 									argsBuilder.append(' -ref:"[fileName]"')
+									if not referencedSysCore
+										referencedSysCore = fileName.endsWith("[slash]System.Core.dll")
+				
+				if not referencedSysCore
+					/#
+					Workaround an issue where some System.Core types from .NET 4.0 cannot
+					be resolved without an explicit reference.  So, if we haven't already
+					added an explicit reference, add one now.
+					
+					This issue seems to only exist on Mono. We shouldn't check to see if
+					we should only include this workaround on non-Windows systems because
+					you can also use the Mono runtime on Windows.
+					#/
+					refs.add("System.Core")
+					argsBuilder.append(" -ref:System.Core")
+				
+				if libPaths.count > 0
+					for libPath in libPaths
+						argsBuilder.append(' -lib:"[libPath]"')
 
 				# what kind of assembly will we generate?
 				argsBuilder.append(_targetArgs[configuration.compileTarget])

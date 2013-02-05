@@ -29,7 +29,7 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 
 		# likewise with the previous symbol table
 		var __prevSymbolTable = Dictionary<of String, _
-			Dictionary<of DomRegion, Dictionary<of String, INamedNode>?>?>()
+			Dictionary<of DomRegion, Dictionary<of String, INamedNode>?>>()
 
 		# the various icons that show up next to completion entries
 		var iconKeyword = IconId("md-keyword")
@@ -144,94 +144,134 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 			c"'",
 		]
 		#' TODO: handle the case above in CobraSyntaMode.xml
+	
+	
+	get regionMap as Dictionary<of ISyntaxNode, DomRegion>
+		"""
+		Return code regions from last valid AST.
+		Values are keyed by the declaring syntax node.
+		"""
+		require
+			.document <> nil
+			.document.parsedDocument <> nil
+			.document.parsedDocument inherits ParsedCobraDocument
+		body
+			parsedDoc = .document.parsedDocument to ParsedCobraDocument
+			
+			map = parsedDoc.regionMap
+			
+			if map <> nil
+				# save this for next time
+				__prevRegionMap[parsedDoc.fileName] = map
+				return map
+				
+			else if __prevRegionMap.containsKey(parsedDoc.fileName)
+				# current parsed document has errors
+				return __prevRegionMap[parsedDoc.fileName]
+			
+			# just return an empty dictionary
+			return Dictionary<of ISyntaxNode, DomRegion>()
+	
+	
+	get symbolTable as Dictionary<of DomRegion, Dictionary<of String, INamedNode>?>
+		"""
+		Return the symbol table from last valid AST.
+		Values are nilable dictionaries mapping identifiers	to
+		their corresponding nodes and are keyed by code region.
+		"""
+		require
+			.document <> nil
+			.document.parsedDocument <> nil
+			.document.parsedDocument inherits ParsedCobraDocument
+		body
+			parsedDoc = .document.parsedDocument to ParsedCobraDocument
+			
+			table = parsedDoc.symbolTable
+			
+			if table <> nil
+				# save this for next time
+				__prevSymbolTable[parsedDoc.fileName] = table
+				return table
+				
+			else if __prevSymbolTable.containsKey(parsedDoc.fileName)
+				# current parsed document has errors
+				return __prevSymbolTable[parsedDoc.fileName]
+			
+			# just return an empty dictionary
+			return Dictionary<of DomRegion, Dictionary<of String, INamedNode>?>()
+	
+	
+	def _canHandleCodeCompletion(context as CodeCompletionContext?, completionChar as char) as bool
+		"""
+		Returns true if the extension is able to provide completion results in the given
+		context for the given completion character or false otherwise.
+		"""
+		if completionChar in .charsToIgnore
+			return false
+			
+		# .document is a MonoDevelop.Ide.Gui.Document
+		# .document.parsedDocument is a MonoDevelop.CobraBinding.TypeSystem.ParsedCobraDocument
+		if context == nil _
+		or .document == nil _
+		or .document.parsedDocument == nil _
+		or .editor == nil
+			return false
+
+		# .editor.document is a Mono.TextEditor.Document
+		textDoc = .editor.document
+		line = context.triggerLine
+		lineText = textDoc.getLineText(line)
+		if String.isNullOrEmpty(lineText), lineText = ""
 		
+		if _isInsideComment(line, context.triggerLineOffset, lineText to !)
+			return false
+			
+		parsedDoc = .document.parsedDocument to ParsedCobraDocument
+		if parsedDoc.regionMap == nil and not __prevRegionMap.containsKey(parsedDoc.fileName)
+			return false
+			
+		if parsedDoc.symbolTable == nil and not __prevSymbolTable.containsKey(parsedDoc.fileName)
+			return false
+	
+		return true
+	
 	def handleCodeCompletion(context as CodeCompletionContext?, completionChar as char,
 							triggerWordLength as inout int) as ICompletionDataList? is override
 		"""
 		This method is called indirectly by .keyPress or when the user hits Ctrl+Space.
 		"""
 
-		if completionChar in .charsToIgnore
+		if not _canHandleCodeCompletion(context, completionChar)
+			# not enough information to provide completion results
 			return nil
 
 		if completionChar == c'('
 			#TODO handle parameter completion
 			return nil
+		
+		# get code regions and symbol table from last valid AST
+		regionMap = .regionMap
+		symbolTable = .symbolTable
+		
+		# extend code regions to include blank lines
+		_extendRegions(regionMap, symbolTable)
+		
+		# generate a reverse map (regions to nodes)
+		nodeMap = _createNodeMap(regionMap)
 
-		/#
-		.document is a MonoDevelop.Ide.Gui.Document
-		.document.editor.document is a Mono.TextEditor.Document
-		.document.parsedDocument is a MonoDevelop.CobraBinding.TypeSystem.ParsedCobraDocument
-		#/
-		if context == nil or .document == nil or .document.parsedDocument == nil
-			# not enough information to be able to provide completion results
-			return nil
 
 		line = context.triggerLine
 		col = context.triggerLineOffset
-
-		textDoc = .document.editor.document
-		lineText = textDoc.getLineText(line)
-		if String.isNullOrEmpty(lineText), lineText = ""
-
-		parsedDoc = .document.parsedDocument to ParsedCobraDocument
-
-		if _isInsideComment(line, col, lineText to !)
-			return nil
-
-		# get code regions from last valid parse tree
-		regionMap as Dictionary<of ISyntaxNode, DomRegion>? = nil
-		if parsedDoc.regionMap <> nil
-			regionMap = parsedDoc.regionMap
-			__prevRegionMap[parsedDoc.fileName] = regionMap to !
-		else if __prevRegionMap.containsKey(parsedDoc.fileName)
-			regionMap = __prevRegionMap[parsedDoc.fileName]
-
-		if regionMap == nil
-			# not enough information to provide completion
-			return nil
-
-		# get symbol table
-		symbolTable as Dictionary<of DomRegion, Dictionary<of String, INamedNode>?>? = nil
-		if parsedDoc.symbolTable <> nil
-			symbolTable = parsedDoc.symbolTable
-			__prevSymbolTable[parsedDoc.fileName] = symbolTable to !
-		else if __prevSymbolTable.containsKey(parsedDoc.fileName)
-			symbolTable = __prevSymbolTable[parsedDoc.fileName]
-
-		if symbolTable == nil
-			# not enough information to provide completion
-			return nil
-
-		# extend code regions to include blank lines and generate a reverse map
-		codeRegions = List<of DomRegion>()
-		nodeMap = Dictionary<of DomRegion, ISyntaxNode>()
-		for node, region in regionMap to !
-			extendedRegion = _extendRegion(region)
-			codeRegions.add(extendedRegion)
-			nodeMap[extendedRegion] = node
-			idMap as Dictionary<of String, INamedNode>? = nil
-			if symbolTable.tryGetValue(region, out idMap)
-				symbolTable.remove(region)
-				symbolTable[extendedRegion] = idMap
-
-		for extendedRegion, node in nodeMap
-			regionMap[node] = extendedRegion
-
-
-		if completionChar <> c' '
-			# do this so that the letter just typed is considered part of the word to complete
-			while col > 0 and lineText[col - 1] not in @[c'\t', c' ']
-				triggerWordLength += 1
-				col -= 1
-
 		if col < 0
 			# this can happen on manual triggering of code completion via Ctrl+Space from the start of a blank line
 			col = 0
+		
+		lineText = .editor.document.getLineText(line)
+		if String.isNullOrEmpty(lineText), lineText = ""
 
-		containingRegions = .getContainingRegions(line, col, codeRegions)
+		containingRegions = .getContainingRegions(line, col, regionMap.values)
 		completionData = CompletionDataList()
-		preceedingText = lineText.substring(0, .document.editor.caret.column - 1)
+		preceedingText = lineText.substring(0, .editor.caret.column - 1)
 
 		if completionChar == c'.'
 			# member completion
@@ -268,6 +308,12 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 				catch ArgumentException
 					# not a valid identifier
 					return nil
+					
+		else if completionChar <> c' '
+			# do this so that the letter just typed is considered part of the word to complete
+			while col > 0 and lineText[col - 1] not in @[c'\t', c' ']
+				triggerWordLength += 1
+				col -= 1
 
 		# return unique completion data entries
 		dataSet = HashSet<of String>()
@@ -310,7 +356,21 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 				return true
 				
 		return false
-		
+	
+	
+	def _createNodeMap(regionMap as Dictionary<of ISyntaxNode, DomRegion>) as Dictionary<of DomRegion, ISyntaxNode>
+		"""
+		Returns a map of DomRegions to ISyntaxNodes given a map of ISyntaxNodes to DomRegions.
+		"""
+		ensure
+			all for node in regionMap.keys get node in result.values
+			all for region in regionMap.values get region in result.keys
+		body
+			nodeMap = Dictionary<of DomRegion, ISyntaxNode>()
+			for node, region in regionMap
+				nodeMap[region] = node
+			return nodeMap
+	
 
 	def getContainingRegions(line as int, col as int, regions as DomRegion*) as List<of DomRegion>
 		"""
@@ -343,6 +403,27 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 					containingRegions.add(r)
 
 			return containingRegions
+		
+		
+	def _extendRegions(regionMap as Dictionary<of ISyntaxNode, DomRegion>,
+						symbolTable as Dictionary<of DomRegion, Dictionary<of String, INamedNode>?>)
+		"""
+		Extends the code regions in the given dictionaries to include blank lines.
+		"""
+		extendedRegionMap = Dictionary<of ISyntaxNode, DomRegion>()
+		
+		for node, region in regionMap
+			
+			extendedRegion = _extendRegion(region)
+			extendedRegionMap[node] = extendedRegion
+			
+			idMap as Dictionary<of String, INamedNode>? = nil
+			if symbolTable.tryGetValue(region, out idMap)
+				symbolTable.remove(region)
+				symbolTable[extendedRegion] = idMap
+				
+		for node, extendedRegion in extendedRegionMap
+			regionMap[node] = extendedRegion
 			
 			
 	def _extendRegion(region as DomRegion) as DomRegion

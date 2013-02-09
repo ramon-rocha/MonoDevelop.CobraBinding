@@ -6,6 +6,7 @@ use MonoDevelop.CobraBinding.TypeSystem
 
 use MonoDevelop.Core
 use MonoDevelop.Projects
+use MonoDevelop.Ide
 use MonoDevelop.Ide.Gui.Content
 use MonoDevelop.Ide.CodeCompletion
 use MonoDevelop.Ide.TypeSystem
@@ -17,6 +18,12 @@ use ICSharpCode.NRefactory.TypeSystem
 namespace MonoDevelop.CobraBinding.Completion
 
 class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
+
+	# these are for indexing into the lists contained in the values of the _icons dictionary
+	const _defaultIcon = 0
+	const _protectedIcon = 1
+	const _privateIcon = 2
+	const _internalIcon = 3
 
 	shared
 		/#
@@ -30,22 +37,57 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 		# likewise with the previous symbol table
 		var __prevSymbolTable = Dictionary<of String, _
 			Dictionary<of DomRegion, Dictionary<of String, INamedNode>?>>()
-
-		# the various icons that show up next to completion entries
-		var iconKeyword = IconId("md-keyword")
-		var iconClass = IconId("md-class")
-		var iconField = IconId("md-field")
-		var iconLiteral = IconId("md-literal")
-		var iconMethod = IconId("md-method")
-		var iconDelegate = IconId("md-delegate")
-		var iconStruct = IconId("md-struct")
-		var iconEvent = IconId("md-event")
-		var iconProperty = IconId("md-property")
-		var iconInterface = IconId("md-interface")
-		var iconEnum = IconId("md-enum")
-		var iconNamespace = IconId("md-name-space")
 		
-		var keywordsTopLevel = @[
+		# The various icons that show up next to completion entries.
+		var _icons as Dictionary<of Type, List<of IconId>> = {
+			Keyword : [IconId("md-keyword")],
+			Literal : [Gui.Stock.literal],
+			NameSpace : [Gui.Stock.nameSpace],
+			EnumDecl : [Gui.Stock.enum, Gui.Stock.protectedEnum, Gui.Stock.privateEnum, Gui.Stock.internalEnum],
+			Struct : [Gui.Stock.struct, Gui.Stock.protectedStruct, Gui.Stock.privateStruct, Gui.Stock.internalStruct],
+			Interface : [Gui.Stock.interface, Gui.Stock.protectedInterface, Gui.Stock.privateInterface, Gui.Stock.internalInterface],
+			Class : [Gui.Stock.class, Gui.Stock.protectedClass, Gui.Stock.privateClass, Gui.Stock.internalClass],
+			BoxVar : [Gui.Stock.field, Gui.Stock.protectedField, Gui.Stock.privateField, Gui.Stock.internalField],
+			BoxConst : [Gui.Stock.literal],
+			Method : [Gui.Stock.method, Gui.Stock.protectedMethod, Gui.Stock.privateMethod, Gui.Stock.internalMethod],
+			LocalVar : [Gui.Stock.field],
+			MethodSig : [Gui.Stock.delegate, Gui.Stock.protectedDelegate, Gui.Stock.privateDelegate, Gui.Stock.internalDelegate],
+			Property : [Gui.Stock.property, Gui.Stock.protectedProperty, Gui.Stock.privateProperty, Gui.Stock.internalProperty],
+			BoxEvent : [Gui.Stock.event, Gui.Stock.protectedEvent, Gui.Stock.privateEvent, Gui.Stock.internalEvent]
+			#TODO: AttributeDecl, Mixin, Extension, TestMethod, contracts, etc.
+		}
+		
+		var _iconKeyword = _icons[Keyword][_defaultIcon]
+		var _iconLiteral = _icons[Literal][_defaultIcon]
+		var _iconNameSpace = _icons[NameSpace][_defaultIcon]
+		var _iconLocalVar = _icons[LocalVar][_defaultIcon]
+		var _iconError = Gui.Stock.error
+		
+		def getStockIcon(node as dynamic) as IconId
+			"""
+			Returns the icon that should be used for the
+			CompletionDataList entry for the given node.
+			"""
+			try
+				listOfIcons = _icons[node.getType]
+			catch
+				# not handled yet
+				trace node.getType
+				return _iconError
+		
+			try
+				if "internal" in node.isNames
+					return listOfIcons[_internalIcon]
+				else if "private" in node.isNames
+					return listOfIcons[_privateIcon]
+				else if "protected" in node.isNames
+					return listOfIcons[_protectedIcon]
+				else
+					return listOfIcons[_defaultIcon]
+			catch
+				return listOfIcons[_defaultIcon]
+		
+		var _keywordsTopLevel = @[
 			"use",
 			"namespace",
 			"class",
@@ -62,7 +104,7 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 			"is",
 		]
 		
-		var keywordsFollowingIs = @[
+		var _keywordsFollowingIs = @[
 			"public",
 			"protected",
 			"private",
@@ -73,7 +115,7 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 			"override",
 		]
 		
-		var keywordsInBox = @[
+		var _keywordsInBox = @[
 			"is",
 			"def",
 			"var",
@@ -95,7 +137,7 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 			"sig",
 		]
 		
-		var keywordsInMethod = @[
+		var _keywordsInMethod = @[
 			"require",
 			"ensure",
 			"test",
@@ -124,7 +166,7 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 			"return",
 		]
 		
-		var keywordsCobraTypes = @[
+		var _keywordsCobraTypes = @[
 			"bool",
 			"char",
 			"int",
@@ -135,7 +177,13 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 			"dynamic"
 		]
 		
-		var charsToIgnore = @[
+		var _keywordsLiterals = @[
+			"true",
+			"false",
+			"nil"
+		]
+		
+		var _charsToIgnore = @[
 			c',',
 			c')',
 			c'[',
@@ -206,7 +254,7 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 		Returns true if the extension is able to provide completion results in the given
 		context for the given completion character or false otherwise.
 		"""
-		if completionChar in .charsToIgnore
+		if completionChar in _charsToIgnore
 			return false
 			
 		# .document is a MonoDevelop.Ide.Gui.Document
@@ -653,12 +701,15 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 			dataList.addRange(_getNamespacesFromProjectRefs)
 			
 		else if preceedingText.endsWith(" is ")
-			for kw in .keywordsFollowingIs
-				dataList.add(kw, .iconKeyword)
+			for kw in _keywordsFollowingIs
+				dataList.add(kw, _iconKeyword)
 				
 		else if preceedingText.endsWith(" as ") or preceedingText.endsWith(" = ")
-			for kw in .keywordsCobraTypes
-				dataList.add(kw, .iconKeyword)
+			for kw in _keywordsCobraTypes
+				dataList.add(kw, _iconKeyword)
+				
+			for kw in _keywordsLiterals
+				dataList.add(kw, _iconLiteral)
 			
 			# return all imported decls
 			dataList.addRange(_getAvailableDecls)
@@ -681,8 +732,8 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 			
 		else
 			#TODO finer context
-			for kw in .keywordsTopLevel
-				dataList.add(kw, .iconKeyword)
+			for kw in _keywordsTopLevel
+				dataList.add(kw, _iconKeyword)
 		
 		return dataList
 
@@ -712,15 +763,15 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 				#/
 			
 				# being inside a class gives us access to all its fields and methods
-				for kw in .keywordsInBox
-					dataList.add(kw, .iconKeyword)
+				for kw in _keywordsInBox
+					dataList.add(kw, _iconKeyword)
 				
 				dataList.addRange(_getBoxMemberCompletionData(nodeMap[region] to Class))
 				
 			else if firstRegionLine.startsWith("def ") or firstRegionLine.startsWith("get ") or firstRegionLine.startsWith("set ")
 				# being inside a method gives us access to all its local variables and more Cobra keywords
-				for kw in .keywordsInMethod
-					dataList.add(kw, .iconKeyword)
+				for kw in _keywordsInMethod
+					dataList.add(kw, _iconKeyword)
 				
 				if firstRegionLine.startsWith("def ")
 					dataList.addRange(_getMethodVarCompletionData(nodeMap[region] to AbstractMethod))
@@ -750,7 +801,7 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 		dataList = CompletionDataList()
 		
 		for ns in nsList
-			dataList.add(ns, .iconNamespace)
+			dataList.add(ns, _iconNameSpace)
 		
 		return dataList
 		
@@ -790,18 +841,12 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 			nsNamePrefix = n.name + "."
 		
 		for d in n.declsInOrder
-			if d inherits MethodSig
-				decls.add(d.name, .iconDelegate, d.qualifiedName)
-			else if d inherits Class
-				decls.add(d.name, .iconClass, d.qualifiedName)
-			else if d inherits Struct
-				decls.add(d.name, .iconStruct, d.qualifiedName)
-			else if d inherits Interface
-				decls.add(d.name, .iconInterface, d.qualifiedName)
-			else if d inherits NameSpace
-				decls.add(d.name, .iconNamespace, nsNamePrefix + d.name)
-			else if d inherits EnumDecl
-				decls.add(d.name, .iconEnum, nsNamePrefix + d.name)
+			icon = .getStockIcon(d)
+		
+			if d inherits NameSpace or d inherits EnumDecl
+				decls.add(d.name, icon, nsNamePrefix + d.name)
+			else if d inherits Box
+				decls.add(d.name, icon, d.qualifiedName)
 		
 		return decls
 		
@@ -820,54 +865,60 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 		#TODO: clean this up
 		for m in b.declsInOrder
 			if seen.add(m.name)
+				
+				icon = .getStockIcon(m)
+				
 				try
-					if m inherits MethodSig
-						members.add(m.name, .iconDelegate, m.qualifiedName)
+					if m inherits Box
+						members.add(m.name, icon, m.qualifiedName)
 					else if m inherits AbstractMethod
-						members.add(m.name, .iconMethod, m.resultType.name)
+						members.add(m.name, icon, m.resultType.name)
 					else if m inherits BoxEvent
-						members.add(m.name, .iconEvent, m.resultType.name)
+						members.add(m.name, icon, m.resultType.name)
 					else if m inherits Property
-						members.add(m.name, .iconProperty, m.resultType.name)
+						members.add(m.name, icon, m.resultType.name)
 					else if m inherits BoxVar
-						members.add(m.name, .iconField, m.type.name)
+						members.add(m.name, icon, m.type.name)
 					else if m inherits BoxConst
-						members.add(m.name, .iconLiteral, m.type.name)
+						members.add(m.name, icon, m.type.name)
 					else
-						members.add(m.name, .iconEvent, "TODO: use correct icon")
+						members.add(m.name, icon, m.getType.name)
 				catch
-					if m inherits MethodSig
-						members.add(m.name, .iconDelegate, "Failed to evaluate 'm.qualifiedName'")
+					if m inherits Box
+						members.add(m.name, icon, "Failed to evaluate 'm.qualifiedName'")
 					else if m inherits AbstractMethod
-						members.add(m.name, .iconMethod, "Failed to evaluate 'm.resultType.name'")
+						members.add(m.name, icon, "Failed to evaluate 'm.resultType.name'")
 					else if m inherits BoxEvent
-						members.add(m.name, .iconEvent, "Failed to evaluate 'm.resultType.name'")
+						members.add(m.name, icon, "Failed to evaluate 'm.resultType.name'")
 					else if m inherits Property
-						members.add(m.name, .iconProperty, "Failed to evaluate 'm.resultType.name'")
+						members.add(m.name, icon, "Failed to evaluate 'm.resultType.name'")
 					else if m inherits BoxVar
-						members.add(m.name, .iconField, "Failed to evaluate 'm.type.name'")
+						members.add(m.name, icon, "Failed to evaluate 'm.type.name'")
 					else if m inherits BoxConst
-						members.add(m.name, .iconLiteral, "Failed to evaluate 'm.type.name'")
+						members.add(m.name, icon, "Failed to evaluate 'm.type.name'")
 					else
-						members.add(m.name, .iconEvent, "TODO: use correct icon")
+						members.add(m.name, icon, "Failed to evaluate 'm.getType.name'")
 		
 		try
 			for m in b.allMembers
 				if seen.add(m.name)
-					if m inherits MethodSig
-						members.add(m.name, .iconDelegate, m.qualifiedName)
+				
+					icon = .getStockIcon(m)
+				
+					if m inherits Box
+						members.add(m.name, icon, m.qualifiedName)
 					else if m inherits AbstractMethod
-						members.add(m.name, .iconMethod, m.resultType.name)
+						members.add(m.name, icon, m.resultType.name)
 					else if m inherits BoxEvent
-						members.add(m.name, .iconEvent, m.resultType.name)
+						members.add(m.name, icon, m.resultType.name)
 					else if m inherits Property
-						members.add(m.name, .iconProperty, m.resultType.name)
+						members.add(m.name, icon, m.resultType.name)
 					else if m inherits BoxVar
-						members.add(m.name, .iconField, m.type.name)
+						members.add(m.name, icon, m.type.name)
 					else if m inherits BoxConst
-						members.add(m.name, .iconLiteral, m.type.name)
+						members.add(m.name, icon, m.type.name)
 					else
-						members.add(m.name, .iconEvent, "TODO: use correct icon")
+						members.add(m.name, icon, m.getType.name)
 		catch
 			print "Failed to add [m.toString] to completion data list via .allMembers"
 
@@ -881,9 +932,9 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 		vars = CompletionDataList()
 		
 		for v in m.locals
-			vars.add(v.name, .iconField, v.type.name)
+			vars.add(v.name, _iconLocalVar, v.type.name)
 		
 		for p in m.params
-			vars.add(p.name, .iconField, p.type.name)
+			vars.add(p.name, _iconLocalVar, p.type.name)
 		
 		return vars

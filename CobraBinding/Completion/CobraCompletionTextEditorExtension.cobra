@@ -625,14 +625,14 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 								try
 									return _getNodeFromIds(ids[1:ids.count], nsMember to ISyntaxNode)
 								catch
-									return parent to ISyntaxNode
+									throw ArgumentException()
 		
 				m = t.memberForName(ids[0])
 				if m <> nil
 					try
 						return _getNodeFromIds(ids[1:ids.count], m to ISyntaxNode)
 					catch
-						return parent to ISyntaxNode
+						throw ArgumentException()
 			else
 				print "[parent.typeForIdentifier.name] does not implement IContainer"
 		

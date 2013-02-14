@@ -784,8 +784,14 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 		"""
 		#TODO do it right with only one namespace level at as time
 		nsList = List<of String>()
+		dataList = CompletionDataList()
 		
-		proj = .document.project to DotNetProject
+		proj = .document.project to DotNetProject?
+		if proj == nil
+			/# This can happen if we are working on a single file
+			that is not part of a project #/
+			return dataList
+		
 		for r in proj.references
 			for asmFileName in r.getReferencedFileNames(DefaultConfigurationSelector())
 				try
@@ -797,8 +803,6 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 				catch ex as Exception
 					# failed to load assembly, just ignore it for now
 					print ex.message
-		
-		dataList = CompletionDataList()
 		
 		for ns in nsList
 			dataList.add(ns, _iconNameSpace)
@@ -929,12 +933,73 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 		"""
 		Given a method node, return the local variables and parameters associated with it.
 		"""
-		vars = CompletionDataList()
+		test
+			ext = CobraCompletionTextEditorExtension()
+			ast = .createTestData
+			ns = ast.topNameSpace.memberForName("TopLevelNameSpace") to NameSpace
+			ns = ns.memberForName("SecondLevelNameSpace") to NameSpace
+			ns = ns.memberForName("ThirdLevelNameSpace") to NameSpace
+			program = ns.memberForName("Program") to Class
+			
+			mainMethod = program.memberForName("main") to AbstractMethod
+			completionData = ext._getMethodVarCompletionData(mainMethod)
+			assert completionData.count == 6
+			
+			first = ns.memberForName("First") to Class
+			m1 = first.memberForName("methodNoVars") to AbstractMethod
+			completionData = ext._getMethodVarCompletionData(m1)
+			assert completionData.count == 0
+			
+			m2 = first.memberForName("methodWithoutParams") to AbstractMethod
+			completionData = ext._getMethodVarCompletionData(m2)
+			assert completionData.count == 5
+			
+			m3 = first.memberForName("methodWithParams") to AbstractMethod
+			completionData = ext._getMethodVarCompletionData(m3)
+			assert completionData.count == 7
+			
+			m4 = first.memberForName("publicProperty") to Property
+			completionData = ext._getMethodVarCompletionData(m4.getPart to !)
+			assert completionData.count == 0
+			completionData = ext._getMethodVarCompletionData(m4.setPart to !)
+			assert completionData.count == 1
+			
+			second = ns.memberForName("Second") to Class
+			third = second.memberForName("Third") to Class
+			init1 = third.memberForName("cue.init") to AbstractMethod
+			completionData = ext._getMethodVarCompletionData(init1)
+			assert completionData.count == 1
+			fourth = second.memberForName("Fourth") to Class
+			init2 = fourth.memberForName("cue.init") to AbstractMethod
+			completionData = ext._getMethodVarCompletionData(init2)
+			assert completionData.count == 2
+		body
+			vars = CompletionDataList()
+			
+			for v in m.locals
+				vars.add(v.name, _iconLocalVar, v.type.name)
+			
+			for p in m.params
+				vars.add(p.name, _iconLocalVar, p.type.name)
+			
+			return vars
 		
-		for v in m.locals
-			vars.add(v.name, _iconLocalVar, v.type.name)
 		
-		for p in m.params
-			vars.add(p.name, _iconLocalVar, p.type.name)
-		
-		return vars
+	shared
+		def createTestData as CobraModule
+			"""
+			This function is only for supporting test methods.
+			"""
+			refs = List<of String>()
+			cm = MonoDevelop.CobraBinding.CompilerManager.instance
+			testData = MonoDevelop.CobraBinding.CompilerManager.readTestData("no_errors")
+
+			for filePath, code in testData
+				if filePath.endsWith("ForCompletionTesting.cobra")
+					sourceMap = Dictionary<of String, String>()
+					sourceMap[filePath] = code
+					results = cm.parseAndBind(sourceMap, refs, filePath)
+			for r in results
+				if r inherits CobraModule
+					return r
+			throw FallThroughException()

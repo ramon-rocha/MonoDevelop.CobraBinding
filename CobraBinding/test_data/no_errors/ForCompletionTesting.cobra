@@ -1,0 +1,142 @@
+
+# some use statements so we can verify we have access to the types they provide
+use System.Diagnostics
+use System.Text.RegularExpressions
+
+namespace TopLevelNameSpace.SecondLevelNameSpace.ThirdLevelNameSpace
+
+class First
+	"""
+	This is a nonsense class for testing automatic code completion.
+	
+	See the class: MonoDevelop.CobraBinding.Completion.CobraCompletionTextEditorExtension
+	"""
+	var __privateInstanceVar = "Hola, "
+	var _protectedInstanceVar = "muchacho!"
+	var publicInstanceVar = "Como estas?"
+	
+	get privateInstanceVar from var
+	get protectedInstanceVar from var
+	
+	pro __privateProperty as String
+		"""
+		Should only be accessible when the cursor is inside the First class.
+		"""
+		get
+			return .publicInstanceVar
+		set
+			.publicInstanceVar = value
+			
+	pro _protectedProperty as String
+		"""
+		Should be accessible when the cursor is inside the First class or Second class.
+		"""
+		get
+			return .publicInstanceVar
+		set
+			.publicInstanceVar = value
+			
+	pro publicProperty as String
+		"""
+		Available from any instance.
+		"""
+		get
+			return .publicInstanceVar
+		set
+			.publicInstanceVar = value
+	
+	# should not be available from instances	
+	const __privateConst = 1
+	const _protectedConst = 2
+	const publicConst = 3
+	
+	def __privateMethod as String
+		return "howdy"
+		
+	def alsoPrivate as String is private
+		return "there"
+	
+	def _protectedMethod as String
+		return "[__privateMethod] [.alsoPrivate]"
+		
+	def alsoProtected as String is protected
+		return _protectedMethod
+		
+	def methodNoVars
+		pass
+	
+	def methodWithoutParams as String
+		a = 1
+		b = 2
+		c = 3
+		d = 4
+		e = "[a][b][c][d]"
+		return __privateSharedVar
+		
+	def methodWithParams(param1 as int, param2 as int) as number
+		a = 1
+		b = 2
+		c = 3
+		d = 4
+		e = "[a][b][c][d]"
+		return (param1 + param2) / 2
+		
+	def methodOverload		
+		pass
+		
+	def methodOverload(i)
+		pass
+		
+	def methodOverload(i, j)
+		pass
+		
+	def methodOverload(i, j, k)
+		pass
+	
+	shared
+		var __privateSharedVar = "Good"
+		var _protectedSharedVar = "Bad"
+		var publicSharedVar = "Ugly"
+		
+		get __privateSharedProperty from publicSharedVar
+		get _protectedSharedProperty from publicSharedVar
+		pro publicSharedProeprty from publicSharedVar
+		
+		def sharedMethod
+			pass
+	
+		
+class Second inherits First
+	
+	class Third
+		cue init
+			base.init
+			a = 1
+		
+	class Fourth is private
+		cue init(a as int)
+			base.init
+			b = a
+	
+	class Fifth is protected
+		pass
+		
+	shared
+		class Sixth
+			pass
+			
+		class Eighth<of T>
+			pass
+			
+		class Ninth<of T1, T2>
+			pass
+	
+class Program
+
+	def main
+		f = First()
+		s = Second()
+		t = Second.Third()
+		t2 = s.Third()
+		x = Second.Sixth()
+		x2 = s.Sixth()

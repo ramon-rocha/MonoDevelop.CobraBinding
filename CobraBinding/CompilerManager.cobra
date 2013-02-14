@@ -90,7 +90,7 @@ class CompilerManager
 			
 			refs = List<of String>()
 			cm = CompilerManager.instance
-			testData = __readTestData("no_errors")
+			testData = .readTestData("no_errors")
 			astCount = 0
 
 			for filePath, code in testData
@@ -139,6 +139,10 @@ class CompilerManager
 								assert prog.memberForName("mandelbrot")
 								assert prog.memberForName("calc")
 								assert prog.memberForName("main")
+								
+							on "ForCompletionTesting.cobra"
+								# this gets tested by the CobraCompletionTextEditorExtension class
+								pass
 
 							else
 								# unhandled file, a case should be added for it
@@ -152,7 +156,7 @@ class CompilerManager
 			
 			refs = List<of String>()
 			cm = CompilerManager.instance
-			testData = __readTestData("parser_errors")
+			testData = .readTestData("parser_errors")
 			errorCount = 0
 
 			for filePath, code in testData
@@ -209,7 +213,7 @@ class CompilerManager
 			
 			refs = List<of String>()
 			cm = CompilerManager.instance
-			testData = __readTestData("binding_errors")
+			testData = .readTestData("binding_errors")
 			astCount = 0
 			errorCount = 0
 
@@ -431,7 +435,7 @@ class CompilerManager
 
 
 	shared
-		def __readTestData(folder as String) as Dictionary<of String, String>
+		def readTestData(folder as String) as Dictionary<of String, String>
 			"""
 			This function is only for supporting test methods.  The 'folder'
 			parameter should exist under '../../test_data' which is relative

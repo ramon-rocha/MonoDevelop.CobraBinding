@@ -1,0 +1,111 @@
+CASE #
+<description of test case>
+
+[EXPECTED RESULTS
+<description of expected results>]
+
+ACTUAL RESULTS
+<PASS|FAIL>
+[description of actual results]
+
+---
+
+CASE 1
+String._ in a doc string
+
+EXPECTED RESULTS
+No completion proprosal inside a doc string
+
+ACTUAL RESULTS
+FAIL
+Modifying existing text in a doc string works but entering
+new lines that push down the closing doc string tag does not work.
+
+---
+
+CASE 2
+String._ in a string literal
+
+EXPECTED RESULTS
+No completion proposal inside a string literal
+
+ACTUAL RESULTS
+FAIL
+
+---
+
+CASE 3
+String._ in the interpolation part of a string
+
+EXPECTED RESULTS
+Shared members of String class are displayed
+
+ACTUAL RESULTS
+FAIL
+All members of the String class are displayed, not just shared ones.
+
+---
+
+CASE 4
+String._ in normal statement code
+
+EXPECTED RESULTS
+Shared members of String class are displayed
+
+ACTUAL RESULTS
+FAIL
+All members of the String class are displayed, not just shared ones.
+
+---
+
+CASE 5
+s = 'foo'
+s._
+s.t_
+
+EXPECTED RESULTS
+Public non-shared members of the String class are displayed
+
+ACTUAL RESULTS
+FAIL
+All members of the String class are displayed including shared ones
+
+---
+
+CASE 6
+i = 5
+i._
+
+EXPECTED RESULTS
+Public non-shared members of the Int32 class are displayed
+
+ACTUAL RESULTS
+FAIL
+No completion data is shown
+
+---
+
+CASE 7
+s = 'abc'
+s.replace('a', 'b')._
+
+EXPECTED RESULTS
+Public non-shared members of the String class are displayed
+
+ACTUAL RESULTS
+FAIL
+No completion data is shown
+
+---
+
+CASE 8
+Define a simple class with a main and then:
+	Test that in ".main", typing a statement starting with "." gives "main" as a
+	choice.
+
+	Add "def foo; pass" to the class and then test that "." gives "main" and
+	"foo" as choices whether inside .foo or inside .main
+
+ACTUAL RESULTS
+FAIL
+Works most of the time but sometimes nothing shows up after hitting '.'

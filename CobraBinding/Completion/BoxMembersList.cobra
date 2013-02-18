@@ -33,12 +33,13 @@ class BoxMembersList inherits CompletionDataList
 					#TODO: add overload
 					pass
 		catch
-			print "Failed to add [m.toString] to completion data list via .allMembers"		
-			for m in b.declsInOrder
-				if entries.add(m.name)
-					.add(NamedNodeData(m))
-				else
-					#TODO: add overload
-					pass
-
-		
+			print "Failed to access .allMembers for [b.name]"
+			try
+				for m in b.declsInOrder
+					if entries.add(m.name)
+						.add(NamedNodeData(m))
+					else
+						#TODO: add overload
+						pass
+			catch
+				print "Failed to access .declsInOrder for [b.name]"

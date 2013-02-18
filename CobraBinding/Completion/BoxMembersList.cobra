@@ -11,7 +11,7 @@ class BoxMembersList inherits CompletionDataList
 	This class is a completion data list whose entries are the members of the given Box.
 	"""
 	
-	# Used to only include Box some members such as "only public" or "only shared".
+	# Used to only include some Box members such as "only public" or "only shared".
 	sig Filter(m as IBoxMember) as bool
 	
 	var _box as Box

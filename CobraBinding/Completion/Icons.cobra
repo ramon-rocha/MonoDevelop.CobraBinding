@@ -1,0 +1,72 @@
+use Cobra.Compiler
+
+use MonoDevelop.Core
+use MonoDevelop.Ide
+
+namespace MonoDevelop.CobraBinding.Completion
+
+class Icons
+
+	# these are for indexing into the lists contained in the values of the _icons dictionary
+	const _defaultIcon = 0
+	const _protectedIcon = 1
+	const _privateIcon = 2
+	const _internalIcon = 3
+
+	shared
+		# The various icons that show up next to completion entries.
+		var _icons as Dictionary<of Type, List<of IconId>> = {
+			Keyword : [IconId("md-keyword")],
+			Literal : [Gui.Stock.literal],
+			NameSpace : [Gui.Stock.nameSpace],
+			EnumDecl : [Gui.Stock.enum, Gui.Stock.protectedEnum, Gui.Stock.privateEnum, Gui.Stock.internalEnum],
+			Struct : [Gui.Stock.struct, Gui.Stock.protectedStruct, Gui.Stock.privateStruct, Gui.Stock.internalStruct],
+			Interface : [Gui.Stock.interface, Gui.Stock.protectedInterface, Gui.Stock.privateInterface, Gui.Stock.internalInterface],
+			Class : [Gui.Stock.class, Gui.Stock.protectedClass, Gui.Stock.privateClass, Gui.Stock.internalClass],
+			BoxVar : [Gui.Stock.field, Gui.Stock.protectedField, Gui.Stock.privateField, Gui.Stock.internalField],
+			BoxConst : [Gui.Stock.literal],
+			Method : [Gui.Stock.method, Gui.Stock.protectedMethod, Gui.Stock.privateMethod, Gui.Stock.internalMethod],
+			LocalVar : [Gui.Stock.field],
+			Param : [Gui.Stock.field],
+			MethodSig : [Gui.Stock.delegate, Gui.Stock.protectedDelegate, Gui.Stock.privateDelegate, Gui.Stock.internalDelegate],
+			Property : [Gui.Stock.property, Gui.Stock.protectedProperty, Gui.Stock.privateProperty, Gui.Stock.internalProperty],
+			BoxEvent : [Gui.Stock.event, Gui.Stock.protectedEvent, Gui.Stock.privateEvent, Gui.Stock.internalEvent],			
+			Extension : [Gui.Stock.internalClass], # TODO: don't show these
+			#TODO: AttributeDecl, Mixin, etc.
+		}
+			
+		var _iconKeyword = _icons[Keyword][_defaultIcon]
+		var _iconLiteral = _icons[Literal][_defaultIcon]
+		var _iconNameSpace = _icons[NameSpace][_defaultIcon]
+		var _iconLocalVar = _icons[LocalVar][_defaultIcon]
+		var _iconError = Gui.Stock.error
+		
+		get keyword from _iconKeyword
+		get literal from _iconLiteral
+		get nameSpace from _iconNameSpace
+		get localVar from _iconLocalVar
+		get error from _iconError
+		
+		def getStock(node as dynamic) as IconId
+			"""
+			Returns the icon that should be used for the
+			CompletionDataList entry for the given node.
+			"""
+			try
+				listOfIcons = _icons[node.getType]
+			catch
+				# not handled yet
+				print "TODO: Add '[node.getType]' to _icons dictionary in MonoDevelop.CobraBinding.Completion.Icons class"							
+				return _iconError
+		
+			try
+				if "protected" in node.isNames
+					return listOfIcons[_protectedIcon]				
+				else if "private" in node.isNames
+					return listOfIcons[_privateIcon]
+				else if "internal" in node.isNames
+					return listOfIcons[_internalIcon]
+				else
+					return listOfIcons[_defaultIcon]
+			catch
+				return listOfIcons[_defaultIcon]

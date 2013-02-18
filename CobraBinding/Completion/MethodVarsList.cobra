@@ -1,0 +1,63 @@
+use Cobra.Compiler
+
+use MonoDevelop.Ide.CodeCompletion
+
+use ICSharpCode.NRefactory.Completion
+
+namespace MonoDevelop.CobraBinding.Completion
+
+class MethodVarsList inherits CompletionDataList
+	"""
+	This class is a completion data list whose entries are the parameters and local variables for a method.
+	"""
+	test
+		ast = CobraCompletionTextEditorExtension.createTestData
+		ns = ast.topNameSpace.memberForName("TopLevelNameSpace") to NameSpace
+		ns = ns.memberForName("SecondLevelNameSpace") to NameSpace
+		ns = ns.memberForName("ThirdLevelNameSpace") to NameSpace
+		program = ns.memberForName("Program") to Class		
+		
+		mainMethod = program.memberForName("main") to AbstractMethod
+		completionData = MethodVarsList(mainMethod)
+		assert completionData.count == 6
+		
+		first = ns.memberForName("First") to Class
+		m1 = first.memberForName("methodNoVars") to AbstractMethod
+		completionData = MethodVarsList(m1)
+		assert completionData.count == 0
+		
+		m2 = first.memberForName("methodWithoutParams") to AbstractMethod
+		completionData = MethodVarsList(m2)
+		assert completionData.count == 5
+		
+		m3 = first.memberForName("methodWithParams") to AbstractMethod
+		completionData = MethodVarsList(m3)
+		assert completionData.count == 7
+		
+		m4 = first.memberForName("publicProperty") to Property
+		completionData = MethodVarsList(m4.getPart to !)
+		assert completionData.count == 0
+		completionData = MethodVarsList(m4.setPart to !)
+		assert completionData.count == 1
+		
+		second = ns.memberForName("Second") to Class
+		third = second.memberForName("Third") to Class
+		init1 = third.memberForName("cue.init") to AbstractMethod
+		completionData = MethodVarsList(init1)
+		assert completionData.count == 1
+		fourth = second.memberForName("Fourth") to Class
+		init2 = fourth.memberForName("cue.init") to AbstractMethod
+		completionData = MethodVarsList(init2)
+		assert completionData.count == 2
+		
+	var _method as AbstractMethod
+	
+	cue init(m as AbstractMethod)
+		base.init
+		_method = m
+		
+		for v in m.locals
+			.add(NamedNodeData(v))
+		
+		for p in m.params
+			.add(NamedNodeData(p))

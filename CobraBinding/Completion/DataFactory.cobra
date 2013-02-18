@@ -1,0 +1,179 @@
+use Cobra.Compiler
+
+use MonoDevelop.Ide.CodeCompletion
+
+use ICSharpCode.NRefactory.Completion
+
+namespace MonoDevelop.CobraBinding.Completion
+
+class DataFactory
+	"""
+	Provides completion data entries and data lists.
+	"""
+
+	shared
+	
+		def _createKeywordList(keywords as String[]) as CompletionDataList
+			list = CompletionDataList()
+		
+			for kw in keywords
+				list.add(kw, Icons.keyword)
+				
+			return list
+				
+	
+		var _keywordsTopLevel = @[
+			"use",
+			"namespace",
+			"class",
+			"interface",
+			"struct",
+			"mixin",
+			"enum",
+			"sig",
+			"extend",
+			"adds",
+			"inherits",
+			"implements",
+			"has",
+			"is",
+		]
+		
+		var _kwListTopLevel as CompletionDataList?
+		
+		get keywordListTopLevel as CompletionDataList
+			/# I think we technically have a race condition here
+			   but it's pretty benign and locking is expensive, soooooo...meh #/
+			if _kwListTopLevel == nil
+				_kwListTopLevel = _createKeywordList(_keywordsTopLevel)
+			return _kwListTopLevel to !
+		
+		var _keywordsFollowingIs = @[
+			"public",
+			"protected",
+			"private",
+			"internal",
+			"partial",
+			"extern",
+			"abstract",
+			"override",
+		]
+		
+		var _kwListFollowingIs as CompletionDataList?
+		
+		get keywordListFollowingIs as CompletionDataList
+			if _kwListFollowingIs == nil
+				_kwListFollowingIs = _createKeywordList(_keywordsFollowingIs)
+			return _kwListFollowingIs to !
+		
+		var _keywordsInBox = @[
+			"is",
+			"def",
+			"var",
+			"test",
+			"invariant",
+			"cue init",
+			"var",
+			"as",
+			"def",
+			"pro",
+			"get",
+			"set",
+			
+			"class",
+			"interface",
+			"struct",
+			"mixin",
+			"enum",
+			"sig",
+		]
+		
+		var _kwListInBox as CompletionDataList?
+		
+		get keywordListInBox as CompletionDataList
+			if _kwListInBox == nil
+				_kwListInBox = _createKeywordList(_keywordsInBox)
+			return _kwListInBox to !
+		
+		var _keywordsInMethod = @[
+			"require",
+			"ensure",
+			"test",
+			"body",
+			
+			"print",
+			"lock",
+			"using",
+			"try",
+			"catch",
+			"finally",
+			"throw",
+			"assert",
+			"trace",
+			"if",
+			"and",
+			"or",
+			"not",
+			"in",
+			"else",
+			"branch",
+			"on",
+			"for",
+			"while",
+			"post",
+			"return",
+		]
+		
+		var _kwListInMethod as CompletionDataList?
+		
+		get keywordListInMethod as CompletionDataList
+			if _kwListInMethod == nil
+				_kwListInMethod = _createKeywordList(_keywordsInMethod)
+			return _kwListInMethod to !
+		
+		var _keywordsCobraTypes = @[
+			"bool",
+			"char",
+			"int",
+			"uint",
+			"float",
+			"decimal",
+			"number",
+			"dynamic"
+		]
+		
+		var _kwListCobraTypes as CompletionDataList?
+		
+		get keywordListCobraTypes as CompletionDataList
+			if _kwListCobraTypes == nil
+				_kwListCobraTypes = _createKeywordList(_keywordsCobraTypes)
+			return _kwListCobraTypes to !
+		
+		var _keywordsLiterals = @[
+			"true",
+			"false",
+			"nil"
+		]
+		
+		var _kwListLiterals as CompletionDataList?
+		
+		get keywordListLiterals as CompletionDataList
+			if _kwListLiterals == nil
+				_kwListLiterals = _createKeywordList(_keywordsLiterals)
+			return _kwListLiterals to !
+
+		def createNodeData(node as INamedNode) as NamedNodeData
+			"""
+			Returns a single entry to be added to a completion data list for the given AST node.
+			"""
+			return NamedNodeData(node)
+			
+		def createBoxMembersList(box as Box) as BoxMembersList
+			return BoxMembersList(box)
+			
+		def createMethodVarsList(method as AbstractMethod) as MethodVarsList
+			return MethodVarsList(method)
+		
+		def createNameSpaceDeclsList(nameSpace as NameSpace) as NameSpaceDeclsList
+			return NameSpaceDeclsList(nameSpace)
+		

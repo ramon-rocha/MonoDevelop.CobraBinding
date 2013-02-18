@@ -1,0 +1,44 @@
+use Cobra.Compiler
+
+use MonoDevelop.Ide.CodeCompletion
+
+use ICSharpCode.NRefactory.Completion
+
+namespace MonoDevelop.CobraBinding.Completion
+
+class BoxMembersList inherits CompletionDataList
+	"""
+	This class is a completion data list whose entries are the members of the given Box.
+	"""
+	
+	var _box as Box
+	
+	cue init(b as Box)
+		base.init
+		_box = b
+		
+		entries = HashSet<of String>()
+		
+		/# Pretend we've already seen 'cue.init' and the indexer '[]'
+		so they are not included in the final list #/
+		entries.add("cue.init")
+		entries.add(ns'[]')
+		
+		try
+			# accessing .allMembers can get screwed up by another compiler instance
+			for m in b.allMembers
+				if entries.add(m.name)
+					.add(NamedNodeData(m))
+				else
+					#TODO: add overload
+					pass
+		catch
+			print "Failed to add [m.toString] to completion data list via .allMembers"		
+			for m in b.declsInOrder
+				if entries.add(m.name)
+					.add(NamedNodeData(m))
+				else
+					#TODO: add overload
+					pass
+
+		

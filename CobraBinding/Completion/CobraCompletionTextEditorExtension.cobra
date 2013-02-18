@@ -6,7 +6,6 @@ use MonoDevelop.CobraBinding.TypeSystem
 
 use MonoDevelop.Core
 use MonoDevelop.Projects
-use MonoDevelop.Ide
 use MonoDevelop.Ide.Gui.Content
 use MonoDevelop.Ide.CodeCompletion
 use MonoDevelop.Ide.TypeSystem
@@ -18,12 +17,6 @@ use ICSharpCode.NRefactory.TypeSystem
 namespace MonoDevelop.CobraBinding.Completion
 
 class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
-
-	# these are for indexing into the lists contained in the values of the _icons dictionary
-	const _defaultIcon = 0
-	const _protectedIcon = 1
-	const _privateIcon = 2
-	const _internalIcon = 3
 
 	shared
 		/#
@@ -37,161 +30,6 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 		# likewise with the previous symbol table
 		var __prevSymbolTable = Dictionary<of String, _
 			Dictionary<of DomRegion, Dictionary<of String, INamedNode>?>>()
-		
-		# The various icons that show up next to completion entries.
-		var _icons as Dictionary<of Type, List<of IconId>> = {
-			Keyword : [IconId("md-keyword")],
-			Literal : [Gui.Stock.literal],
-			NameSpace : [Gui.Stock.nameSpace],
-			EnumDecl : [Gui.Stock.enum, Gui.Stock.protectedEnum, Gui.Stock.privateEnum, Gui.Stock.internalEnum],
-			Struct : [Gui.Stock.struct, Gui.Stock.protectedStruct, Gui.Stock.privateStruct, Gui.Stock.internalStruct],
-			Interface : [Gui.Stock.interface, Gui.Stock.protectedInterface, Gui.Stock.privateInterface, Gui.Stock.internalInterface],
-			Class : [Gui.Stock.class, Gui.Stock.protectedClass, Gui.Stock.privateClass, Gui.Stock.internalClass],
-			BoxVar : [Gui.Stock.field, Gui.Stock.protectedField, Gui.Stock.privateField, Gui.Stock.internalField],
-			BoxConst : [Gui.Stock.literal],
-			Method : [Gui.Stock.method, Gui.Stock.protectedMethod, Gui.Stock.privateMethod, Gui.Stock.internalMethod],
-			LocalVar : [Gui.Stock.field],
-			MethodSig : [Gui.Stock.delegate, Gui.Stock.protectedDelegate, Gui.Stock.privateDelegate, Gui.Stock.internalDelegate],
-			Property : [Gui.Stock.property, Gui.Stock.protectedProperty, Gui.Stock.privateProperty, Gui.Stock.internalProperty],
-			BoxEvent : [Gui.Stock.event, Gui.Stock.protectedEvent, Gui.Stock.privateEvent, Gui.Stock.internalEvent]
-			#TODO: AttributeDecl, Mixin, Extension, TestMethod, contracts, etc.
-		}
-		
-		var _iconKeyword = _icons[Keyword][_defaultIcon]
-		var _iconLiteral = _icons[Literal][_defaultIcon]
-		var _iconNameSpace = _icons[NameSpace][_defaultIcon]
-		var _iconLocalVar = _icons[LocalVar][_defaultIcon]
-		var _iconError = Gui.Stock.error
-		
-		def getStockIcon(node as dynamic) as IconId
-			"""
-			Returns the icon that should be used for the
-			CompletionDataList entry for the given node.
-			"""
-			try
-				listOfIcons = _icons[node.getType]
-			catch
-				# not handled yet
-				trace node.getType
-				return _iconError
-		
-			try
-				if "internal" in node.isNames
-					return listOfIcons[_internalIcon]
-				else if "private" in node.isNames
-					return listOfIcons[_privateIcon]
-				else if "protected" in node.isNames
-					return listOfIcons[_protectedIcon]
-				else
-					return listOfIcons[_defaultIcon]
-			catch
-				return listOfIcons[_defaultIcon]
-		
-		var _keywordsTopLevel = @[
-			"use",
-			"namespace",
-			"class",
-			"interface",
-			"struct",
-			"mixin",
-			"enum",
-			"sig",
-			"extend",
-			"adds",
-			"inherits",
-			"implements",
-			"has",
-			"is",
-		]
-		
-		var _keywordsFollowingIs = @[
-			"public",
-			"protected",
-			"private",
-			"internal",
-			"partial",
-			"extern",
-			"abstract",
-			"override",
-		]
-		
-		var _keywordsInBox = @[
-			"is",
-			"def",
-			"var",
-			"test",
-			"invariant",
-			"cue init",
-			"var",
-			"as",
-			"def",
-			"pro",
-			"get",
-			"set",
-			
-			"class",
-			"interface",
-			"struct",
-			"mixin",
-			"enum",
-			"sig",
-		]
-		
-		var _keywordsInMethod = @[
-			"require",
-			"ensure",
-			"test",
-			"body",
-			
-			"print",
-			"lock",
-			"using",
-			"try",
-			"catch",
-			"finally",
-			"throw",
-			"assert",
-			"trace",
-			"if",
-			"and",
-			"or",
-			"not",
-			"in",
-			"else",
-			"branch",
-			"on",
-			"for",
-			"while",
-			"post",
-			"return",
-		]
-		
-		var _keywordsCobraTypes = @[
-			"bool",
-			"char",
-			"int",
-			"uint",
-			"float",
-			"decimal",
-			"number",
-			"dynamic"
-		]
-		
-		var _keywordsLiterals = @[
-			"true",
-			"false",
-			"nil"
-		]
-		
-		var _charsToIgnore = @[
-			c',',
-			c')',
-			c'[',
-			c']',
-			c'"',
-			c"'",
-		]
-		#' TODO: handle the case above in CobraSyntaMode.xml
 	
 	
 	get regionMap as Dictionary<of ISyntaxNode, DomRegion>
@@ -248,6 +86,16 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 			# just return an empty dictionary
 			return Dictionary<of DomRegion, Dictionary<of String, INamedNode>?>()
 	
+	shared
+		var _charsToIgnore = @[
+			c',',
+			c')',
+			c'[',
+			c']',
+			c'"',
+			c"'",
+		]
+		#'# TODO: handle the syntax highlighting bug above in CobraSyntaMode.xml
 	
 	def _canHandleCodeCompletion(context as CodeCompletionContext?, completionChar as char) as bool
 		"""
@@ -323,7 +171,7 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 				for region in containingRegions
 					node = nodeMap[region]
 					if node inherits Class
-						completionData.addRange(_getBoxMemberCompletionData(node))
+						completionData.addRange(BoxMembersList(node))
 				return completionData
 			else
 				# return fields and methods for the corresponding node
@@ -332,12 +180,12 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 
 					if node inherits AbstractLocalVar
 						if node.type inherits Box
-							completionData.addRange(_getBoxMemberCompletionData(node.type to Box))
+							completionData.addRange(BoxMembersList(node.type to Box))
 					else if node inherits NameSpace
-						completionData.addRange(_getNamespaceCompletionData(node))
+						completionData.addRange(NameSpaceDeclsList(node))
 					else if node implements Cobra.Compiler.IMember
 						if node.resultType inherits Box
-							completionData.addRange(_getBoxMemberCompletionData(node.resultType to Box))
+							completionData.addRange(BoxMembersList(node.resultType to Box))
 					
 					print "should be displaying members for [node]"
 
@@ -701,39 +549,32 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 			dataList.addRange(_getNamespacesFromProjectRefs)
 			
 		else if preceedingText.endsWith(" is ")
-			for kw in _keywordsFollowingIs
-				dataList.add(kw, _iconKeyword)
+			dataList.addRange(DataFactory.keywordListFollowingIs)
 				
 		else if preceedingText.endsWith(" as ") or preceedingText.endsWith(" = ")
-			for kw in _keywordsCobraTypes
-				dataList.add(kw, _iconKeyword)
-				
-			for kw in _keywordsLiterals
-				dataList.add(kw, _iconLiteral)
-			
-			# return all imported decls
+			dataList.addRange(DataFactory.keywordListCobraTypes)
+			dataList.addRange(DataFactory.keywordListLiterals)
 			dataList.addRange(_getAvailableDecls)
 		
 		else if preceedingText.endsWith(" inherits ")
 			#TODO: return class names
-			pass
+			dataList.addRange(_getAvailableDecls)
 			
 		else if preceedingText.endsWith(" implements ")
 			#TODO: return interface names
-			pass
+			dataList.addRange(_getAvailableDecls)
 			
 		else if preceedingText.endsWith(" adds ")
 			#TODO: return mixin names
-			pass
+			dataList.addRange(_getAvailableDecls)
 			
 		else if preceedingText.endsWith(" has ")
 			#TODO: return attribute names
-			pass
+			dataList.addRange(_getAvailableDecls)
 			
 		else
 			#TODO finer context
-			for kw in _keywordsTopLevel
-				dataList.add(kw, _iconKeyword)
+			dataList.addRange(DataFactory.keywordListTopLevel)
 		
 		return dataList
 
@@ -749,32 +590,27 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 			dataList = CompletionDataList()
 			dataList.addRange(_getTopLevelCompletionData(preceedingText, currText))
 			
-			textDoc = .document.editor.document
-			firstRegionLine = textDoc.getLineText(region.beginLine).trimStart
+			try
+				node = nodeMap[region]
+			catch
+				print "ERROR! Couldn't resolve region to node: [region.toString]"
+				return dataList
 			
-			if firstRegionLine.startsWith("namespace ")
+			if node inherits NameSpace
 				# being inside a namespace means we have access to all the classes inside of it
-				dataList.addRange(_getNamespaceCompletionData(nodeMap[region] to NameSpace))
+				dataList.addRange(NameSpaceDeclsList(node))
 				
-			else if firstRegionLine.startsWith("class ") and nodeMap[region] inherits Class
-				/#
-				Implicit class initializers would also fall into this block if we didn't check
-				to make sure that the node inherits from 'Class.'
-				#/
-			
-				# being inside a class gives us access to all its fields and methods
-				for kw in _keywordsInBox
-					dataList.add(kw, _iconKeyword)
+			else if node inherits Box
+				# being inside a box gives us access to all its fields and methods
+				dataList.addRange(DataFactory.keywordListInBox)
+				dataList.addRange(BoxMembersList(node))
 				
-				dataList.addRange(_getBoxMemberCompletionData(nodeMap[region] to Class))
-				
-			else if firstRegionLine.startsWith("def ") or firstRegionLine.startsWith("get ") or firstRegionLine.startsWith("set ")
+			else if node inherits AbstractMethod
 				# being inside a method gives us access to all its local variables and more Cobra keywords
-				for kw in _keywordsInMethod
-					dataList.add(kw, _iconKeyword)
-				
-				if firstRegionLine.startsWith("def ")
-					dataList.addRange(_getMethodVarCompletionData(nodeMap[region] to AbstractMethod))
+				dataList.addRange(DataFactory.keywordListInMethod)
+				dataList.addRange(MethodVarsList(node))
+			else
+				print "TODO: handle this type of container: [node.toString]"
 			
 			return dataList
 
@@ -805,7 +641,7 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 					print ex.message
 		
 		for ns in nsList
-			dataList.add(ns, _iconNameSpace)
+			dataList.add(ns, Icons.nameSpace)
 		
 		return dataList
 		
@@ -822,168 +658,14 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 			if ast == nil
 				return dataList
 			
-			dataList.addRange(_getNamespaceCompletionData(ast.topNameSpace))
+			dataList.addRange(NameSpaceDeclsList(ast.topNameSpace))
 			
 			for useStmt in ast.topNameSpace.useDirectives
 				if useStmt.boundNameSpace <> nil
 					ns = useStmt.boundNameSpace to !
-					dataList.addRange(_getNamespaceCompletionData(ns))
+					dataList.addRange(NameSpaceDeclsList(ns))
 			
 			return dataList
-		
-		
-	def _getNamespaceCompletionData(n as NameSpace) as ICompletionDataList
-		"""
-		Given a namespace node, return the namespaces and types it provides.
-		"""
-		decls = CompletionDataList()
-		
-		if n.name.startsWith('(')
-			# an unnamed top-level namespace for a module
-			nsNamePrefix = ""
-		else
-			nsNamePrefix = n.name + "."
-		
-		for d in n.declsInOrder
-			icon = .getStockIcon(d)
-		
-			if d inherits NameSpace or d inherits EnumDecl
-				decls.add(d.name, icon, nsNamePrefix + d.name)
-			else if d inherits Box
-				decls.add(d.name, icon, d.qualifiedName)
-		
-		return decls
-		
-		
-	def _getBoxMemberCompletionData(b as Box) as ICompletionDataList
-		"""
-		Given a box node, return the unique members associated with it.
-		"""
-		seen = HashSet<of String>()
-		
-		# pretend we've already seen 'cue.init' so it's not included in the final list
-		seen.add("cue.init")
-		
-		members = CompletionDataList()
-
-		#TODO: clean this up
-		for m in b.declsInOrder
-			if seen.add(m.name)
-				
-				icon = .getStockIcon(m)
-				
-				try
-					if m inherits Box
-						members.add(m.name, icon, m.qualifiedName)
-					else if m inherits AbstractMethod
-						members.add(m.name, icon, m.resultType.name)
-					else if m inherits BoxEvent
-						members.add(m.name, icon, m.resultType.name)
-					else if m inherits Property
-						members.add(m.name, icon, m.resultType.name)
-					else if m inherits BoxVar
-						members.add(m.name, icon, m.type.name)
-					else if m inherits BoxConst
-						members.add(m.name, icon, m.type.name)
-					else
-						members.add(m.name, icon, m.getType.name)
-				catch
-					if m inherits Box
-						members.add(m.name, icon, "Failed to evaluate 'm.qualifiedName'")
-					else if m inherits AbstractMethod
-						members.add(m.name, icon, "Failed to evaluate 'm.resultType.name'")
-					else if m inherits BoxEvent
-						members.add(m.name, icon, "Failed to evaluate 'm.resultType.name'")
-					else if m inherits Property
-						members.add(m.name, icon, "Failed to evaluate 'm.resultType.name'")
-					else if m inherits BoxVar
-						members.add(m.name, icon, "Failed to evaluate 'm.type.name'")
-					else if m inherits BoxConst
-						members.add(m.name, icon, "Failed to evaluate 'm.type.name'")
-					else
-						members.add(m.name, icon, "Failed to evaluate 'm.getType.name'")
-		
-		try
-			for m in b.allMembers
-				if seen.add(m.name)
-				
-					icon = .getStockIcon(m)
-				
-					if m inherits Box
-						members.add(m.name, icon, m.qualifiedName)
-					else if m inherits AbstractMethod
-						members.add(m.name, icon, m.resultType.name)
-					else if m inherits BoxEvent
-						members.add(m.name, icon, m.resultType.name)
-					else if m inherits Property
-						members.add(m.name, icon, m.resultType.name)
-					else if m inherits BoxVar
-						members.add(m.name, icon, m.type.name)
-					else if m inherits BoxConst
-						members.add(m.name, icon, m.type.name)
-					else
-						members.add(m.name, icon, m.getType.name)
-		catch
-			print "Failed to add [m.toString] to completion data list via .allMembers"
-
-		return members
-		
-		
-	def _getMethodVarCompletionData(m as AbstractMethod) as ICompletionDataList
-		"""
-		Given a method node, return the local variables and parameters associated with it.
-		"""
-		test
-			ext = CobraCompletionTextEditorExtension()
-			ast = .createTestData
-			ns = ast.topNameSpace.memberForName("TopLevelNameSpace") to NameSpace
-			ns = ns.memberForName("SecondLevelNameSpace") to NameSpace
-			ns = ns.memberForName("ThirdLevelNameSpace") to NameSpace
-			program = ns.memberForName("Program") to Class
-			
-			mainMethod = program.memberForName("main") to AbstractMethod
-			completionData = ext._getMethodVarCompletionData(mainMethod)
-			assert completionData.count == 6
-			
-			first = ns.memberForName("First") to Class
-			m1 = first.memberForName("methodNoVars") to AbstractMethod
-			completionData = ext._getMethodVarCompletionData(m1)
-			assert completionData.count == 0
-			
-			m2 = first.memberForName("methodWithoutParams") to AbstractMethod
-			completionData = ext._getMethodVarCompletionData(m2)
-			assert completionData.count == 5
-			
-			m3 = first.memberForName("methodWithParams") to AbstractMethod
-			completionData = ext._getMethodVarCompletionData(m3)
-			assert completionData.count == 7
-			
-			m4 = first.memberForName("publicProperty") to Property
-			completionData = ext._getMethodVarCompletionData(m4.getPart to !)
-			assert completionData.count == 0
-			completionData = ext._getMethodVarCompletionData(m4.setPart to !)
-			assert completionData.count == 1
-			
-			second = ns.memberForName("Second") to Class
-			third = second.memberForName("Third") to Class
-			init1 = third.memberForName("cue.init") to AbstractMethod
-			completionData = ext._getMethodVarCompletionData(init1)
-			assert completionData.count == 1
-			fourth = second.memberForName("Fourth") to Class
-			init2 = fourth.memberForName("cue.init") to AbstractMethod
-			completionData = ext._getMethodVarCompletionData(init2)
-			assert completionData.count == 2
-		body
-			vars = CompletionDataList()
-			
-			for v in m.locals
-				vars.add(v.name, _iconLocalVar, v.type.name)
-			
-			for p in m.params
-				vars.add(p.name, _iconLocalVar, p.type.name)
-			
-			return vars
-		
 		
 	shared
 		def createTestData as CobraModule
@@ -1002,4 +684,5 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 			for r in results
 				if r inherits CobraModule
 					return r
+			
 			throw FallThroughException()

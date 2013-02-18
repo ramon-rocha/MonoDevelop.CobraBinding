@@ -1,0 +1,22 @@
+use Cobra.Compiler
+
+use MonoDevelop.Ide.CodeCompletion
+
+use ICSharpCode.NRefactory.Completion
+
+namespace MonoDevelop.CobraBinding.Completion
+
+class NameSpaceDeclsList inherits CompletionDataList
+	"""
+	This class is a completion data list whose entries are the declarations inside the given NameSpace.
+	"""
+	
+	var _nameSpace as NameSpace
+	
+	cue init(ns as NameSpace)
+		base.init
+		_nameSpace = ns		
+		
+		for d in ns.declsInOrder
+			.add(NamedNodeData(d))
+			

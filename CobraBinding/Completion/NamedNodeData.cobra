@@ -1,0 +1,91 @@
+use Cobra.Compiler
+
+use MonoDevelop.Ide.CodeCompletion
+
+use ICSharpCode.NRefactory.Completion
+
+namespace MonoDevelop.CobraBinding.Completion
+
+class NamedNodeData inherits CompletionData
+	"""
+	This class represents a single entry for use in a list of completion data.
+	"""
+
+	var _node as INamedNode
+	var _description as String? = nil
+	var _completionText as String? = nil
+	
+	cue init(node as INamedNode)
+		base.init
+		_node = node
+		.icon = Icons.getStock(node)
+		.displayText = node.name		
+		.completionText = node.name # TODO: handle generics
+		
+		# this is text visible in the completion list in a slightly darker color font, is it useful?
+		#.displayDescription = ""
+		
+		#.completionCategory =
+		#.displayFlags =
+	
+	get node from var
+	
+	get description as String is override
+		"""
+		Appears as a tooltip when this entry is highlighted.		
+		"""
+		if _description == nil
+		
+			if _node inherits Box
+				_description = _node.qualifiedName
+				if not String.isNullOrEmpty(_node.docString)
+					_description += "\n[_node.docString]"
+					
+			else if _node inherits AbstractMethod
+				_description = _node.resultType.name
+				if not String.isNullOrEmpty(_node.docString)
+					_description += "\n[_node.docString]"
+					
+			else if _node inherits Property
+				_description = _node.resultType.name
+				if not String.isNullOrEmpty(_node.docString)
+					_description += "\n[_node.docString]"
+					
+			else if _node inherits BoxEvent
+				_description = _node.resultType.name
+				
+			else if _node inherits BoxVar
+				_description = _node.type.name
+				
+			else if _node inherits BoxConst
+				_description = _node.type.name
+				
+			else if _node inherits AbstractLocalVar
+				_description = _node.type.name
+				
+			else if _node inherits NameSpace 
+				_description = _node.fullName
+				if not String.isNullOrEmpty(_node.docString)
+					_description += "\n[_node.docString]"
+			
+			else if _node inherits EnumDecl
+				_description = "[_node.parentNameSpace.fullName].[_node.name]"
+				if not String.isNullOrEmpty(_node.docString)
+					_description += "\n[_node.docString]"
+				
+			else
+				_description = _node.getType.name
+			
+			# remove tab characters otherwise it messes up the formatting in the tooltip
+			_description = _description.replace("\t", "")
+			
+			#TODO: fix line breaks
+			
+		return _description to !
+		
+	def addOverload(data as NamedNodeData)
+		"""
+		TODO
+		"""
+		pass
+		

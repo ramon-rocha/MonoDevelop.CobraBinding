@@ -102,6 +102,12 @@
     <Compile Include="TypeSystem\CobraModuleVisitor.cobra" />
     <Compile Include="TypeSystem\ParsedCobraDocument.cobra" />
     <Compile Include="CompilerManager.cobra" />
+    <Compile Include="Completion\Icons.cobra" />
+    <Compile Include="Completion\DataFactory.cobra" />
+    <Compile Include="Completion\NamedNodeData.cobra" />
+    <Compile Include="Completion\MethodVarsList.cobra" />
+    <Compile Include="Completion\BoxMembersList.cobra" />
+    <Compile Include="Completion\NameSpaceDeclsList.cobra" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Gui\Gui.csproj">

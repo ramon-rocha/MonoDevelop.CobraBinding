@@ -11,12 +11,29 @@ class BoxMembersList inherits CompletionDataList
 	This class is a completion data list whose entries are the members of the given Box.
 	"""
 	
+	# Used to only include Box some members such as "only public" or "only shared".
+	sig Filter(m as IBoxMember) as bool
+	
 	var _box as Box
 	
 	cue init(b as Box)
+		.init(b, nil)
+	
+	cue init(b as Box, filter as Filter?)
 		base.init
 		_box = b
 		
+		try
+			# accessing .allMembers can get screwed up by another compiler instance
+			_addMembers(b.allMembers, filter)
+		catch
+			print "Failed to access .allMembers for [b.name]"
+			try
+				_addMembers(b.declsInOrder, filter)
+			catch
+				print "Failed to access .declsInOrder for [b.name]"
+				
+	def _addMembers(members as IBoxMember*, filter as Filter?)
 		entries = HashSet<of String>()
 		
 		/# Pretend we've already seen 'cue.init' and the indexer '[]'
@@ -24,22 +41,20 @@ class BoxMembersList inherits CompletionDataList
 		entries.add("cue.init")
 		entries.add(ns'[]')
 		
-		try
-			# accessing .allMembers can get screwed up by another compiler instance
-			for m in b.allMembers
+		if filter == nil
+			# include all members
+			for m in members
 				if entries.add(m.name)
 					.add(NamedNodeData(m))
 				else
 					#TODO: add overload
 					pass
-		catch
-			print "Failed to access .allMembers for [b.name]"
-			try
-				for m in b.declsInOrder
+		else
+			# we should only include some members
+			for m in members
+				if filter(m)
 					if entries.add(m.name)
 						.add(NamedNodeData(m))
 					else
 						#TODO: add overload
 						pass
-			catch
-				print "Failed to access .declsInOrder for [b.name]"

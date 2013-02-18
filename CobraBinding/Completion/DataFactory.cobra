@@ -171,6 +171,19 @@ class DataFactory
 		def createBoxMembersList(box as Box) as BoxMembersList
 			return BoxMembersList(box)
 			
+		def createBoxInstanceMembersList(box as Box) as BoxMembersList
+			"""
+			Only includes public non-shared members.
+			"""
+			filter as BoxMembersList.Filter = do(m as IBoxMember)
+				return "public" in m.isNames and "shared" not in m.isNames
+			return BoxMembersList(box, filter)
+			
+		def createBoxSharedMembersList(box as Box) as BoxMembersList
+			filter as BoxMembersList.Filter = do(m as IBoxMember)
+				return "shared" in m.isNames
+			return BoxMembersList(box, filter)
+			
 		def createMethodVarsList(method as AbstractMethod) as MethodVarsList
 			return MethodVarsList(method)
 		

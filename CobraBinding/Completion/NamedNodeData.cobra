@@ -74,7 +74,8 @@ class NamedNodeData inherits CompletionData
 					_description += "\n[_node.docString]"
 				
 			else
-				_description = _node.getType.name
+				# a node may not have a type if we couldn't bind the types in the AST
+				_description = if(_node.getType, _node.getType.name, "?")
 			
 			# remove tab characters otherwise it messes up the formatting in the tooltip
 			_description = _description.replace("\t", "")

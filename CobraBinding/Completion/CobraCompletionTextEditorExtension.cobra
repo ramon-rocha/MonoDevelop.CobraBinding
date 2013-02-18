@@ -177,15 +177,26 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 				# return fields and methods for the corresponding node
 				try
 					node = _getNodeFromIds(ids, containingRegions, symbolTable)
-
+					
 					if node inherits AbstractLocalVar
+						# this could be a method parameter or local variable
 						if node.type inherits Box
-							completionData.addRange(BoxMembersList(node.type to Box))
+							members = DataFactory.createBoxInstanceMembersList(node.type to Box)
+							completionData.addRange(members)
+					
 					else if node inherits NameSpace
 						completionData.addRange(NameSpaceDeclsList(node))
+					
 					else if node implements Cobra.Compiler.IMember
+						# this could be a box or namespace member
 						if node.resultType inherits Box
-							completionData.addRange(BoxMembersList(node.resultType to Box))
+							if node.name.isCapitalized
+								# probably a class so only provide shared members
+								members = DataFactory.createBoxSharedMembersList(node.resultType to Box)
+							else
+								# probably a field or method
+								members = DataFactory.createBoxInstanceMembersList(node.resultType to Box)
+							completionData.addRange(members)
 					
 					print "should be displaying members for [node]"
 

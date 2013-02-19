@@ -53,8 +53,7 @@ EXPECTED RESULTS
 Shared members of String class are displayed
 
 ACTUAL RESULTS
-FAIL
-All members of the String class are displayed, not just shared ones.
+PASS
 
 ---
 
@@ -67,8 +66,7 @@ EXPECTED RESULTS
 Public non-shared members of the String class are displayed
 
 ACTUAL RESULTS
-FAIL
-All members of the String class are displayed including shared ones
+PASS
 
 ---
 
@@ -80,8 +78,7 @@ EXPECTED RESULTS
 Public non-shared members of the Int32 class are displayed
 
 ACTUAL RESULTS
-FAIL
-No completion data is shown
+PASS
 
 ---
 

@@ -19,16 +19,40 @@ class NamedNodeData inherits CompletionData
 		base.init
 		_node = node
 		.icon = Icons.getStock(node)
-		.displayText = node.name		
-		.completionText = node.name # TODO: handle generics
+		if node inherits Box
+			if node.isGeneric
+				# TODO: How should we handle all the Action<of T1...Tn> generics?
+				genericStrings = _createGenericStrings(node)
+				toReplace = genericStrings.a
+				replaceWith = genericStrings.b
+				.displayText = node.name.replace(toReplace, replaceWith)
+			else
+				.displayText = node.name
+		else
+			.displayText = node.name
 		
 		# this is text visible in the completion list in a slightly darker color font, is it useful?
 		#.displayDescription = ""
 		
+		# this might be for marking which members implement something in an interface...I am not sure
 		#.completionCategory =
+		
+		# I think this is for marking some members as obsolete and using a strikethrough font
 		#.displayFlags =
 	
 	get node from var
+	
+	get completionText as String is override
+		"""
+		The actual text inserted into the document
+		when a completion data entry is selected.
+		"""
+		if _node inherits Box
+			if _node.isGeneric
+				tagPos = _node.name.indexOf(c'<')
+				return _node.name.substring(0, tagPos) + "<of "
+				
+		return _node.name
 	
 	get description as String is override
 		"""
@@ -39,11 +63,19 @@ class NamedNodeData inherits CompletionData
 			try
 				if _node inherits Box
 					_description = _node.qualifiedName
+					if _node.isGeneric
+						genericStrings = _createGenericStrings(_node)
+						toReplace = genericStrings.a
+						replaceWith = genericStrings.b
+						_description = _description.replace(toReplace, replaceWith)
 					if not String.isNullOrEmpty(_node.docString)
 						_description += "\n[_node.docString]"
 						
 				else if _node inherits AbstractMethod
-					_description = _node.resultType.name
+					if _node inherits Method
+						_description = _createMethodDescription(_node)
+					else
+						_description = _node.resultType.name
 					if not String.isNullOrEmpty(_node.docString)
 						_description += "\n[_node.docString]"
 						
@@ -85,9 +117,62 @@ class NamedNodeData inherits CompletionData
 			
 		return _description to !
 		
-	def addOverload(data as NamedNodeData)
+	def _createMethodDescription(m as Method) as String
 		"""
-		TODO
+		Displays the parameter names and types (if any) in the method's tooltip.
 		"""
-		pass
+		if m.params.count > 0
+			sb = StringBuilder()
+			for p in m.params
+				if sb.length == 0
+					sb.append("(")
+				else
+					sb.append(", ")
+				sb.append("[p.name] as [p.type.name]")
+			if sb.length > 0, sb.append(") as ")
+			sb.append(m.resultType.name)
+			return sb.toString
+		else
+			return m.resultType.name
+			
+	def _createGenericStrings(b as Box) as Pair<of String>
+		"""
+		Given a box declaration for a generic type, will return a pair of
+		strings so a more accurate type name can be created.  The first
+		string in the pair should be replaced with the second string in
+		the box name.
+		"""
+		require b.isGeneric
+		
+		if b.genericParams.count == 1
+			toReplace = "<of>"
+			replaceWith = "<of [b.genericParams[0].name]>"
+		else
+			toReplace = "<of"
+			replaceWith = ""
+			for gp in b.genericParams
+				if replaceWith.length > 0
+					toReplace += ","
+					replaceWith += ", [gp.name]"
+				else
+					replaceWith = "<of [gp.name]"
+			toReplace += ">"
+			replaceWith += ">"
+			
+		return Pair<of String>(toReplace, replaceWith)
+		
+	get hasOverloads as bool is override
+		if _node inherits Method
+			if _node.overloadGroup <> nil
+				return _node.overloadGroup.members.count > 0
+		return false
+	
+	get overloadedData as IEnumerable<of ICompletionData>? is override
+		if _node inherits Method
+			if _node.overloadGroup <> nil
+				overloads = CompletionDataList()
+				for m in _node.overloadGroup.members
+					overloads.add(NamedNodeData(m))
+				return overloads
+		return nil
 		

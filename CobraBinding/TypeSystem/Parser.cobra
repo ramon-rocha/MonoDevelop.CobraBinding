@@ -20,9 +20,6 @@ class Parser implements ITypeSystemParser, IFoldingParser
 	This parser also provides folds and underlines syntax errors.
 	"""
 	
-	shared
-		var __filesSeen = HashSet<of String>()
-	
 	const TYPICAL_LINE_COUNT = 512 # 4 kB
 	
 	var _tabsToSpaces = false
@@ -42,18 +39,6 @@ class Parser implements ITypeSystemParser, IFoldingParser
 		source = content.readToEnd
 		if source == nil, source = ""
 		
-		/#
-		HACK: Don't generate ASTs for files we've never seen before.
-		This improves project load time.  An AST will be generated
-		on the next parse request.
-		#/
-		lock __filesSeen
-			skip = __filesSeen.add(fileName)
-
-		if skip
-			# just add folds
-			return .parse(fileName, source) to ParsedCobraDocument
-
 		sourceMap = Dictionary<of String, String>()
 		sourceMap[fileName] = source to !
 		

@@ -156,9 +156,20 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 
 		containingRegions = .getContainingRegions(line, col, regionMap.values)
 		completionData = CompletionDataList()
-		preceedingText = lineText.substring(0, .editor.caret.column - 1)
-
-		if completionChar == c'.'
+		preceedingText = lineText.substring(0, .editor.caret.column - 2)
+		print "preceedingText = [preceedingText]"
+		
+		if completionChar == c'_' _
+		and (preceedingText.endsWith(' ') or preceedingText.endsWith('\t') or preceedingText.length == 0)
+			# protected/private member completion in the context of the current class
+			triggerWordLength += 1
+			for region in containingRegions
+				node = nodeMap[region]
+				if node inherits Box
+					completionData.addRange(BoxMembersList(node))
+			return completionData
+		
+		else if completionChar == c'.'
 			# member completion
 
 			# don't include the dot or anything before it in the trigger word length
@@ -170,7 +181,7 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 				# return fields and methods in the context of the current class
 				for region in containingRegions
 					node = nodeMap[region]
-					if node inherits Class
+					if node inherits Box
 						completionData.addRange(BoxMembersList(node))
 				return completionData
 			else
@@ -227,7 +238,7 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 					# not a valid identifier
 					return nil
 					
-		else if completionChar <> c' '
+		else if completionChar <> c' ' and completionChar <> c'\t'
 			# do this so that the letter just typed is considered part of the word to complete
 			while col > 1 and lineText[col - 1] not in @[c'\t', c' ']
 				triggerWordLength += 1
@@ -623,8 +634,8 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 		Returns completion data in the context of the given DomRegion.
 		"""
 		require
-			.document.editor <> nil
-			.document.editor.document <> nil
+			.document
+			.document.parsedDocument
 		body
 			dataList = CompletionDataList()
 			dataList.addRange(_getTopLevelCompletionData(preceedingText, currText))
@@ -637,12 +648,14 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 			
 			if node inherits NameSpace
 				# being inside a namespace means we have access to all the classes inside of it
-				dataList.addRange(NameSpaceDeclsList(node))
+				if node.name.startsWith("(top")
+					dataList.addRange(_getAvailableDecls)
+				else
+					dataList.addRange(NameSpaceDeclsList(node))
 				
 			else if node inherits Box
-				# being inside a box gives us access to all its fields and methods
+				# being inside a box gives us access to certain keywords
 				dataList.addRange(DataFactory.keywordListInBox)
-				dataList.addRange(BoxMembersList(node))
 				
 			else if node inherits AbstractMethod
 				# being inside a method gives us access to all its local variables and more Cobra keywords
@@ -700,9 +713,13 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 			dataList.addRange(NameSpaceDeclsList(ast.topNameSpace))
 			
 			for useStmt in ast.topNameSpace.useDirectives
-				if useStmt.boundNameSpace <> nil
-					ns = useStmt.boundNameSpace to !
-					dataList.addRange(NameSpaceDeclsList(ns))
+				try
+					if not useStmt.didBindUse, useStmt.bindUse
+					if useStmt.boundNameSpace <> nil
+						ns = useStmt.boundNameSpace to !
+						dataList.addRange(NameSpaceDeclsList(ns))
+				catch
+					print "Failed to get bind use or get decls from [useStmt.toString]\n"
 			
 			return dataList
 		

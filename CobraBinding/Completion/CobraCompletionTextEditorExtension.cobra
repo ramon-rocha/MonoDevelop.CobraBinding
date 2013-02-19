@@ -177,30 +177,52 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 				# return fields and methods for the corresponding node
 				try
 					node = _getNodeFromIds(ids, containingRegions, symbolTable)
+					typ as Cobra.Compiler.IType? = nil
 					
-					if node inherits AbstractLocalVar
-						# this could be a method parameter or local variable
-						if node.type inherits Box
-							members = DataFactory.createBoxInstanceMembersList(node.type to Box)
-							completionData.addRange(members)
-					
-					else if node inherits NameSpace
+					if node inherits NameSpace
 						completionData.addRange(NameSpaceDeclsList(node))
 					
-					else if node implements Cobra.Compiler.IMember
-						# this could be a box or namespace member
-						if node.resultType inherits Box
-							if node.name.isCapitalized
-								# probably a class so only provide shared members
-								members = DataFactory.createBoxSharedMembersList(node.resultType to Box)
-							else
-								# probably a field or method
-								members = DataFactory.createBoxInstanceMembersList(node.resultType to Box)
-							completionData.addRange(members)
+					else if node inherits AbstractLocalVar
+						# this could be a method parameter or local variable
+						typ = node.type
 					
-					print "should be displaying members for [node]"
-
+					else if node implements Cobra.Compiler.IMember
+						# this is a box/namespace member
+						typ = node.resultType
+					
+					if typ <> nil
+						if typ inherits NilableType
+							typ = typ.nonNil
+						
+						if typ inherits PrimitiveType
+							typ = typ.box
+						else if typ inherits Cobra.Compiler.ArrayType
+							typ = typ.box
+							
+						members as ICompletionDataList? = nil
+						
+						if typ inherits Box
+							if node inherits NamedNode
+								if node.name.isCapitalized
+									# probably a class so only provide shared members
+									members = DataFactory.createBoxSharedMembersList(typ)
+								else
+									# probably a field or method
+									members = DataFactory.createBoxInstanceMembersList(typ)
+							else
+								# a literal or something else we can probably treat as an instance...right?
+								print "this is unexpected. [node] does not inherit NamedNode\n"
+								members = DataFactory.createBoxInstanceMembersList(typ)
+						else
+							print "typ does not inherit Box. typ = [typ]\n"
+							
+						if members <> nil, completionData.addRange(members)
+					else
+						print "[node] does not inherit AbstractLocalVar and does not implement Cobra.Compiler.IMember\n"
+					
+					print "should be displaying members for [node]\n"
 					return completionData
+					
 				catch ArgumentException
 					# not a valid identifier
 					return nil
@@ -210,16 +232,17 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 			while col > 1 and lineText[col - 1] not in @[c'\t', c' ']
 				triggerWordLength += 1
 				col -= 1
-
+		
 		# return unique completion data entries
 		dataSet = HashSet<of String>()
+		
 		uniqueData = List<of ICompletionData>()
-
+		
 		for region in containingRegions
 			for d in _getCompletionData(region, preceedingText, "TODO", nodeMap)
 				if dataSet.add(d.toString)
 					uniqueData.add(d)
-
+		
 		completionData.addRange(uniqueData)
 
 		if completionData.count <> 0
@@ -230,7 +253,7 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 
 	def handleParameterCompletion(context as CodeCompletionContext?, completionChar as char) _
 		as IParameterDataProvider? is override
-
+		
 		return nil
 	
 	def _isInsideComment(context as CodeCompletionContext) as bool
@@ -501,11 +524,8 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 			
 			if found
 				# we found a node with this name, limit the rest of our search to this node
-				try
-					return _getNodeFromIds(ids[1:ids.count], correspondingNode)
-				catch
-					return correspondingNode to !
-					
+				return _getNodeFromIds(ids[1:ids.count], correspondingNode)
+			
 			throw ArgumentException()
 			
 	def _getNodeFromIds(ids as List<of String>, parent as ISyntaxNode) as ISyntaxNode
@@ -520,12 +540,19 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 		
 		if parent implements INamedNode
 		
-			if parent.typeForReceiver implements IContainer
-		
-				t = parent.typeForReceiver
-		
-				if t inherits NameSpace
-					for useDirective in t.useDirectives
+			typ = parent.typeForReceiver
+			if typ inherits NilableType
+				typ = typ.nonNil
+				
+			if typ inherits PrimitiveType
+				typ = typ.box
+			else if typ inherits Cobra.Compiler.ArrayType
+				typ = typ.box
+			
+			if typ implements IContainer
+						
+				if typ inherits NameSpace
+					for useDirective in typ.useDirectives
 						if useDirective.boundNameSpace <> nil
 							nsMember = useDirective.boundNameSpace.memberForName(ids[0])
 							if nsMember <> nil
@@ -534,14 +561,15 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 								catch
 									throw ArgumentException()
 		
-				m = t.memberForName(ids[0])
+				m = typ.memberForName(ids[0])
 				if m <> nil
 					try
 						return _getNodeFromIds(ids[1:ids.count], m to ISyntaxNode)
 					catch
 						throw ArgumentException()
 			else
-				print "[parent.typeForIdentifier.name] does not implement IContainer"
+				print "[parent.typeForReceiver.name] does not implement IContainer"
+				print "Add a case for [parent.typeForReceiver.toString]\n"
 		
 		throw ArgumentException()
 				

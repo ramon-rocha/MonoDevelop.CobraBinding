@@ -35,47 +35,48 @@ class NamedNodeData inherits CompletionData
 		Appears as a tooltip when this entry is highlighted.		
 		"""
 		if _description == nil
-		
-			if _node inherits Box
-				_description = _node.qualifiedName
-				if not String.isNullOrEmpty(_node.docString)
-					_description += "\n[_node.docString]"
+			# a node may not have a type if we couldn't bind the types in the AST
+			try
+				if _node inherits Box
+					_description = _node.qualifiedName
+					if not String.isNullOrEmpty(_node.docString)
+						_description += "\n[_node.docString]"
+						
+				else if _node inherits AbstractMethod
+					_description = _node.resultType.name
+					if not String.isNullOrEmpty(_node.docString)
+						_description += "\n[_node.docString]"
+						
+				else if _node inherits Property
+					_description = _node.resultType.name
+					if not String.isNullOrEmpty(_node.docString)
+						_description += "\n[_node.docString]"
+						
+				else if _node inherits BoxEvent
+					_description = _node.resultType.name
 					
-			else if _node inherits AbstractMethod
-				_description = _node.resultType.name
-				if not String.isNullOrEmpty(_node.docString)
-					_description += "\n[_node.docString]"
+				else if _node inherits BoxField
+					_description = _node.type.name
 					
-			else if _node inherits Property
-				_description = _node.resultType.name
-				if not String.isNullOrEmpty(_node.docString)
-					_description += "\n[_node.docString]"
+				else if _node inherits AbstractLocalVar
+					_description = _node.type.name
 					
-			else if _node inherits BoxEvent
-				_description = _node.resultType.name
+				else if _node inherits NameSpace
+					_description = _node.fullName
+					if not String.isNullOrEmpty(_node.docString)
+						_description += "\n[_node.docString]"
 				
-			else if _node inherits BoxVar
-				_description = _node.type.name
-				
-			else if _node inherits BoxConst
-				_description = _node.type.name
-				
-			else if _node inherits AbstractLocalVar
-				_description = _node.type.name
-				
-			else if _node inherits NameSpace 
-				_description = _node.fullName
-				if not String.isNullOrEmpty(_node.docString)
-					_description += "\n[_node.docString]"
+				else if _node inherits EnumDecl
+					_description = "[_node.parentNameSpace.fullName].[_node.name]"
+					if not String.isNullOrEmpty(_node.docString)
+						_description += "\n[_node.docString]"
+				else
+					_description = _node.getType.assemblyQualifiedName
+			catch ex as Exception
+				_description = ex.toString
 			
-			else if _node inherits EnumDecl
-				_description = "[_node.parentNameSpace.fullName].[_node.name]"
-				if not String.isNullOrEmpty(_node.docString)
-					_description += "\n[_node.docString]"
-				
-			else
-				# a node may not have a type if we couldn't bind the types in the AST
-				_description = if(_node.getType, _node.getType.name, "?")
+			if _description == nil
+				_description = "?"
 			
 			# remove tab characters otherwise it messes up the formatting in the tooltip
 			_description = _description.replace("\t", "")

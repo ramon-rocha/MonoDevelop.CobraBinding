@@ -158,6 +158,7 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 		completionData = CompletionDataList()
 		preceedingText = lineText.substring(0, .editor.caret.column - 2)
 		print "preceedingText = [preceedingText]"
+		print "completionChar = [completionChar]\n"
 		
 		if completionChar == c'_' _
 		and (preceedingText.endsWith(' ') or preceedingText.endsWith('\t') or preceedingText.length == 0)
@@ -175,9 +176,7 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 			# don't include the dot or anything before it in the trigger word length
 			triggerWordLength = 0
 
-			ids = _getIdsFromText(preceedingText)
-
-			if ids.count == 0
+			if preceedingText.endsWith(' ') or preceedingText.endsWith('\t') or preceedingText.length == 0
 				# return fields and methods in the context of the current class
 				for region in containingRegions
 					node = nodeMap[region]
@@ -186,6 +185,17 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 				return completionData
 			else
 				# return fields and methods for the corresponding node
+				
+				if preceedingText.endsWith(")")
+					# try to backtrack to the opening brace
+					# TODO: handle.multiple(calls).and(more, cases).likeThis
+					for pos in preceedingText.length - 1 : 0 : -1
+						if preceedingText[pos] == c'(', break
+					preceedingText = preceedingText.substring(0, pos)
+					print "new preceedingText = [preceedingText]\n"
+				
+				ids = _getIdsFromText(preceedingText)
+				
 				try
 					node = _getNodeFromIds(ids, containingRegions, symbolTable)
 					typ as Cobra.Compiler.IType? = nil
@@ -236,6 +246,7 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 					
 				catch ArgumentException
 					# not a valid identifier
+					print "couldn't resolve [ids] to a node\n"
 					return nil
 					
 		else if completionChar <> c' ' and completionChar <> c'\t'

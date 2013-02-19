@@ -91,7 +91,7 @@ Public non-shared members of the String class are displayed
 
 ACTUAL RESULTS
 FAIL
-No completion data is shown
+Only a single call works. Multiple calls on one line fail to return the correct completion data.
 
 ---
 

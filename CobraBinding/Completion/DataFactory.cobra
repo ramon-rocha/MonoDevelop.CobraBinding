@@ -121,6 +121,8 @@ class DataFactory
 			"for",
 			"while",
 			"post",
+			"break",
+			"continue",
 			"return",
 		]
 		

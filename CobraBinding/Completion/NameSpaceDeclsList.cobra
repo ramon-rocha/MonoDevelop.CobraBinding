@@ -11,7 +11,36 @@ class NameSpaceDeclsList inherits CompletionDataList
 	This class is a completion data list whose entries are the declarations inside the given NameSpace.
 	"""
 	
+	test singleFile
+		ast = CobraCompletionTextEditorExtension.createTestData
+		ns1 = ast.topNameSpace.memberForName("TopLevelNameSpace") to NameSpace
+		ns2 = ns1.memberForName("SecondLevelNameSpace") to NameSpace
+		ns3 = ns2.memberForName("ThirdLevelNameSpace")to NameSpace
+		
+		astData = NameSpaceDeclsList(ast.topNameSpace)
+		assert astData.nameSpace is ast.topNameSpace
+		assert astData.count == ast.topNameSpace.declsInOrder.count
+		
+		data1 = NameSpaceDeclsList(ns1)
+		assert data1.nameSpace is ns1
+		assert data1.count == ns1.declsInOrder.count
+		
+		data2 = NameSpaceDeclsList(ns2)
+		assert data2.nameSpace is ns2
+		assert data2.count == ns2.declsInOrder.count
+		
+		data3 = NameSpaceDeclsList(ns3)
+		assert data3.nameSpace is ns3
+		assert data3.count == ns3.declsInOrder.count
+		assert data3.count == 3
+		
+	test multipleFiles
+		# TODO: Include decls from a different source file but in the same namespace
+		pass
+	
 	var _nameSpace as NameSpace
+	
+	get nameSpace from var
 	
 	cue init(ns as NameSpace)
 		base.init

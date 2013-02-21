@@ -11,10 +11,28 @@ class BoxMembersList inherits CompletionDataList
 	This class is a completion data list whose entries are the members of the given Box.
 	"""
 	
+	test
+		ast = CobraCompletionTextEditorExtension.createTestData
+		ns1 = ast.topNameSpace.memberForName("TopLevelNameSpace") to NameSpace
+		ns2 = ns1.memberForName("SecondLevelNameSpace") to NameSpace
+		ns3 = ns2.memberForName("ThirdLevelNameSpace")to NameSpace
+		f = ns3.memberForName("First") to Class
+		
+		data = BoxMembersList(f)
+		assert data.box is f
+		assert data.count >= 33 and data.count <= f.allMembers.count
+		
+		filteredData = BoxMembersList(f, do(m as IBoxMember) = "public" in m.isNames)
+		assert filteredData.box is f
+		assert filteredData.count >= 17
+		assert filteredData.count < data.count
+	
 	# Used to only include some Box members such as "only public" or "only shared".
 	sig Filter(m as IBoxMember) as bool
 	
 	var _box as Box
+	
+	get box from var
 	
 	# Used to prevent duplicates
 	var _uniqueEntries = HashSet<of String>()

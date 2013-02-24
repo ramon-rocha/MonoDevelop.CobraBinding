@@ -43,7 +43,6 @@ class BoxMembersList inherits CompletionDataList
 	cue init(b as Box, filter as Filter?)
 		base.init
 		_box = b
-		print "Creating data list for [_box.name]..."
 		
 		try
 			# our compiler instance may no longer be valid so these calls could fail
@@ -56,8 +55,6 @@ class BoxMembersList inherits CompletionDataList
 			_addMembers(b.declsInOrder, filter)
 		catch
 			print "Failed to access .declsInOrder for [b.name]"
-		
-		print "Created data list for [_box.name] with [.count] members"
 		
 				
 	def _addMembers(members as IBoxMember*, filter as Filter?)
@@ -75,8 +72,5 @@ class BoxMembersList inherits CompletionDataList
 		else
 			# we should only include some members
 			for m in members
-				if filter(m)
-					if _uniqueEntries.add(m.name)
-						.add(NamedNodeData(m))
-				else
-					print "[m.name] was not included in list of members due to filter"
+				if filter(m) and _uniqueEntries.add(m.name)
+					.add(NamedNodeData(m))

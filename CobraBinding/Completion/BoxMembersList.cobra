@@ -72,17 +72,11 @@ class BoxMembersList inherits CompletionDataList
 			for m in members
 				if _uniqueEntries.add(m.name)
 					.add(NamedNodeData(m))
-				else
-					#TODO: add overload
-					pass
 		else
 			# we should only include some members
 			for m in members
 				if filter(m)
 					if _uniqueEntries.add(m.name)
 						.add(NamedNodeData(m))
-					else
-						#TODO: add overload
-						pass
 				else
 					print "[m.name] was not included in list of members due to filter"

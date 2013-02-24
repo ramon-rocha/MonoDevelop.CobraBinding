@@ -124,6 +124,56 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 			return false
 	
 		return true
+		
+	
+	def keyPress(key as Gdk.Key, keyChar as char, modifier as Gdk.ModifierType) as bool is override
+		"""
+		Look for Return/Enter key presses and extend regions of doc strings and comment blocks.
+		"""
+		if key == Gdk.Key.Return or key == Gdk.Key.KP_Enter
+			if .document and .document.parsedDocument
+				for fold in .document.parsedDocument.foldings
+					if fold.type == FoldType.Comment
+						line = .editor.caret.line - 1
+						col = .editor.caret.column
+						if fold.region.isInside(line, col)
+							fold.region = _resizeNonCodeRegion(fold.region)
+		
+		# Returns true if the key that was pressed should be processed by this extension or not.
+		return base.keyPress(key, keyChar, modifier)
+		
+		
+	def _resizeNonCodeRegion(region as DomRegion) as DomRegion
+		"""
+		Extends the given DomRegion based on the text contents of the document.  Useful for
+		handling Enter/Return key-presses before the regions of the .parsedDocument have been
+		updated by the parser.
+		"""
+		require
+			.editor
+		body
+			if .editor.getLineText(region.beginLine).contains('"""')
+				# look for closing doc string tag
+				tag = '"""'
+			else if .editor.getLineText(region.beginLine).contains("'''")
+				# look for alternate style closing doc string tag
+				tag = "'''"
+			else
+				# assume we are resizing a comment block, might be a bad assumption...
+				tag = "#/"
+			
+			lineNum = region.beginLine + 1
+			
+			while lineNum < .editor.lineCount
+				lineText = .editor.getLineText(lineNum)
+				if lineText.contains(tag)
+					break
+				else
+					lineNum += 1
+			
+			endLocation = ICSharpCode.NRefactory.TextLocation(lineNum, Int32.maxValue)
+			return DomRegion(region.fileName, region.begin, endLocation)
+			
 	
 	def handleCodeCompletion(context as CodeCompletionContext?, completionChar as char,
 							triggerWordLength as inout int) as ICompletionDataList? is override

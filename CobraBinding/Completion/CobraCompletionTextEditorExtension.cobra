@@ -304,7 +304,7 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 					
 		else if completionChar <> c' ' and completionChar <> c'\t'
 			# do this so that the letter just typed is considered part of the word to complete
-			while col > 1 and lineText[col - 1] not in @[c'\t', c' ']
+			while col > 0 and lineText[col - 1] not in @[c'\t', c' ']
 				triggerWordLength += 1
 				col -= 1
 		

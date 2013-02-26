@@ -116,6 +116,9 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 		if _isInsideComment(context)
 			return false
 			
+		if _isInsideString(context)
+			return false
+			
 		parsedDoc = .document.parsedDocument to ParsedCobraDocument
 		if parsedDoc.regionMap == nil and not __prevRegionMap.containsKey(parsedDoc.fileName)
 			return false
@@ -504,7 +507,91 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 		# Crap!  This function already exists in Parser.  Shouldn't be repeated here.
 		return line.length - line.trimStart.length
 
-
+	
+	def _isInsideString(context as CodeCompletionContext) as bool
+		"""
+		Returns true if we should not provide code completion in the given
+		context because we are inside a string literal and not inside
+		[expression brackets].
+		"""
+		require
+			.editor
+			.editor.document
+		body
+			line = context.triggerLine
+			col = context.triggerLineOffset
+			if line < 1, line = 1
+			if col < 0, col = 0
+			
+			lineText = .editor.document.getLineText(line) ? ""
+			if col > lineText.length, col = lineText.length
+			
+			return _isInsideString(lineText.substring(0, col))
+	
+	
+	def _isInsideString(text as String) as bool
+		"""
+		Returns true if we should not provide code completion in the given
+		context because we are inside a string literal and not inside
+		[expression brackets].
+		"""
+		test basics
+			ext = CobraCompletionTextEditorExtension()
+			assert ext._isInsideString("s = 'Hello, wo")
+			assert ext._isInsideString('s = "Hello, wo')
+			
+			assert not ext._isInsideString("s = 'Hello, world!'")
+			assert not ext._isInsideString('s = "Hello, world!"')
+			assert not ext._isInsideString("print s")
+		test expressionBrackets
+			ext = CobraCompletionTextEditorExtension()
+			assert ext._isInsideString(ns's = "a [b] c')
+			assert not ext._isInsideString(ns's = "a [b')
+			assert ext._isInsideString(ns's = ns"a [b')
+		body
+			tag as char? = nil
+			quotes = @[c"'", c'"']
+			inString = false
+			inNonSubString = false
+			inSubExpr = false
+			
+			i = 0
+			while i < text.length
+				character = text[i]
+				
+				if tag == nil
+					if character in quotes
+						# string opening tag
+						tag = character
+						inString = true
+					else if character == c'n' and i + 2 < text.length
+						if text[i+1] == c's' and text[i+2] in quotes
+							# non-substituted string opening tag
+							tag = text[i+2]
+							inString = true
+							inNonSubString = true
+							i += 2
+				else
+					if character == tag
+						# string closing tag
+						inString = false
+						inNonSubString = false
+						tag = nil
+					else if not inNonSubString
+						if character == c'['
+							inSubExpr = true
+						else if inSubExpr and character == c']'
+							inSubExpr = false
+				i += 1
+					
+			if inNonSubString
+				return true
+			else if inSubExpr
+				return false
+			else
+				return inString
+	
+	
 	shared
 		var rexIdentifier = Regex( _
 			r'[_a-zA-z0-9]*', _

@@ -13,6 +13,7 @@ class NameSpaceDeclsList inherits CompletionDataList
 	
 	test singleFile
 		ast = CobraCompletionTextEditorExtension.createTestData
+
 		ns1 = ast.topNameSpace.memberForName("TopLevelNameSpace") to NameSpace
 		ns2 = ns1.memberForName("SecondLevelNameSpace") to NameSpace
 		ns3 = ns2.memberForName("ThirdLevelNameSpace")to NameSpace
@@ -47,5 +48,5 @@ class NameSpaceDeclsList inherits CompletionDataList
 		_nameSpace = ns		
 		
 		for d in ns.declsInOrder
-			.add(NamedNodeData(d))
-			
+			if ".extension." not in d.name
+				.add(NamedNodeData(d))

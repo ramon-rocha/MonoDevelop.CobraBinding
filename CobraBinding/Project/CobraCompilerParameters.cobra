@@ -22,7 +22,7 @@ namespace MonoDevelop.CobraBinding.Project
 			assert p.optimize
 			assert not p.embedRunTime
 			assert p.debug == "full"
-			assert p.debuggingTips
+			assert not p.debuggingTips
 			assert not p.keepIntermediateFiles
 			assert p.cobraArgs.length == 0
 
@@ -112,8 +112,8 @@ namespace MonoDevelop.CobraBinding.Project
 		var _debug = "full"
 			has ItemProperty("Debug", defaultValue = "full")
 			
-		var _debuggingTips = true
-			has ItemProperty("DebuggingTips", defaultValue = true)
+		var _debuggingTips = false
+			has ItemProperty("DebuggingTips", defaultValue = false)
 			
 		var _keepIntermediateFiles = false
 			has ItemProperty("KeepIntermediateFiles", defaultValue = false)

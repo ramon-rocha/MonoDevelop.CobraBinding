@@ -102,5 +102,4 @@ Define a simple class with a main and then:
 	"foo" as choices whether inside .foo or inside .main
 
 ACTUAL RESULTS
-FAIL
-Works most of the time but sometimes nothing shows up after hitting '.'
+PASS

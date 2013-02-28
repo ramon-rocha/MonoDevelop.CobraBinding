@@ -174,10 +174,11 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 		"""
 		if key == Gdk.Key.Return or key == Gdk.Key.KP_Enter
 			if .document and .document.parsedDocument
+				line = .editor.caret.line - 1
+				prevLineText  = .editor.getLineText(line) ? ""
+				col = prevLineText.length + 1
 				for fold in .document.parsedDocument.foldings
 					if fold.type == FoldType.Comment
-						line = .editor.caret.line - 1
-						col = .editor.caret.column + 3
 						if fold.region.isInside(line, col)
 							fold.region = _resizeNonCodeRegion(fold.region)
 		
@@ -376,14 +377,30 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 		"""
 		Returns true if the cursor is inside a comment region.
 		"""
-		line = context.triggerLine
-		col = context.triggerLineOffset
-		if line < 1, line = 1
-		if col < 0, col = 0
-		
-		lineText = .editor.document.getLineText(line) ? ""
-		
-		return _isInsideComment(line, col, lineText, .document.parsedDocument.foldings)
+		require
+			.editor <> nil
+			.document <> nil
+			.document.parsedDocument <> nil
+		body
+			line = context.triggerLine
+			col = context.triggerLineOffset
+			if line < 1, line = 1
+			if col < 0, col = 0
+			
+			lineText = .editor.getLineText(line) ? ""
+			
+			if _isInsideComment(line, col, lineText, .document.parsedDocument.foldings)
+				return true
+				
+			# handle corner case with empty doc strings
+			prevLineText = .editor.getLineText(line - 1) ? ""
+			nextLineText = .editor.getLineText(line + 1) ? ""
+			if prevLineText.endsWith('"""') and nextLineText.endsWith('"""')
+				return true
+			else if prevLineText.endsWith("'''") and nextLineText.endsWith("'''")
+				return true
+			
+			return false
 	
 	def _isInsideComment(line as int, col as int, lineText as String, foldings as IEnumerable<of FoldingRegion>) as bool
 		"""

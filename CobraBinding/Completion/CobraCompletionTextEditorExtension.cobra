@@ -177,7 +177,7 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 				for fold in .document.parsedDocument.foldings
 					if fold.type == FoldType.Comment
 						line = .editor.caret.line - 1
-						col = .editor.caret.column
+						col = .editor.caret.column + 3
 						if fold.region.isInside(line, col)
 							fold.region = _resizeNonCodeRegion(fold.region)
 		

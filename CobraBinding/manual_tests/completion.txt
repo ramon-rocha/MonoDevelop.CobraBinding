@@ -17,9 +17,7 @@ EXPECTED RESULTS
 No completion proprosal inside a doc string
 
 ACTUAL RESULTS
-FAIL
-Modifying existing text in a doc string works but entering
-new lines that push down the closing doc string tag does not work.
+PASS
 
 ---
 
@@ -30,7 +28,7 @@ EXPECTED RESULTS
 No completion proposal inside a string literal
 
 ACTUAL RESULTS
-FAIL
+PASS
 
 ---
 
@@ -42,7 +40,7 @@ Shared members of String class are displayed
 
 ACTUAL RESULTS
 FAIL
-All members of the String class are displayed, not just shared ones.
+No members of the String class are displayed
 
 ---
 

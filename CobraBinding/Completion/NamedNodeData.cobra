@@ -50,7 +50,7 @@ class NamedNodeData inherits CompletionData
 		if _node inherits Box
 			if _node.isGeneric
 				tagPos = _node.name.indexOf(c'<')
-				return _node.name.substring(0, tagPos) + "<of "
+				return _node.name.substring(0, tagPos) + "<of"
 				
 		return _node.name
 	

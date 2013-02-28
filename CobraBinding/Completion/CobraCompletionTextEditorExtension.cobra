@@ -250,9 +250,6 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 
 		containingRegions = .getContainingRegions(line, col, regionMap.values)
 		
-		if containingRegions.count == 0
-			print "[line],[col] is not in any region"
-		
 		completionData = CompletionDataList()
 		preceedingText = lineText.substring(0, .editor.caret.column - 2)
 		print "preceedingText = [preceedingText]"
@@ -561,24 +558,35 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 		line.
 		"""
 		require
-			.document.editor.document <> nil
+			.editor <> nil
+			.editor.document <> nil
 			region.beginLine > 0
 		ensure
 			result.beginLine == region.beginLine
 			result.endLine >= region.endLine
 		body
-			textDoc = .document.editor.document
+			textDoc = .editor.document
+			beginText = textDoc.getLineText(region.beginLine) ? ""
+			minIndentLevel = _getIndentLevel(beginText)
 			fromLine = region.endLine + 1
-			untilLine = textDoc.lineCount + 1
+			untilLine = textDoc.lineCount
 			
 			for line in fromLine:untilLine
 				text = textDoc.getLineText(line)
-				if text <> nil and text.trim.length > 0
+				if text <> nil _
+				and text.trim.length <> 0 _
+				and _getIndentLevel(text to !) <= minIndentLevel
 					break
+			
+			if line == textDoc.lineCount
+				# special case for end of document
+				col = Int32.maxValue
+			else
+				col = 0
 			
 			extendedRegion = DomRegion(region.fileName, _
 			region.beginLine, region.beginColumn, _
-			line, 0)
+			line, col)
 			
 			return extendedRegion
 
@@ -872,7 +880,6 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 			
 			try
 				node = nodeMap[region]
-				print node
 			catch
 				print "ERROR! Couldn't resolve region to node: [region.toString]"
 				return dataList

@@ -116,6 +116,10 @@ class CobraModuleVisitor inherits Cobra.Core.Visitor
 	def visit(m as AbstractMethod)
 		_addRegion(m)
 		
+	def visit(i as Initializer)
+		if not i.isImplicit
+			_addRegion(i)
+		
 	def visit(p as Property)
 		if p.getPart <> nil
 			_addRegion(p.getPart to !)

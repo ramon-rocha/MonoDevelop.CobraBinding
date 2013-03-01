@@ -536,11 +536,22 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 		"""
 		Extends the code regions in the given dictionaries to include blank lines.
 		"""
+		require .ast <> nil
+		
 		extendedRegionMap = Dictionary<of ISyntaxNode, DomRegion>()
 		
 		for node, region in regionMap
 			
 			extendedRegion = _extendRegion(region)
+			
+			if extendedRegion.beginLine == 1 and extendedRegion.endColumn == Int32.maxValue
+				if node is not .ast.topNameSpace
+					# special case to make sure the top-level namespace
+					# for the module encompasses all other regions
+					extendedRegion = DomRegion(region.fileName,
+					extendedRegion.beginLine, extendedRegion.beginColumn,
+					extendedRegion.endLine, Int32.maxValue - 1)
+			
 			extendedRegionMap[node] = extendedRegion
 			
 			idMap as Dictionary<of String, INamedNode>? = nil

@@ -581,7 +581,7 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 		body
 			textDoc = .editor.document
 			beginText = textDoc.getLineText(region.beginLine) ? ""
-			minIndentLevel = _getIndentLevel(beginText)
+			minIndentLevel = .ParserAlias.getIndentLevel(beginText)
 			fromLine = region.endLine + 1
 			untilLine = textDoc.lineCount
 			
@@ -589,7 +589,7 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 				text = textDoc.getLineText(line)
 				if text <> nil _
 				and text.trim.length <> 0 _
-				and _getIndentLevel(text to !) <= minIndentLevel
+				and .ParserAlias.getIndentLevel(text to !) <= minIndentLevel
 					break
 			
 			if line == textDoc.lineCount
@@ -603,14 +603,7 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 			line, col)
 			
 			return extendedRegion
-
-	def _getIndentLevel(line as String) as int
-		"""
-		Returns the number of indents for the given line.
-		"""
-		# Crap!  This function already exists in Parser.  Shouldn't be repeated here.
-		return line.length - line.trimStart.length
-
+	
 	
 	def _isInsideString(context as CodeCompletionContext) as bool
 		"""
@@ -894,3 +887,9 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 					return r
 			
 			throw FallThroughException()
+
+		class ParserAlias inherits MonoDevelop.CobraBinding.TypeSystem.Parser
+			"""
+			This is just to avoid a name conflict.
+			"""
+			pass

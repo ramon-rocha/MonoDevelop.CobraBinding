@@ -400,46 +400,6 @@ class CompilerManager
 				
 			return results
 
-	def parse(fileName as String, source as String) as dynamic
-		"""
-		Invokes the Cobra parser on the given source code and returns
-		the resulting CobraModule.  If a parser error occurs, this
-		method returns a ParserException.  It's up to the caller
-		to determine the type of the returned object.
-		"""
-		test successfulParse
-			cm = CompilerManager.instance
-			
-			fileName = "hello.cobra"
-			source = "class Hello\n\tdef main\n\t\tprint 'Hello, World!'\n"
-			
-			module = cm.parse(fileName, source)
-			
-			assert module inherits CobraModule
-			d = module.topNameSpace.declsInOrder[0]
-			assert d inherits Class
-			assert d.idToken.text == "Hello"
-		test parserError
-			cm = CompilerManager.instance
-			
-			fileName = "error.cobra"
-			source = "class Hello\n\tdef main\n"
-			
-			err = cm.parse(fileName, source)
-			
-			assert err inherits ParserException
-			assert err.lineNum == 2
-			assert err.colNum == 10
-			assert err.message == 'Missing method body for "main".'
-		body
-			lock _theConch
-				compiler = __createCompiler
-				parser = __createParser(compiler)
-				try
-					return parser.parseSource(fileName, source)
-				catch ex as ParserException
-					return ex
-
 
 	shared
 		def readTestData(folder as String) as Dictionary<of String, String>

@@ -524,9 +524,9 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 			while i < regions.count
 				region = regions[i]
 				if region.beginLine > innermostBeginLine
-					innermostBeginLine = region.beginLine
 					node = nodeMap[region]
 					if node inherits Box
+						innermostBeginLine = region.beginLine
 						containingBox = node
 				i += 1
 			return containingBox

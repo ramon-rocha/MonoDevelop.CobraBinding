@@ -251,9 +251,12 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 		containingRegions = .getContainingRegions(line, col, regionMap.values)
 		
 		completionData = CompletionDataList()
-		preceedingText = lineText.substring(0, .editor.caret.column - 2)
-		print "preceedingText = [preceedingText]"
-		print "completionChar = [completionChar]\n"
+		if .editor.caret.column - 2 > 0
+			preceedingText = lineText.substring(0, .editor.caret.column - 2)
+		else
+			preceedingText = ""
+		#print "preceedingText = [preceedingText]"
+		#print "completionChar = [completionChar]\n"
 		
 		if completionChar == c'_' _
 		and (preceedingText.endsWith(' ') or preceedingText.endsWith('\t') or preceedingText.length == 0)
@@ -284,7 +287,7 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 					for pos in preceedingText.length - 1 : 0 : -1
 						if preceedingText[pos] == c'(', break
 					preceedingText = preceedingText.substring(0, pos)
-					print "new preceedingText = [preceedingText]\n"
+					#print "new preceedingText = [preceedingText]\n"
 				
 				ids = _getIdsFromText(preceedingText)
 				
@@ -821,147 +824,46 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 				print "Add a case for [parent.typeForReceiver.toString]\n"
 		
 		throw ArgumentException()
-				
-			
-	def _getTopLevelCompletionData(preceedingText as String, currText as String) as ICompletionDataList
-		"""
-		Returns completion data when we are in the context of a namespace and can
-		declare classes, interfaces, etc.
-		
-		TODO: Use RegEx's instead of crossing our fingers and using string literals
-		"""
-		
-		dataList = CompletionDataList()
-		if preceedingText.endsWith("use ")
-			# provide namespaces from explicit references
-			dataList.addRange(_getNamespacesFromProjectRefs)
-			
-		else if preceedingText.endsWith(" is ")
-			dataList.addRange(DataFactory.keywordListFollowingIs)
-				
-		else if preceedingText.endsWith(" as ") or preceedingText.endsWith("= ")
-			dataList.addRange(DataFactory.keywordListCobraTypes)
-			dataList.addRange(DataFactory.keywordListLiterals)
-			dataList.addRange(_getAvailableDecls)
-		
-		else if preceedingText.endsWith(" inherits ")
-			#TODO: return class names
-			dataList.addRange(_getAvailableDecls)
-			
-		else if preceedingText.endsWith(" implements ")
-			#TODO: return interface names
-			dataList.addRange(_getAvailableDecls)
-			
-		else if preceedingText.endsWith(" adds ")
-			#TODO: return mixin names
-			dataList.addRange(_getAvailableDecls)
-			
-		else if preceedingText.endsWith(" has ")
-			#TODO: return attribute names
-			dataList.addRange(_getAvailableDecls)
-			
-		else
-			#TODO finer context
-			dataList.addRange(DataFactory.keywordListTopLevel)
-		
-		return dataList
+	
 
 	def _getCompletionData(region as DomRegion, preceedingText as String, currText as String,
 							nodeMap as Dictionary<of DomRegion, ISyntaxNode>) as ICompletionDataList
 		"""
 		Returns completion data in the context of the given DomRegion.
 		"""
-		require
-			.document
-			.document.parsedDocument
-		body
-			dataList = CompletionDataList()
-			dataList.addRange(_getTopLevelCompletionData(preceedingText, currText))
-			
-			try
-				node = nodeMap[region]
-			catch
-				print "ERROR! Couldn't resolve region to node: [region.toString]"
-				return dataList
-			
-			if node inherits NameSpace
-				# being inside a namespace means we have access to all the classes inside of it
-				if node.name.startsWith("(top")
-					dataList.addRange(_getAvailableDecls)
-				else
-					dataList.addRange(NameSpaceDeclsList(node))
-				
-			else if node inherits Box
-				# being inside a box gives us access to certain keywords
-				dataList.addRange(DataFactory.keywordListInBox)
-				
-			else if node inherits AbstractMethod
-				# being inside a method gives us access to all its local variables and more Cobra keywords
-				dataList.addRange(DataFactory.keywordListInMethod)
-				dataList.addRange(MethodVarsList(node))
-			else
-				print "TODO: handle this type of container: [node.toString]"
-			
-			return dataList
-
-	def _getNamespacesFromProjectRefs as ICompletionDataList
-		"""
-		Returns the namespaces of the types in the current project references
-		"""
-		#TODO do it right with only one namespace level at as time
-		nsList = List<of String>()
 		dataList = CompletionDataList()
 		
-		proj = .document.project to DotNetProject?
-		if proj == nil
-			/# This can happen if we are working on a single file
-			that is not part of a project #/
+		try
+			node = nodeMap[region]
+		catch
+			print "ERROR! Couldn't resolve region to node: [region.toString]"
 			return dataList
 		
-		for r in proj.references
-			for asmFileName in r.getReferencedFileNames(DefaultConfigurationSelector())
-				try
-					asm = System.Reflection.Assembly.loadFile(asmFileName)
-					if asm <> nil
-						for t in asm.getTypes
-							if t.namespace <> nil and t.namespace not in nsList
-								nsList.add(t.namespace)
-				catch ex as Exception
-					# failed to load assembly, just ignore it for now
-					print ex.message
-		
-		for ns in nsList
-			dataList.add(ns, Icons.nameSpace)
+		if node inherits NameSpace
+			# being inside a namespace means we have access to all the classes inside of it
+			if node.name.startsWith("(top")
+				dataList.addRange(DataFactory.keywordListTopLevel)
+				dataList.addRange(DataFactory.keywordListCobraTypes)
+				dataList.addRange(DataFactory.keywordListLiterals)
+				ast = .ast
+				if ast <> nil, dataList.addRange(DataFactory.createModuleDeclsList(ast))
+			else
+				dataList.addRange(NameSpaceDeclsList(node))
+			
+		else if node inherits Box
+			# being inside a box gives us access to certain keywords
+			dataList.addRange(DataFactory.keywordListInBox)
+			
+		else if node inherits AbstractMethod
+			# being inside a method gives us access to all its local variables and more Cobra keywords
+			dataList.addRange(DataFactory.keywordListInMethod)
+			dataList.addRange(MethodVarsList(node))
+		else
+			print "TODO: handle this type of container: [node.toString]"
 		
 		return dataList
-		
-	def _getAvailableDecls as ICompletionDataList
-		"""
-		Returns all declarations visible in the current context.
-		"""
-		require
-			.document
-			.document.parsedDocument
-		body
-			dataList = CompletionDataList()
-			ast = .ast
-			
-			if ast == nil
-				return dataList
-			
-			dataList.addRange(NameSpaceDeclsList(ast.topNameSpace))
-			
-			for useStmt in ast.topNameSpace.useDirectives
-				try
-					if not useStmt.didBindUse, useStmt.bindUse
-					if useStmt.boundNameSpace <> nil
-						ns = useStmt.boundNameSpace to !
-						dataList.addRange(NameSpaceDeclsList(ns))
-				catch
-					print "Failed to get bind use or get decls from [useStmt.toString]\n"
-			
-			return dataList
-		
+	
+
 	shared
 		def createTestData as CobraModule
 			"""

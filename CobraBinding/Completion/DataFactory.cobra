@@ -102,6 +102,7 @@ class DataFactory
 			"body",
 			
 			"print",
+			"pass",
 			"lock",
 			"using",
 			"try",
@@ -192,3 +193,24 @@ class DataFactory
 		def createNameSpaceDeclsList(nameSpace as NameSpace) as NameSpaceDeclsList
 			return NameSpaceDeclsList(nameSpace)
 		
+		def createModuleDeclsList(ast as CobraModule) as CompletionDataList
+			"""
+			Returns all declarations that are visible in the context of the given
+			Cobra module.
+			
+			TODO: Cache completion lists from implict use statements.  They don't change.
+			"""
+			dataList = CompletionDataList()
+			
+			topNs = ast.topNameSpace
+			dataList.addRange(NameSpaceDeclsList(topNs))
+			
+			for useStmt in topNs.useDirectives
+				try
+					if not useStmt.didBindUse, useStmt.bindUse
+					ns = useStmt.boundNameSpace
+					if ns <> nil, dataList.addRange(NameSpaceDeclsList(ns))
+				catch ex as Exception
+					trace ex.message
+			
+			return dataList

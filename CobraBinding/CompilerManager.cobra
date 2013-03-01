@@ -200,6 +200,11 @@ class CompilerManager
 							assert ex.lineNum == 2
 							assert ex.colNum == 1
 							assert ex.message == 'Unexpected indent.'
+							
+						on "MixedTabsAndSpaces.cobra"
+							assert ex.lineNum == 2
+							assert ex.colNum == 1
+							assert ex.message == ns'Cannot mix tabs and spaces in indentation. [TAB][SPACE][SPACE][SPACE][SPACE]...'
 
 						else
 							# unhandled file, a case should be added for it
@@ -306,7 +311,9 @@ class CompilerManager
 						compiler.modules.add(m)
 						
 					catch ex as SourceException
-						results.add(ex)
+						for e in compiler.errors
+							results.add(e)
+				
 				
 				if compiler.errors.count == 0
 					# BindUsePhase

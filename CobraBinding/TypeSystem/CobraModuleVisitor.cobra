@@ -112,20 +112,33 @@ class CobraModuleVisitor inherits Cobra.Core.Visitor
 	def visit(b as Box)
 		_addRegion(b)
 		.dispatch(b.declsInOrder)
+		.dispatch(b.testMethods)
 
 	def visit(m as AbstractMethod)
 		_addRegion(m)
+		.dispatch(m.testMethods)
 		
 	def visit(i as Initializer)
 		if not i.isImplicit
 			_addRegion(i)
+			.dispatch(i.testMethods)
 		
 	def visit(p as Property)
+		if p.getPart <> nil and p.setPart <> nil
+			if p.getPart.token == p.setPart.token
+				# (e.g. pro someProperty from var)
+				return
+	
 		if p.getPart <> nil
 			_addRegion(p.getPart to !)
+			.dispatch(p.getPart.testMethods)
 
-		if p.setPart <> nil
+		else if p.setPart <> nil
 			_addRegion(p.setPart to !)
+			.dispatch(p.setPart.testMethods)
+		
+		.dispatch(p.testMethods)
+		
 
 	def visit(n as INode)
 		"""

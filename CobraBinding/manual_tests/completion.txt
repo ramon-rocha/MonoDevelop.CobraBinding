@@ -17,9 +17,7 @@ EXPECTED RESULTS
 No completion proprosal inside a doc string
 
 ACTUAL RESULTS
-FAIL
-Occasionally still include completion proposals.
-Cannot reproduce consistently.
+PASS
 
 ---
 

@@ -179,7 +179,7 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 				col = prevLineText.length + 1
 				for fold in .document.parsedDocument.foldings
 					if fold.type == FoldType.Comment
-						if fold.region.isInside(line, col)
+						if fold.region.beginLine == line or fold.region.isInside(line, col)
 							fold.region = _resizeNonCodeRegion(fold.region)
 		
 		# Returns true if the key that was pressed should be processed by this extension or not.

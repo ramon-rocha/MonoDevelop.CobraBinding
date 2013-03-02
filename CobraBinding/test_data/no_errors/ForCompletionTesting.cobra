@@ -100,7 +100,7 @@ class First
 		
 		get __privateSharedProperty from publicSharedVar
 		get _protectedSharedProperty from publicSharedVar
-		pro publicSharedProeprty from publicSharedVar
+		pro publicSharedProperty from publicSharedVar
 		
 		def sharedMethod
 			pass

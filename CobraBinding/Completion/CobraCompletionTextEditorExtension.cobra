@@ -516,6 +516,28 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 		require
 			regions.count > 0
 			all for region in regions get nodeMap.containsKey(region)
+		test
+			ast = .createTestData
+			visitor = CobraModuleVisitor()
+			visitor.visit(ast)
+			
+			ext = CobraCompletionTextEditorExtension()
+			nodeMap = ext._createNodeMap(visitor.regionMap)
+			
+			regions = List<of DomRegion>()
+			for r in visitor.regionMap.values
+				regions.add(r)
+			
+			b = ext._getContainingBox(regions, nodeMap)
+			assert b.name == "Program"
+			
+			regions.remove(visitor.regionMap[b])
+			b = ext._getContainingBox(regions, nodeMap)
+			assert b.name.startsWith("Ninth")
+			
+			regions.remove(visitor.regionMap[b])
+			b = ext._getContainingBox(regions, nodeMap)
+			assert b.name.startsWith("Eighth")
 		body
 			containingBox as Box? = nil
 			innermostBeginLine = 0

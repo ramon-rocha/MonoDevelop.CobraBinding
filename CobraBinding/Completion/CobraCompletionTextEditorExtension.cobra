@@ -712,8 +712,9 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 	
 	
 	shared
+		# matches a valid identifier or the string "[]"
 		var rexIdentifier = Regex( _
-			r'[_a-zA-z0-9]*', _
+			r'[_a-zA-z][_a-zA-z0-9]*|\[\]', _
 			RegexOptions.Compiled _
 		)
 
@@ -724,21 +725,137 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 		For example, given "foo = SomeSharedClass.someProp.", then this
 		method would return ['SomeSharedClass', 'someProp'].
 		"""
-		test
+		test basics
+			ext = CobraCompletionTextEditorExtension()
+			sampleText = "foo = "
+			ids = ext._getIdsFromText(sampleText)
+			assert ids.count == 0
+			
 			sampleText = "foo = SomeSharedClass.someProp."
-			completionExtension = CobraCompletionTextEditorExtension()
-			ids = completionExtension._getIdsFromText(sampleText)
+			ids = ext._getIdsFromText(sampleText)
 			assert ids.count == 2
 			assert ids[0] == "SomeSharedClass"
 			assert ids[1] == "someProp"
+			
+			sampleText = "foo = .someProp."
+			ids = ext._getIdsFromText(sampleText)
+			assert ids.count == 1
+			assert ids[0] == "someProp"
+		test openParenthesis
+			ext = CobraCompletionTextEditorExtension()
+			sampleText = "foo = .someMethod(aParam"
+			ids = ext._getIdsFromText(sampleText)
+			assert ids.count == 1
+			assert ids[0] == "aParam"
+			
+			sampleText = "foo = .someMethod(aParam, anotherParam"
+			ids = ext._getIdsFromText(sampleText)
+			assert ids.count == 1
+			assert ids[0] == "anotherParam"
+		test closedParenthesis
+			ext = CobraCompletionTextEditorExtension()
+			sampleText = "foo = .someMethod(aParam)."
+			ids = ext._getIdsFromText(sampleText)
+			assert ids.count == 1
+			assert ids[0] == "someMethod"
+			
+			sampleText = "foo = .someMethod(aParam).toString"
+			ids = ext._getIdsFromText(sampleText)
+			assert ids.count == 2
+			assert ids[0] == "someMethod"
+			assert ids[1] == "toString"
+			
+			sampleText = "foo = .someMethod(aParam).toString.replace(stringVar"
+			ids = ext._getIdsFromText(sampleText)
+			assert ids.count == 1
+			assert ids[0] == "stringVar"
+			
+			sampleText = "foo = .someMethod(aParam).toString.replace(stringVar, anotherStringVar)"
+			ids = ext._getIdsFromText(sampleText)
+			assert ids.count == 3
+			assert ids[0] == "someMethod"
+			assert ids[1] == "toString"
+			assert ids[2] == "replace"
+		test openBracket
+			ext = CobraCompletionTextEditorExtension()
+			sampleText = ns'foo = someArray[index'
+			ids = ext._getIdsFromText(sampleText)
+			assert ids.count == 1
+			assert ids[0] == "index"
+			
+			sampleText = ns'foo = "hello [bar'
+			ids = ext._getIdsFromText(sampleText)
+			assert ids.count == 1
+			assert ids[0] == "bar"
+		test closedBracket
+			ext = CobraCompletionTextEditorExtension()
+			sampleText = ns'foo = someArray[index].'
+			ids = ext._getIdsFromText(sampleText)
+			assert ids.count == 2
+			assert ids[0] == "someArray"
+			assert ids[1] == ns'[]'
+			
+			sampleText = ns'foo = someArray[index].someProp'
+			ids = ext._getIdsFromText(sampleText)
+			assert ids.count == 3
+			assert ids[0] == "someArray"
+			assert ids[1] == ns'[]'
+			assert ids[2] == "someProp"
+		test parenthesisAndBracks
+			ext = CobraCompletionTextEditorExtension()
+			sampleText = ns'foo = someArray[index].someMethod(aParam).aProp[bar'
+			ids = ext._getIdsFromText(sampleText)
+			assert ids.count == 1
+			assert ids[0] == "bar"
+			
+			sampleText = ns'foo = someArray[index].someMethod(aParam).aProp[bar].'
+			ids = ext._getIdsFromText(sampleText)
+			assert ids.count == 5
+			assert ids[0] == "someArray"
+			assert ids[1] == ns'[]'
+			assert ids[2] == "someMethod"
+			assert ids[3] == "aProp"
+			assert ids[4] == ns'[]'
 		body
-			ids = List<of String>()
 			text = text.trim
-
+			
+			startIndex = 0
+			openIndex = text.indexOf(c'(', startIndex)
+			while openIndex >= 0 and openIndex < text.length
+				closeIndex = text.indexOf(c')', openIndex + 1)
+				if closeIndex >= 0
+					# we have a matching pair of parenthesis, remove them and the text they surround
+					removeCount = closeIndex - openIndex + 1
+					text = text.remove(openIndex, removeCount)
+					startIndex = openIndex
+				else if openIndex < text.length - 1
+					# we have an unmatched opening parenthesis with some trailing text, remove the preceeding text
+					text = text.substring(openIndex + 1)
+					startIndex = 0
+				openIndex = text.indexOf(c'(', startIndex)
+			
+			startIndex = 0
+			openIndex = text.indexOf(c'[', startIndex)
+			while openIndex >= 0 and openIndex < text.length
+				closeIndex = text.indexOf(c']', openIndex + 1)
+				if closeIndex >= 0
+					# we have a matching pair of brackets, replace them and their contents with ".[]."
+					# that way, it will resolve to the indexer member of the parent correctly
+					removeCount = closeIndex - openIndex + 1
+					textToReplace = text.substring(openIndex, removeCount)
+					text = text.replace(textToReplace, ns'.[].')
+					startIndex = openIndex + 4
+				else if openIndex < text.length - 1
+					# we have an unmatched opening bracket with some trailing text, remove the preceeding text
+					text = text.substring(openIndex + 1)
+					startIndex = 0
+				openIndex = text.indexOf(c'[', startIndex)
+			
 			# split the text by whitespace
 			pieces = text.split
 			lastPiece = pieces[pieces.length - 1]
-
+			ids = List<of String>()
+			
 			match = CobraCompletionTextEditorExtension.rexIdentifier.match(lastPiece)
 			while match.success
 				if match.value.length > 0

@@ -17,7 +17,9 @@ EXPECTED RESULTS
 No completion proprosal inside a doc string
 
 ACTUAL RESULTS
-PASS
+FAIL
+Occasionally still include completion proposals.
+Cannot reproduce consistently.
 
 ---
 
@@ -39,8 +41,7 @@ EXPECTED RESULTS
 Shared members of String class are displayed
 
 ACTUAL RESULTS
-FAIL
-No members of the String class are displayed
+PASS
 
 ---
 
@@ -76,7 +77,8 @@ EXPECTED RESULTS
 Public non-shared members of the Int32 class are displayed
 
 ACTUAL RESULTS
-PASS
+FAIL
+Shared members are included for instances, but this may be a Cobra.Compiler issue.
 
 ---
 
@@ -88,8 +90,7 @@ EXPECTED RESULTS
 Public non-shared members of the String class are displayed
 
 ACTUAL RESULTS
-FAIL
-Only a single call works. Multiple calls on one line fail to return the correct completion data.
+PASS
 
 ---
 

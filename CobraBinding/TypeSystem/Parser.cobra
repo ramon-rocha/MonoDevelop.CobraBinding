@@ -36,6 +36,13 @@ class Parser implements ITypeSystemParser, IFoldingParser
 		source = content.readToEnd
 		if source == nil, source = ""
 		
+		/# Ignore type system parse requests for files that aren't open.  This is for
+		performance reasons.  If we were serializing and saving type system information,
+		maybe we wouldn't do this.  Instead, we just return folds for these requests. #/
+		workbench = MonoDevelop.Ide.IdeApp.workbench
+		if workbench == nil, return .parse(fileName, source)
+		if workbench.getDocument(fileName) == nil, return .parse(fileName, source)
+		
 		sourceMap = Dictionary<of String, String>()
 		sourceMap[fileName] = source to !
 		

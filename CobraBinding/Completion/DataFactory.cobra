@@ -170,7 +170,13 @@ class DataFactory
 			Returns a single entry to be added to a completion data list for the given AST node.
 			"""
 			return NamedNodeData(node)
-			
+		
+		def createEnumMembersList(e as EnumDecl) as CompletionDataList
+			data = CompletionDataList()
+			for d in e.declsInOrder
+				data.add(NamedNodeData(d))
+			return data
+		
 		def createBoxMembersList(box as Box) as BoxMembersList
 			return BoxMembersList(box)
 			

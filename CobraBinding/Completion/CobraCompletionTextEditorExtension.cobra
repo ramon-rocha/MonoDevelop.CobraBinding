@@ -266,6 +266,9 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 			node = _getContainingBox(containingRegions, nodeMap)
 			if node inherits Box
 				return BoxMembersList(node)
+			else
+				print "Container does not inherit Box : [node]"
+				return nil
 		
 		else if completionChar == c'.'
 			# member completion
@@ -278,72 +281,48 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 				node = _getContainingBox(containingRegions, nodeMap)
 				if node inherits Box
 					return BoxMembersList(node)
+				else
+					print "Container does not inherit Box : [node]"
+					return nil
 			else
 				# return fields and methods for the corresponding node
+				node = _resolveTextToNode(preceedingText, containingRegions, symbolTable)
+				if node == nil, return nil
 				
-				if preceedingText.endsWith(")")
-					# try to backtrack to the opening parenthesis
-					# TODO: handle.multiple(calls).and(more, cases).likeThis
-					for pos in preceedingText.length - 1 : 0 : -1
-						if preceedingText[pos] == c'(', break
-					preceedingText = preceedingText.substring(0, pos)
-					#print "new preceedingText = [preceedingText]\n"
-				
-				ids = _getIdsFromText(preceedingText)
-				
-				try
-					node = _getNodeFromIds(ids, containingRegions, symbolTable)
-					typ as Cobra.Compiler.IType? = nil
+				if node inherits NameSpace
+					completionData.addRange(NameSpaceDeclsList(node))
+				else
+					typ = _getTypeForMemberCompletion(node to !)
+					if typ == nil, return nil
 					
-					if node inherits NameSpace
-						completionData.addRange(NameSpaceDeclsList(node))
+					members as ICompletionDataList? = nil
 					
-					else if node inherits AbstractLocalVar
-						# this could be a method parameter or local variable
-						typ = node.type
-					
-					else if node implements Cobra.Compiler.IMember
-						# this is a box/namespace member
-						typ = node.resultType
-					
-					if typ <> nil
-						if typ inherits NilableType
-							typ = typ.nonNil
-						
-						if typ inherits PrimitiveType
-							typ = typ.box
-						else if typ inherits Cobra.Compiler.ArrayType
-							typ = typ.box
-							
-						members as ICompletionDataList? = nil
-						
-						if typ inherits Box
-							if node inherits NamedNode
-								if node.name.isCapitalized
-									# probably a class so only provide shared members
-									members = DataFactory.createBoxSharedMembersList(typ)
-								else
-									# probably a field or method
-									members = DataFactory.createBoxInstanceMembersList(typ)
+					if typ inherits Box
+						if node inherits NamedNode
+							if node.name.isCapitalized
+								# probably a class so only provide shared members
+								members = DataFactory.createBoxSharedMembersList(typ)
 							else
-								# a literal or something else we can probably treat as an instance...right?
-								print "this is unexpected. [node] does not inherit NamedNode\n"
+								# probably a field or method
 								members = DataFactory.createBoxInstanceMembersList(typ)
 						else
-							print "typ does not inherit Box. typ = [typ]\n"
-							
-						if members <> nil, completionData.addRange(members)
+							# a literal or something else we can probably treat as an instance...right?
+							print "this is unexpected. [node] does not inherit NamedNode\n"
+							members = DataFactory.createBoxInstanceMembersList(typ)
+					else if typ inherits EnumDecl
+						if node inherits NamedNode
+							if node.name.isCapitalized
+								return DataFactory.createEnumMembersList(typ)
+							else
+								return nil
 					else
-						print "[node] does not inherit AbstractLocalVar and does not implement Cobra.Compiler.IMember\n"
-					
-					print "should be displaying members for [node]\n"
-					return completionData
-					
-				catch ArgumentException
-					# not a valid identifier
-					print "couldn't resolve [ids] to a node\n"
-					return nil
-					
+						print "typ does not inherit Box or EnumDecl. typ = [typ]\n"
+						return nil
+						
+					if members <> nil, completionData.addRange(members)
+				
+				print "should be displaying members for [node]\n"
+				return completionData
 		else
 			# do this so that the letter just typed is considered part of the word to complete
 			while col > 0 and lineText[col - 1] not in @[c'\t', c' ', c'[', c'(']
@@ -366,6 +345,50 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 			return completionData
 		else
 			return nil
+
+
+	def _resolveTextToNode(text as String, containingRegions as List<of DomRegion>,
+		symbolTable as Dictionary<of DomRegion, Dictionary<of String, INamedNode>?>) as ISyntaxNode?
+		"""
+		Parses the given line of text and returns the corresponding node from the AST.
+		"""
+		ids = _getIdsFromText(text)
+		try
+			return _getNodeFromIds(ids, containingRegions, symbolTable)
+			
+		catch ArgumentException
+			# not a valid identifier
+			print "couldn't resolve [ids] to a node\n"
+			return nil
+			
+			
+	def _getTypeForMemberCompletion(node as ISyntaxNode) as Cobra.Compiler.IType?
+		"""
+		Given a node, returns the type whose members should be used to generate the
+		list of completion data.
+		"""
+		typ as Cobra.Compiler.IType? = nil
+		
+		if node inherits AbstractLocalVar
+			# this could be a method parameter or local variable
+			typ = node.type
+		
+		else if node implements Cobra.Compiler.IMember
+			# this is a box/namespace member
+			typ = node.resultType
+		
+		if typ <> nil
+			if typ inherits NilableType
+				typ = typ.nonNil
+			
+			if typ inherits PrimitiveType
+				typ = typ.box
+			else if typ inherits Cobra.Compiler.ArrayType
+				typ = typ.box
+		else
+			print "[node] does not inherit AbstractLocalVar and does not implement Cobra.Compiler.IMember\n"
+				
+		return typ
 
 
 	def handleParameterCompletion(context as CodeCompletionContext?, completionChar as char) _

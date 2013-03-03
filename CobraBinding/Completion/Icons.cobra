@@ -20,6 +20,7 @@ class Icons
 			Literal : [Gui.Stock.literal],
 			NameSpace : [Gui.Stock.nameSpace],
 			EnumDecl : [Gui.Stock.enum, Gui.Stock.protectedEnum, Gui.Stock.privateEnum, Gui.Stock.internalEnum],
+			EnumMember : [Gui.Stock.literal],
 			Struct : [Gui.Stock.struct, Gui.Stock.protectedStruct, Gui.Stock.privateStruct, Gui.Stock.internalStruct],
 			Interface : [Gui.Stock.interface, Gui.Stock.protectedInterface, Gui.Stock.privateInterface, Gui.Stock.internalInterface],
 			Class : [Gui.Stock.class, Gui.Stock.protectedClass, Gui.Stock.privateClass, Gui.Stock.internalClass],
@@ -54,6 +55,7 @@ class Icons
 			"""
 			try
 				listOfIcons = _icons[node.getType]
+				if listOfIcons.count == 1, return listOfIcons[_defaultIcon]
 			catch
 				# not handled yet
 				print "TODO: Add '[node.getType]' to _icons dictionary in MonoDevelop.CobraBinding.Completion.Icons class"							

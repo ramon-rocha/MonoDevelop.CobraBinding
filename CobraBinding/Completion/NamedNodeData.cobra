@@ -102,6 +102,13 @@ class NamedNodeData inherits CompletionData
 					_description = "[_node.parentNameSpace.fullName].[_node.name]"
 					if not String.isNullOrEmpty(_node.docString)
 						_description += "\n[_node.docString]"
+						
+				else if _node inherits EnumMember
+					if _node.value == nil
+						# no need to include tooltip because the user has already typed the EnumDecl name
+						_description = ""
+					else
+						_description = "[_node.resultType.name] (value = [_node.value])"
 				else
 					_description = _node.getType.assemblyQualifiedName
 			catch ex as Exception

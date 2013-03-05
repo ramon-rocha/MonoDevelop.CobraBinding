@@ -9,37 +9,36 @@
 	<Property name="StringQuote">'</Property>
 	
 	<!-- Numbers -->
-	<Match color="constant.digit">(?:[0-9]+_?)+(?:\.[0-9]+)?</Match>
+	<Match color="Number">(?:[0-9]+_?)+(?:\.[0-9]+)?</Match>
 	
 	<!-- Array Literals -->
 	<Rule name="Comma">
-		<Match color="text">,</Match>
+		<Match color="Plain Text">,</Match>
 	</Rule>
 	
-	<Span color="constant.digit" rule="Comma" tagColor="constant">
+	<Span color="Number" rule="Comma" tagColor="Keyword(Type)">
 		<Begin>@[</Begin>
 		<End>]</End>
 	</Span>
 	
 	<!-- Compiler directives -->
 	<Rule name="CompilerDirective">
-		<Keywords color="text.preprocessor.keyword">
+		<Keywords color="Preprocessor Keyword">
 			<Word>args</Word>
-			<Word>ref</Word>
 			<Word>help</Word>
 			<Word>error</Word>
 			<Word>warning</Word>
 		</Keywords>
 	</Rule>
 	
-	<Span color="text.preprocessor.keyword" rule="CompilerDirective" tagColor="text.preprocessor" stopAtEol="True">
+	<Span color="Preprocessor Keyword" rule="CompilerDirective" tagColor="Preprocessor" stopAtEol="True">
 		<Begin startsLine="True" firstNonWs="True">@</Begin>
 		<End> </End>
 	</Span>
 
 	<!-- Comments and doc strings -->
 	<Rule name="Comment">
-		<Keywords color="comment.keyword.todo" ignorecase="True">
+		<Keywords color="Comment Tag" ignorecase="True">
 			<Word>TODO</Word>
 			<Word>to-do</Word>
 			<Word>FIXME</Word>
@@ -47,77 +46,77 @@
 		</Keywords>
 	</Rule>
 	
-	<EolSpan color="comment.line" rule="Comment" tagColor="comment.tag.line">#</EolSpan>
+	<EolSpan color="Comment(Line)" rule="Comment">#</EolSpan>
 	
-	<Span color="comment.block" rule="Comment" tagColor="comment.tag.block">
+	<Span color="Comment(Block)" rule="Comment">
 		<Begin>/#</Begin>
 		<End>#/</End>
 	</Span>
 	
-	<Span color="comment.doc" rule="Comment" tagColor="comment.tag.doc">
+	<Span color="Comment(Doc)" rule="Comment">
 		<Begin>"""</Begin>
 		<End>"""</End>
 	</Span>
 
-	<Span color="comment.doc" rule="Comment" tagColor="comment.tag.doc">
+	<Span color="Comment(Doc)" rule="Comment">
 		<Begin>'''</Begin>
 		<End>'''</End>
 	</Span>
 	
 	<!-- Strings -->
-	<Span color="string.single">
+	<Span color="String">
 		<Begin>c'</Begin>
 		<End>'</End>
 	</Span>
 
-	<Span color="string.other">
+	<Span color="String">
 		<Begin>r'</Begin>
 		<End>'</End>
 	</Span>
 	
-	<Span color="string.other">
+	<Span color="String">
 		<Begin>ns'</Begin>
 		<End>'</End>
 	</Span>
 	
 	<Rule name="StringExpr">
-		<Span color="keyword.parameter" tagColor="text.punctuation">
+		<Span color="Keyword(Parameter)" tagColor="Punctuation">
 			<Begin>[</Begin>
 			<End>]</End>
 		</Span>
 	</Rule>
 	
-	<Span color="string" rule="StringExpr">
+	<Span color="String" rule="StringExpr">
 		<Begin>"</Begin>
 		<End>"</End>
 	</Span>
 	
-	<Span color="string" rule="StringExpr">
+	<Span color="String" rule="StringExpr">
 		<Begin>'</Begin>
 		<End>'</End>
 	</Span>
 	
 	<!-- Generics -->
 	<Rule name="Generic">
-		<Span color="keyword.parameter" tagColor="keyword.type" rule="Generic">
+		<Span color="Keyword(Type)" tagColor="Keyword(Selection)" rule="Generic">
 			<Begin>&lt;of </Begin>
 			<End>&gt;</End>
 		</Span>
 	</Rule>
 	
-	<Span color="keyword.parameter" tagColor="keyword.type" rule="Generic">
+	<Span color="Keyword(Type)" tagColor="Keyword(Selection)" rule="Generic">
 		<Begin>&lt;of </Begin>
 		<End>&gt;</End>
 	</Span>
 	
 	<!-- Keywords -->
-	<Keywords color="keyword.namespace">
+	<Keywords color="Keyword(Namespace)">
 		<Word>namespace</Word>
 		<Word>use</Word>
 		<Word>import</Word>
 	</Keywords>
 	
-	<Keywords color="keyword.declaration">
+	<Keywords color="Keyword(Declaration)">
 		<Word>enum</Word>
 		<Word>class</Word>
 		<Word>interface</Word>
@@ -135,13 +134,13 @@
 		<Word>event</Word>
 	</Keywords>
 
-	<Keywords color="keyword.property">
+	<Keywords color="Keyword(Property)">
 		<Word>get</Word>
 		<Word>set</Word>
 		<Word>pro</Word>
 	</Keywords>
 
-	<Keywords color="keyword.modifier">
+	<Keywords color="Keyword(Modifiers)">
 		<Word>public</Word>
 		<Word>protected</Word>
 		<Word>private</Word>
@@ -158,7 +157,7 @@
 		<Word>extern</Word>
 	</Keywords>
 
-	<Keywords color="keyword.context">
+	<Keywords color="Keyword(Context)">
 		<Word>invariant</Word>
 		<Word>require</Word>
 		<Word>ensure</Word>
@@ -168,7 +167,7 @@
 		<Word>lock</Word>
 	</Keywords>
 
-	<Keywords color="keyword.exceptions">
+	<Keywords color="Keyword(Exception)">
 		<Word>try</Word>
 		<Word>catch</Word>
 		<Word>success</Word>
@@ -181,7 +180,7 @@
 		<Word>implies</Word>
 	</Keywords>
 
-	<Keywords color="keyword.selection">
+	<Keywords color="Keyword(Selection)">
 		<Word>if</Word>
 		<Word>else</Word>
 		<Word>branch</Word>
@@ -189,26 +188,26 @@
 		<Word>from</Word>
 	</Keywords>
 
-	<Keywords color="keyword.iteration">
+	<Keywords color="Keyword(Iteration)">
 		<Word>while</Word>
 		<Word>post</Word>
 		<Word>for</Word>
 	</Keywords>
 
-	<Keywords color="keyword.jump">
+	<Keywords color="Keyword(Jump)">
 		<Word>break</Word>
 		<Word>continue</Word>
 		<Word>return</Word>
 		<Word>yield</Word>
 	</Keywords>
 
-	<Keywords color="constant.language">
+	<Keywords color="Keyword(Constants)">
 		<Word>true</Word>
 		<Word>false</Word>
 		<Word>nil</Word>
 	</Keywords>
 
-	<Keywords color="keyword.access">
+	<Keywords color="Keyword(Access)">
 		<Word>base</Word>
 		<Word>this</Word>
 		<Word>result</Word>
@@ -216,7 +215,7 @@
 		<Word>value</Word>
 	</Keywords>
 
-	<Keywords color="keyword.operator">
+	<Keywords color="Keyword(Operator)">
 		<Word>inherits</Word>
 		<Word>implements</Word>
 		<Word>is</Word>
@@ -231,7 +230,7 @@
 		<Word>in</Word>
 	</Keywords>
 
-	<Keywords color="keyword.type">
+	<Keywords color="Keyword(Type)">
 		<Word>bool</Word>
 		<Word>char</Word>
 		<Word>int</Word>
@@ -244,13 +243,13 @@
 		<Word>passthrough</Word>
 	</Keywords>
 
-	<Keywords color="keyword.parameter">
+	<Keywords color="Keyword(Parameter)">
 		<Word>vari</Word>
 		<Word>out</Word>
 		<Word>inout</Word>
 	</Keywords>
 
-	<Keywords color="keyword.misc">
+	<Keywords color="Keyword(Other)">
 		<Word>init</Word>
 		<Word>must</Word>
 		<Word>be</Word>
@@ -260,6 +259,7 @@
 		<Word>off</Word>
 		<Word>pass</Word>
 		<Word>print</Word>
+		<Word>ref</Word>
 		<Word>stop</Word>
 		<Word>listen</Word>
 		<Word>ignore</Word>

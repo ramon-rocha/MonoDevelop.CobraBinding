@@ -9,7 +9,7 @@ use ICSharpCode.NRefactory.TypeSystem
 
 namespace MonoDevelop.CobraBinding.TypeSystem
 
-class Parser inherits AbstractTypeSystemParser implements IFoldingParser
+class Parser inherits TypeSystemParser implements IFoldingParser
 	"""
 	The type system parser provides a ParsedDocument required for adding 
 	information to the type system service to make the file contents available 

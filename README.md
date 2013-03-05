@@ -41,9 +41,9 @@ See below for more details.
 
 Requirements
 ------------
-* .NET Framework 4 or Mono 2.10
+* .NET Framework 4 or Mono 3.0
 
-* MonoDevelop 3.1
+* MonoDevelop 4.0
 
 * Cobra 0.9.2
 

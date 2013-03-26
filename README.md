@@ -33,7 +33,7 @@ for convenience. Just execute...
 
 ...to compile and execute the installation program.
 
-On Windows 7 64-bit with a 32-bit installation of Xamarin Studio, you'll need 
+On Windows 64-bit with a 32-bit installation of Xamarin Studio, you'll need 
 to make sure you've installed Cobra using the '-x86' installer option first.  
 See below for more details.
 
@@ -45,7 +45,7 @@ Requirements
 
 * Cobra svn:2928 (post 0.9.3)
 
-Additional Requirements for Windows 7 64-bit
+Additional Requirements for Windows 64-bit
 --------------------------------------------
 Just skip this whole section if you are not running 64-bit Windows.
 

@@ -14,7 +14,7 @@ To just compile the addin and not install the generated assemblies, do this inst
 
 	cobra install -run-args compile
 
-If you are running on 64-bit Windows 7, include the -clr-platform:x86 option.  See the
+If you are running on 64-bit Windows, include the -clr-platform:x86 option.  See the
 NOTE below or the README.md file for more details.
 
 So what does this program do?  It generates the addin assemblies and copies them
@@ -24,7 +24,7 @@ the addin, the DLL files will be in the bin/Debug folders of each project.
 Once installed, you will be able to create, run, and debug programs written in Cobra
 using MonoDevelop.
 
-NOTE: If you want to be able to use this addin on Windows 7 64-bit, you need to:
+NOTE: If you want to be able to use this addin on Windows 64-bit, you need to:
  * Install (or reinstall) Cobra using the -x86 option
  * Make sure to target your programs for the x86 platform when running
  * Use the .NET runtime if you have .NET 4.5 installed 

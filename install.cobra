@@ -1,6 +1,7 @@
 """
 This is the installation program for the Cobra Language Binding addin for MonoDevelop.
 It is not part of the addin itself and is intended to simplify the initial compilation.
+On Windows and Mac, this program will install the addin for Xamarin Studio instead.
 
 To compile and install the addin, enter the following at the command prompt:
 
@@ -74,9 +75,9 @@ class CobraBindingAddinInstaller
 	]
 	
 	var _winRefsPartialPaths = [
-		r"\MonoDevelop\bin\MonoDevelop.Core.dll",
-		r"\MonoDevelop\bin\MonoDevelop.Ide.dll",
-		r"\MonoDevelop\bin\ICSharpCode.NRefactory.dll",
+		r"\Xamarin Studio\bin\MonoDevelop.Core.dll",
+		r"\Xamarin Studio\bin\MonoDevelop.Ide.dll",
+		r"\Xamarin Studio\bin\ICSharpCode.NRefactory.dll",
 		r"\GtkSharp\2.12\lib\gtk-sharp-2.0\gtk-sharp.dll",
 		r"\GtkSharp\2.12\lib\gtk-sharp-2.0\glib-sharp.dll",
 		r"\GtkSharp\2.12\lib\gtk-sharp-2.0\atk-sharp.dll",
@@ -189,7 +190,8 @@ class CobraBindingAddinInstaller
 		ensure
 			result.endsWith(__s)			
 		body
-			if _isWindows				
+			if _isWindows
+				app = "XamarinStudio"
 				path = Environment.getEnvironmentVariable("LOCALAPPDATA")
 				if path == nil
 					# variable not defined before Vista
@@ -199,11 +201,13 @@ class CobraBindingAddinInstaller
 				home = Environment.getEnvironmentVariable("HOME")
 
 				if CobraCore.isRunningOnMac
+					app = "XamarinStudio"
 					path = "[home]/Library/Application Support"
 				else
+					app = "MonoDevelop"
 					path = "[home]/.local/share"
 			
-			return path + "[__s]MonoDevelop-4.0[__s]LocalInstall[__s]Addins[__s]CobraBinding[__s]"
+			return path + "[__s][app]-4.0[__s]LocalInstall[__s]Addins[__s]CobraBinding[__s]"
 	
 	def getCompilerCmds as List<of Process>
 		"""
@@ -261,23 +265,13 @@ class CobraBindingAddinInstaller
 			# and we'll use cobra to compile the CobraBinding project
 			info = _createProcessStartInfo
 			
-			if CobraCore.isRunningOnMono
-				/#
-				Workaround an inability of Mono to find the dependencies
-				of MonoDevelop.Ide.dll when loaded via reflection.
-				#/
-				if _isWindows
-					info.environmentVariables["MONO_PATH"] = "[progFiles]\\MonoDevelop\\bin"
-				else if CobraCore.isRunningOnMac
-					info.environmentVariables["MONO_PATH"] = "/Applications/MonoDevelop.app/Contents/MacOS/lib/monodevelop/bin"
-					monoDevPkgConfigPath = '/Applications/MonoDevelop.app/Contents/MacOS/lib/pkgconfig'
-					pkgConfigPath = Environment.getEnvironmentVariable('PKG_CONFIG_PATH') ? ''
-					if monoDevPkgConfigPath not in pkgConfigPath
-						if pkgConfigPath <> '', pkgConfigPath += ':'
-						info.environmentVariables["PKG_CONFIG_PATH"] = pkgConfigPath + monoDevPkgConfigPath
-				else
-					# Presumably Linux or BSD...
-					info.environmentVariables["MONO_PATH"] = "/usr/lib/monodevelop/bin"
+			if CobraCore.isRunningOnMac
+				info.environmentVariables["MONO_PATH"] = "/Applications/Xamarin\\ Studio.app/Contents/MacOS/lib/monodevelop/bin"
+				monoDevPkgConfigPath = '/Applications/Xamarin\\ Studio.app/Contents/MacOS/lib/pkgconfig'
+				pkgConfigPath = Environment.getEnvironmentVariable('PKG_CONFIG_PATH') ? ''
+				if monoDevPkgConfigPath not in pkgConfigPath
+					if pkgConfigPath <> '', pkgConfigPath += ':'
+					info.environmentVariables["PKG_CONFIG_PATH"] = pkgConfigPath + monoDevPkgConfigPath
 
 			if _verbosity >= 3
 				info.environmentVariables['MONO_LOG_LEVEL'] = "debug"
@@ -327,7 +321,7 @@ class CobraBindingAddinInstaller
 			# on windows, we need to specify the full path to the MonoDevelop and Gtk libs
 			progFiles = Environment.getEnvironmentVariable("PROGRAMFILES")
 			
-			if File.exists(progFiles + r" (x86)\MonoDevelop\bin\MonoDevelop.Core.dll")
+			if File.exists(progFiles + r" (x86)\Xamarin Studio\bin\MonoDevelop.Core.dll")
 				# 32-bit on 64-bit Windows
 				progFiles += " (x86)"
 			

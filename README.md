@@ -41,7 +41,7 @@ Requirements
 ------------
 * .NET Framework 4 or Mono 3.0
 
-* MonoDevelop 4.0 (Linux) or Xamarin Studio 4.0 (Windows/Mac)
+* MonoDevelop 4.0 (Linux) or Xamarin Studio 4.0.2 (Windows/Mac)
 
 * Cobra svn:2928 (post 0.9.3)
 

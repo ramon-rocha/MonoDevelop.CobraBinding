@@ -2,315 +2,315 @@ use MonoDevelop.Projects
 use MonoDevelop.Core.Serialization
 
 namespace MonoDevelop.CobraBinding.Project
+
+class CobraCompilerParameters inherits ConfigurationParameters
+	"""
+	This class is the backend to the controls displayed for the
+	Project Options window under the Build > Compiler section.
+	"""
+	test defaults
+		p = CobraCompilerParameters()
+		assert p.backEnd == "none"
+		assert p.nativeCompiler == "auto"
+		assert p.nativeCompilerArgs.length == 0
+		assert not p.turbo
+		assert p.contracts == "inline"
+		assert p.includeAsserts
+		assert p.includeNilChecks
+		assert p.includeTests
+		assert p.includeTraces
+		assert p.optimize
+		assert not p.embedRunTime
+		assert p.debug == "full"
+		assert not p.debuggingTips
+		assert not p.keepIntermediateFiles
+		assert p.cobraArgs.length == 0
+
+	test PerformanceQualityOptions
+		p = CobraCompilerParameters()
+		assert p.performanceQualityOption == PerfQualOption.Default
+		p.performanceQualityOption = PerfQualOption.Turbo
+		assert p.turbo
+		# just setting turbo doesn't overwrite the individual properties
+		assert p.contracts == "inline"
+		assert p.includeAsserts
+		p.contracts = "methods"
+		assert p.turbo
+		p.performanceQualityOption = PerfQualOption.Custom
+		assert not p.turbo
+		assert p.contracts == "methods"
+		assert p.includeAsserts
+		p.turbo = true
+		assert p.performanceQualityOption == PerfQualOption.Turbo
+		assert p.contracts == "methods"
+		assert p.includeAsserts
+		
+	enum PerfQualOption
+		Default
+		Turbo
+		Custom
+		
+	enum ContractOption
+		Inline
+		Methods
+		None
+		
+	enum DebugOption
+		Full
+		PdbOnly
+		Off
+		
+	enum BackEndOption
+		None
+		Clr
+		Jvm
+		ObjC
+
+	/#
+	#define symbols to be passed to the C# compiler. Cobra doesn't use
+	these but they are abstract in the base class so we need to
+	implement them.
+	#/
+	def addDefineSymbol(symbol as String?) is override
+		pass
 	
-	class CobraCompilerParameters inherits ConfigurationParameters
-		"""
-		This class is the backend to the controls displayed for the
-		Project Options window under the Build > Compiler section.
-		"""
-		test defaults
-			p = CobraCompilerParameters()
-			assert p.backEnd == "none"
-			assert p.nativeCompiler == "auto"
-			assert p.nativeCompilerArgs.length == 0
-			assert not p.turbo
-			assert p.contracts == "inline"
-			assert p.includeAsserts
-			assert p.includeNilChecks
-			assert p.includeTests
-			assert p.includeTraces
-			assert p.optimize
-			assert not p.embedRunTime
-			assert p.debug == "full"
-			assert not p.debuggingTips
-			assert not p.keepIntermediateFiles
-			assert p.cobraArgs.length == 0
+	def removeDefineSymbol(symbol as String?) is override
+		pass
 
-		test PerformanceQualityOptions
+	def hasDefineSymbol(symbol as String?) as bool is override
+		return false
+
+	# TODO: non-boolean option values should come from local
+	# vars/constants instead of hardcoded literals
+
+	# Performance and Quality Options
+	var _performanceQualityOption = PerfQualOption.Default
+		has ItemProperty("PerformanceQualityOption", defaultValue = PerfQualOption.Default)
+	
+	var _turbo = false
+		has ItemProperty("Turbo", defaultValue = false)
+			
+	var _contracts = "inline"
+		has ItemProperty("Contracts", defaultValue = "inline")
+		
+	var _includeAsserts = true
+		has ItemProperty("IncludeAsserts", defaultValue = true)
+		
+	var _includeNilChecks = true
+		has ItemProperty("IncludeNilChecks", defaultValue = true)
+		
+	var _includeTests = true
+		has ItemProperty("IncludeTests", defaultValue = true)
+		
+	var _includeTraces = true
+		has ItemProperty("IncludeTraces", defaultValue = true)
+		
+	var _optimize = true
+		has ItemProperty("Optimize", defaultValue = true)
+
+	#Development and Deployment Options
+	var _embedRunTime = false
+		has ItemProperty("EmbedRunTime", defaultValue = false)
+		
+	var _debug = "full"
+		has ItemProperty("Debug", defaultValue = "full")
+		
+	var _debuggingTips = false
+		has ItemProperty("DebuggingTips", defaultValue = false)
+		
+	var _keepIntermediateFiles = false
+		has ItemProperty("KeepIntermediateFiles", defaultValue = false)
+		
+	var _cobraArgs = ""
+		has ItemProperty("CobraArgs", defaultValue = "")
+
+	# Back-end Native Compiler Options
+	var _backEndCompiler = "none"
+		has ItemProperty("BackEnd", defaultValue = "none")
+	
+	var _nativeCompiler = "auto"
+		has ItemProperty("NativeCompiler", defaultValue = "auto")
+	
+	var _nativeCompilerArgs = ""
+		has ItemProperty("NativeCompilerArgs", defaultValue = "")
+
+
+	pro performanceQualityOption
+		"""Which radio button is selected for the 'Performance and Quality' section"""
+		get
+			return _performanceQualityOption
+		set
+			_performanceQualityOption = value
+			_turbo = value == PerfQualOption.Turbo
+	
+	pro turbo
+		"""Maximize run-time performance (override -contracts param and others)"""
+		get
+			return _turbo
+		set
+			_turbo = value
+			if _turbo
+				_performanceQualityOption = PerfQualOption.Turbo
+	
+	pro contracts from var
+		"""Control treatment of code generation for contracts"""
+
+	pro includeAsserts from var
+		"""Include assert statements in program"""
+
+	pro includeNilChecks from var
+		"""Include checks on non-nilable vars, method args, and type casts"""
+	
+	pro includeTests from var
+		"""Include unit tests in the output assembly"""
+
+	pro includeTraces from var
+		"""Include trace statements in the output assembly"""
+
+	pro optimize from var
+		"""Enable optimizations"""
+	
+	pro embedRunTime from var
+		"""Embed the Cobra run-time support code in the assembly"""
+
+	pro debug from var
+		"""Turn on system debugging information"""
+
+	pro debuggingTips from var
+		"""Display debugging tips when an unhandled exception occurs"""
+
+	pro keepIntermediateFiles from var
+		"""Keep any generated intermediate files (such as *.cobra.cs files)"""
+
+	pro cobraArgs from var
+		"""Misc. arguments to the Cobra compiler"""
+		
+	pro backEnd from _backEndCompiler
+		"""Which back-end to use"""
+
+	pro nativeCompiler from var
+		"""The path to the back-end native compiler"""
+	
+	pro nativeCompilerArgs from var
+		"""Additional arguments to pass to the native back-end compiler"""
+
+	def createCmdLineArgs as String
+		"""Returns a string for the various properties suitable for passing to the Cobra compiler as arguments"""
+		argsBuilder = StringBuilder(_createPerfQualCmdLineArgs)
+		argsBuilder.append(_createDevDeployCmdLineArgs)
+		argsBuilder.append(_createBackEndCmdLineArgs)
+		return argsBuilder.toString
+
+	def _createPerfQualCmdLineArgs as String
+		ensure
+			(_performanceQualityOption == PerfQualOption.Default) implies result.length == 0
+			(_performanceQualityOption == PerfQualOption.Turbo) implies result == " -turbo"
+			(_performanceQualityOption == PerfQualOption.Custom) implies result.length > " -turbo".length
+		test
 			p = CobraCompilerParameters()
-			assert p.performanceQualityOption == PerfQualOption.Default
-			p.performanceQualityOption = PerfQualOption.Turbo
-			assert p.turbo
-			# just setting turbo doesn't overwrite the individual properties
-			assert p.contracts == "inline"
-			assert p.includeAsserts
-			p.contracts = "methods"
-			assert p.turbo
-			p.performanceQualityOption = PerfQualOption.Custom
-			assert not p.turbo
-			assert p.contracts == "methods"
-			assert p.includeAsserts
+			assert p._createPerfQualCmdLineArgs.length == 0
+			
 			p.turbo = true
-			assert p.performanceQualityOption == PerfQualOption.Turbo
-			assert p.contracts == "methods"
-			assert p.includeAsserts
+			assert p._createPerfQualCmdLineArgs == " -turbo"
 			
-		enum PerfQualOption
-			Default
-			Turbo
-			Custom
+			p.performanceQualityOption = PerfQualOption.Custom
+			assert p._createPerfQualCmdLineArgs.length > " -turbo".length
+		body
+			if _performanceQualityOption == PerfQualOption.Default
+				return ""
+
+			if _performanceQualityOption == PerfQualOption.Turbo
+				return " -turbo"
+
+			sb = StringBuilder()
+			sb.append(" -contracts:[_contracts]")
+			sb.append(" -include-asserts:[_includeAsserts]")
+			sb.append(" -include-nil-checks:[_includeNilChecks]")
+			sb.append(" -include-tests:[_includeTests]")
+			sb.append(" -include-traces:[_includeTraces]")
+			sb.append(" -optimize:[_optimize]")
+			return sb.toString
+
+	def _createDevDeployCmdLineArgs as String
+		ensure
+			result.contains("-ert:[.embedRunTime]")
+			result.contains("debug:[.debug]")
+			result.contains("debugging-tips:[.debuggingTips]")
+			result.contains("kif:[.keepIntermediateFiles]")
+			_cobraArgs.trim.length implies result.contains(_cobraArgs.trim)
+		test
+			p = CobraCompilerParameters()
+			assert not p._createDevDeployCmdLineArgs.contains("-ert:true")
 			
-		enum ContractOption
-			Inline
-			Methods
-			None
+			p.embedRunTime = true
+			assert p._createDevDeployCmdLineArgs.contains("-ert:true")
 			
-		enum DebugOption
-			Full
-			PdbOnly
-			Off
+			p.debug = "hamsandwich"
+			assert p._createDevDeployCmdLineArgs.contains("-debug:hamsandwich")
 			
-		enum BackEndOption
-			None
-			Clr
-			Jvm
-			ObjC
-
-		/#
-		#define symbols to be passed to the C# compiler. Cobra doesn't use
-		these but they are abstract in the base class so we need to
-		implement them.
-		#/
-		def addDefineSymbol(symbol as String?) is override
-			pass
-		
-		def removeDefineSymbol(symbol as String?) is override
-			pass
-
-		def hasDefineSymbol(symbol as String?) as bool is override
-			return false
-
-		# TODO: non-boolean option values should come from local
-		# vars/constants instead of hardcoded literals
-
-		# Performance and Quality Options
-		var _performanceQualityOption = PerfQualOption.Default
-			has ItemProperty("PerformanceQualityOption", defaultValue = PerfQualOption.Default)
-		
-		var _turbo = false
-			has ItemProperty("Turbo", defaultValue = false)
-				
-		var _contracts = "inline"
-			has ItemProperty("Contracts", defaultValue = "inline")
+			p.debuggingTips = false
+			assert not p._createDevDeployCmdLineArgs.contains("-debugging-tips:true")
 			
-		var _includeAsserts = true
-			has ItemProperty("IncludeAsserts", defaultValue = true)
+			p.debuggingTips = true
+			assert p._createDevDeployCmdLineArgs.contains("-debugging-tips:true")
 			
-		var _includeNilChecks = true
-			has ItemProperty("IncludeNilChecks", defaultValue = true)
+			p.keepIntermediateFiles = false
+			assert not p._createDevDeployCmdLineArgs.contains("-kif:true")
 			
-		var _includeTests = true
-			has ItemProperty("IncludeTests", defaultValue = true)
+			p.keepIntermediateFiles = true
+			assert p._createDevDeployCmdLineArgs.contains("-kif:true")
 			
-		var _includeTraces = true
-			has ItemProperty("IncludeTraces", defaultValue = true)
+			p.cobraArgs = "-verbosity:1"
+			assert p._createDevDeployCmdLineArgs.contains(" -verbosity:1")
 			
-		var _optimize = true
-			has ItemProperty("Optimize", defaultValue = true)
-
-		#Development and Deployment Options
-		var _embedRunTime = false
-			has ItemProperty("EmbedRunTime", defaultValue = false)
+			p.cobraArgs = "foobar"
+			assert p._createDevDeployCmdLineArgs.contains(" -foobar")
+		body
+			sb = StringBuilder()
+			sb.append(" -ert:[_embedRunTime]")
+			sb.append(" -debug:[_debug]")
+			sb.append(" -debugging-tips:[_debuggingTips]")
+			sb.append(" -kif:[_keepIntermediateFiles]")
 			
-		var _debug = "full"
-			has ItemProperty("Debug", defaultValue = "full")
-			
-		var _debuggingTips = false
-			has ItemProperty("DebuggingTips", defaultValue = false)
-			
-		var _keepIntermediateFiles = false
-			has ItemProperty("KeepIntermediateFiles", defaultValue = false)
-			
-		var _cobraArgs = ""
-			has ItemProperty("CobraArgs", defaultValue = "")
-
-		# Back-end Native Compiler Options
-		var _backEndCompiler = "none"
-			has ItemProperty("BackEnd", defaultValue = "none")
-		
-		var _nativeCompiler = "auto"
-			has ItemProperty("NativeCompiler", defaultValue = "auto")
-		
-		var _nativeCompilerArgs = ""
-			has ItemProperty("NativeCompilerArgs", defaultValue = "")
-
-
-		pro performanceQualityOption
-			"""Which radio button is selected for the 'Performance and Quality' section"""
-			get
-				return _performanceQualityOption
-			set
-				_performanceQualityOption = value
-				_turbo = value == PerfQualOption.Turbo
-		
-		pro turbo
-			"""Maximize run-time performance (override -contracts param and others)"""
-			get
-				return _turbo
-			set
-				_turbo = value
-				if _turbo
-					_performanceQualityOption = PerfQualOption.Turbo
-		
-		pro contracts from var
-			"""Control treatment of code generation for contracts"""		
-
-		pro includeAsserts from var
-			"""Include assert statements in program"""		
-
-		pro includeNilChecks from var
-			"""Include checks on non-nilable vars, method args, and type casts"""
-		
-		pro includeTests from var
-			"""Include unit tests in the output assembly"""		
-
-		pro includeTraces from var
-			"""Include trace statements in the output assembly"""		
-
-		pro optimize from var
-			"""Enable optimizations"""
-		
-		pro embedRunTime from var
-			"""Embed the Cobra run-time support code in the assembly"""		
-
-		pro debug from var
-			"""Turn on system debugging information"""
-
-		pro debuggingTips from var
-			"""Display debugging tips when an unhandled exception occurs"""		
-
-		pro keepIntermediateFiles from var
-			"""Keep any generated intermediate files (such as *.cobra.cs files)"""		
-
-		pro cobraArgs from var
-			"""Misc. arguments to the Cobra compiler"""
-			
-		pro backEnd from _backEndCompiler
-			"""Which back-end to use"""
-
-		pro nativeCompiler from var
-			"""The path to the back-end native compiler"""
-		
-		pro nativeCompilerArgs from var
-			"""Additional arguments to pass to the native back-end compiler"""
-
-		def createCmdLineArgs as String
-			"""Returns a string for the various properties suitable for passing to the Cobra compiler as arguments"""
-			argsBuilder = StringBuilder(_createPerfQualCmdLineArgs)
-			argsBuilder.append(_createDevDeployCmdLineArgs)
-			argsBuilder.append(_createBackEndCmdLineArgs)
-			return argsBuilder.toString
-
-		def _createPerfQualCmdLineArgs as String
-			ensure
-				(_performanceQualityOption == PerfQualOption.Default) implies result.length == 0
-				(_performanceQualityOption == PerfQualOption.Turbo) implies result == " -turbo"
-				(_performanceQualityOption == PerfQualOption.Custom) implies result.length > " -turbo".length
-			test
-				p = CobraCompilerParameters()
-				assert p._createPerfQualCmdLineArgs.length == 0
-				
-				p.turbo = true
-				assert p._createPerfQualCmdLineArgs == " -turbo"
-				
-				p.performanceQualityOption = PerfQualOption.Custom
-				assert p._createPerfQualCmdLineArgs.length > " -turbo".length
-			body
-				if _performanceQualityOption == PerfQualOption.Default
-					return ""
-
-				if _performanceQualityOption == PerfQualOption.Turbo
-					return " -turbo"
-
-				sb = StringBuilder()
-				sb.append(" -contracts:[_contracts]")
-				sb.append(" -include-asserts:[_includeAsserts]")
-				sb.append(" -include-nil-checks:[_includeNilChecks]")
-				sb.append(" -include-tests:[_includeTests]")
-				sb.append(" -include-traces:[_includeTraces]")
-				sb.append(" -optimize:[_optimize]")
-				return sb.toString
-
-		def _createDevDeployCmdLineArgs as String
-			ensure
-				result.contains("-ert:[.embedRunTime]")
-				result.contains("debug:[.debug]")
-				result.contains("debugging-tips:[.debuggingTips]")
-				result.contains("kif:[.keepIntermediateFiles]")
-				_cobraArgs.trim.length implies result.contains(_cobraArgs.trim)
-			test
-				p = CobraCompilerParameters()
-				assert not p._createDevDeployCmdLineArgs.contains("-ert:true")
-				
-				p.embedRunTime = true
-				assert p._createDevDeployCmdLineArgs.contains("-ert:true")
-				
-				p.debug = "hamsandwich"
-				assert p._createDevDeployCmdLineArgs.contains("-debug:hamsandwich")
-				
-				p.debuggingTips = false
-				assert not p._createDevDeployCmdLineArgs.contains("-debugging-tips:true")
-				
-				p.debuggingTips = true
-				assert p._createDevDeployCmdLineArgs.contains("-debugging-tips:true")
-				
-				p.keepIntermediateFiles = false
-				assert not p._createDevDeployCmdLineArgs.contains("-kif:true")
-				
-				p.keepIntermediateFiles = true
-				assert p._createDevDeployCmdLineArgs.contains("-kif:true")
-				
-				p.cobraArgs = "-verbosity:1"
-				assert p._createDevDeployCmdLineArgs.contains(" -verbosity:1")
-				
-				p.cobraArgs = "foobar"
-				assert p._createDevDeployCmdLineArgs.contains(" -foobar")
-			body
-				sb = StringBuilder()
-				sb.append(" -ert:[_embedRunTime]")
-				sb.append(" -debug:[_debug]")
-				sb.append(" -debugging-tips:[_debuggingTips]")
-				sb.append(" -kif:[_keepIntermediateFiles]")
-				
-				args = .cobraArgs.trim
-				if args.length
-					if not args.startsWith("-")
-						args = "-" + args
-						
-					sb.append(" [args]")
+			args = .cobraArgs.trim
+			if args.length
+				if not args.startsWith("-")
+					args = "-" + args
 					
-				return sb.toString
-
-		def _createBackEndCmdLineArgs as String
-			ensure
-				(_backEndCompiler <> "none") implies result.contains(" -back-end:[_backEndCompiler]")
-				(_backEndCompiler == "none") implies not result.contains("-back-end:")
-				(_nativeCompiler <> "auto") implies result.contains(' -native-compiler:"[_nativeCompiler]"')
-				(_nativeCompiler == "auto") implies not result.contains("-native-compiler:")
-				_nativeCompilerArgs.trim.length implies result.contains(' -native-compiler-args:"[_nativeCompilerArgs.trim]"')
-			test
-				p = CobraCompilerParameters()
-				assert p._createBackEndCmdLineArgs.length == 0
-
-				p.backEnd = "jvm"
-				assert p._createBackEndCmdLineArgs == " -back-end:jvm"
-
-				p.nativeCompiler = "/path/to/javac"
-				assert p._createBackEndCmdLineArgs.contains(' -native-compiler:"/path/to/javac"')
-
-				p.nativeCompiler = r"c:\path\to\javac.exe"
-				assert p._createBackEndCmdLineArgs.contains(r' -native-compiler:"c:\path\to\javac.exe"')
-
-				p.nativeCompilerArgs = "foo bar "
-				assert p._createBackEndCmdLineArgs.contains(' -native-compiler-args:"foo bar"')
-			body
-				sb = StringBuilder()
+				sb.append(" [args]")
 				
-				if _backEndCompiler <> "none"
-					sb.append(" -back-end:[_backEndCompiler]")
-				if _nativeCompiler <> "auto"
-					sb.append(' -native-compiler:"[_nativeCompiler]"')
-				if _nativeCompilerArgs.trim.length
-					sb.append(' -native-compiler-args:"[_nativeCompilerArgs.trim]"')
-					
-				return sb.toString
+			return sb.toString
+
+	def _createBackEndCmdLineArgs as String
+		ensure
+			(_backEndCompiler <> "none") implies result.contains(" -back-end:[_backEndCompiler]")
+			(_backEndCompiler == "none") implies not result.contains("-back-end:")
+			(_nativeCompiler <> "auto") implies result.contains(' -native-compiler:"[_nativeCompiler]"')
+			(_nativeCompiler == "auto") implies not result.contains("-native-compiler:")
+			_nativeCompilerArgs.trim.length implies result.contains(' -native-compiler-args:"[_nativeCompilerArgs.trim]"')
+		test
+			p = CobraCompilerParameters()
+			assert p._createBackEndCmdLineArgs.length == 0
+
+			p.backEnd = "jvm"
+			assert p._createBackEndCmdLineArgs == " -back-end:jvm"
+
+			p.nativeCompiler = "/path/to/javac"
+			assert p._createBackEndCmdLineArgs.contains(' -native-compiler:"/path/to/javac"')
+
+			p.nativeCompiler = r"c:\path\to\javac.exe"
+			assert p._createBackEndCmdLineArgs.contains(r' -native-compiler:"c:\path\to\javac.exe"')
+
+			p.nativeCompilerArgs = "foo bar "
+			assert p._createBackEndCmdLineArgs.contains(' -native-compiler-args:"foo bar"')
+		body
+			sb = StringBuilder()
+			
+			if _backEndCompiler <> "none"
+				sb.append(" -back-end:[_backEndCompiler]")
+			if _nativeCompiler <> "auto"
+				sb.append(' -native-compiler:"[_nativeCompiler]"')
+			if _nativeCompilerArgs.trim.length
+				sb.append(' -native-compiler-args:"[_nativeCompilerArgs.trim]"')
+				
+			return sb.toString

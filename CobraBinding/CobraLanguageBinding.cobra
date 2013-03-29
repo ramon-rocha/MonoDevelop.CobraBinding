@@ -10,411 +10,411 @@ use MonoDevelop.CobraBinding.Project
 
 namespace MonoDevelop.CobraBinding
 
-	class CobraLanguageBinding implements IDotNetLanguageBinding
+class CobraLanguageBinding implements IDotNetLanguageBinding
+
+	test
+		binding = CobraLanguageBinding()
+		assert binding.language == "Cobra"
+		assert binding.singleLineCommentTag == "#"
+		assert binding.blockCommentStartTag == "/#"
+		assert binding.blockCommentEndTag == "#/"
+		assert binding.projectStockIcon == "md-project" #TODO: create a custom icon
+		assert ClrVersion.Net_2_0 in binding.getSupportedClrVersions
+		assert ClrVersion.Net_4_0 in binding.getSupportedClrVersions
+		assert binding.getFileName("test") == "test.cobra"
+		assert binding.isSourceCodeFile(FilePath("test.cobra"))
+		assert not binding.isSourceCodeFile(FilePath("test.cs"))
 	
-		test
-			binding = CobraLanguageBinding()
-			assert binding.language == "Cobra"
-			assert binding.singleLineCommentTag == "#"
-			assert binding.blockCommentStartTag == "/#"
-			assert binding.blockCommentEndTag == "#/"
-			assert binding.projectStockIcon == "md-project" #TODO: create a custom icon
-			assert ClrVersion.Net_2_0 in binding.getSupportedClrVersions
-			assert ClrVersion.Net_4_0 in binding.getSupportedClrVersions			
-			assert binding.getFileName("test") == "test.cobra"
-			assert binding.isSourceCodeFile(FilePath("test.cobra"))
-			assert not binding.isSourceCodeFile(FilePath("test.cs"))
+	shared
+		var supportedClrVersions as ClrVersion[] = @[ ClrVersion.Net_2_0, ClrVersion.Net_4_0 ]
+		var languageName = "Cobra"
+		var sourceFileExtension = ".cobra"
+		
+	var _isWindows as bool
+	var _targetArgs as Dictionary<of CompileTarget, String>
+	
+	cue init
+		base.init
+		_isWindows = Environment.osVersion.toString.startsWith("Microsoft Windows")
+		_targetArgs = {
+			CompileTarget.Exe : " -target:exe",
+			CompileTarget.Library : " -target:lib",
+			CompileTarget.WinExe : " -target:winexe",
+			CompileTarget.Module : " -target:module"
+		}
+	
+	get language as String
+		return CobraLanguageBinding.languageName
+		
+	get singleLineCommentTag as String
+		return "#"
+		
+	get blockCommentStartTag as String
+		return "/#"
+		
+	get blockCommentEndTag as String
+		return "#/"
+	
+	get projectStockIcon as String
+		return "md-project"
+		
+	def getSupportedClrVersions as ClrVersion[]
+		return CobraLanguageBinding.supportedClrVersions
 					
-		shared
-			var supportedClrVersions as ClrVersion[] = @[ ClrVersion.Net_2_0, ClrVersion.Net_4_0 ]
-			var languageName = "Cobra"
-			var sourceFileExtension = ".cobra"
-			
-		var _isWindows as bool
-		var _targetArgs as Dictionary<of CompileTarget, String>
+	def getFileName(fileNameWithoutExtension as FilePath) as FilePath
+		return fileNameWithoutExtension.changeExtension(CobraLanguageBinding.sourceFileExtension)
 		
-		cue init
-			base.init
-			_isWindows = Environment.osVersion.toString.startsWith("Microsoft Windows")
-			_targetArgs = {
-				CompileTarget.Exe : " -target:exe",
-				CompileTarget.Library : " -target:lib",
-				CompileTarget.WinExe : " -target:winexe",
-				CompileTarget.Module : " -target:module"
-			}
+	def getFileName(fileNameWithoutExtension as String) as String
+		return .getFileName(FilePath(fileNameWithoutExtension)).toString
 		
-		get language as String
-			return CobraLanguageBinding.languageName
-			
-		get singleLineCommentTag as String
-			return "#"
-			
-		get blockCommentStartTag as String
-			return "/#"
-			
-		get blockCommentEndTag as String
-			return "#/"
+	def isSourceCodeFile(fileName as FilePath) as bool
+		return fileName.extension == CobraLanguageBinding.sourceFileExtension
 		
-		get projectStockIcon as String
-			return "md-project"
-			
-		def getSupportedClrVersions as ClrVersion[]
-			return CobraLanguageBinding.supportedClrVersions
-						
-		def getFileName(fileNameWithoutExtension as FilePath) as FilePath
-			return fileNameWithoutExtension.changeExtension(CobraLanguageBinding.sourceFileExtension)
-			
-		def getFileName(fileNameWithoutExtension as String) as String
-			return .getFileName(FilePath(fileNameWithoutExtension)).toString
-			
-		def isSourceCodeFile(fileName as FilePath) as bool
-			return fileName.extension == CobraLanguageBinding.sourceFileExtension
-			
-		def compile(items as ProjectItemCollection, configuration as DotNetProjectConfiguration,
-					configSelector as ConfigurationSelector, monitor as IProgressMonitor) as BuildResult
-			test
-				pass
-			body
-				argsBuilder = StringBuilder("-compile")
+	def compile(items as ProjectItemCollection, configuration as DotNetProjectConfiguration,
+				configSelector as ConfigurationSelector, monitor as IProgressMonitor) as BuildResult
+		test
+			pass
+		body
+			argsBuilder = StringBuilder("-compile")
 
-				# references (add each one only once)
-				refs = HashSet<of String>()
-				pkgs = HashSet<of String>()
-				referencedSysCore = false
-				slash = Path.directorySeparatorChar
+			# references (add each one only once)
+			refs = HashSet<of String>()
+			pkgs = HashSet<of String>()
+			referencedSysCore = false
+			slash = Path.directorySeparatorChar
 
-				libPaths = List<of String>()
-				sysAsmService = MonoDevelop.Core.Runtime.systemAssemblyService
-				runTime as Assemblies.TargetRuntime = sysAsmService.defaultRuntime to !
-				if configuration.parentItem <> nil
-					proj = configuration.parentItem to !
-					runTime = proj.targetRuntime to !
+			libPaths = List<of String>()
+			sysAsmService = MonoDevelop.Core.Runtime.systemAssemblyService
+			runTime as Assemblies.TargetRuntime = sysAsmService.defaultRuntime to !
+			if configuration.parentItem <> nil
+				proj = configuration.parentItem to !
+				runTime = proj.targetRuntime to !
 
-				for projRef in items.getAll<of ProjectReference>
-					branch projRef.referenceType
-						on ReferenceType.Package
-						
-							pkg = projRef.package
-						
-							if _isWindows
-								/#
-								The '-pkg' option isn't available on Windows. We need
-								to explicitly specify all the referenced assemblies and
-								their dependencies.
-								#/
-								for fileName in projRef.getReferencedFileNames(configSelector)
-									if refs.add(fileName)
-										argsBuilder.append(' -ref:"[fileName]"')
-										if not referencedSysCore
-											referencedSysCore = fileName.endsWith("[slash]System.Core.dll")
-											
-								if pkg.gacRoot and not libPaths.contains(pkg.gacRoot)
-									libPaths.add(pkg.gacRoot)
-									
-								if pkg.requires
-									for requiredPkg in pkg.requires.split(' ')
-										rpkg = runTime.assemblyContext.getPackage(requiredPkg)
-										if not rpkg, continue
-										for asm in rpkg.assemblies
-											if refs.add(asm.location)
-												argsBuilder.append(' -ref:"[asm.location]"')
-												if not referencedSysCore
-													referencedSysCore = asm.location.endsWith("[slash]System.Core.dll")
-							else
-								# when not on Windows, we can use the -pkg option directly
-								if pkgs.add(pkg.name)
-									argsBuilder.append(' -pkg:"[pkg.name]"')
-						else
-							# this is either a direct assembly reference or a project reference
+			for projRef in items.getAll<of ProjectReference>
+				branch projRef.referenceType
+					on ReferenceType.Package
+					
+						pkg = projRef.package
+					
+						if _isWindows
+							/#
+							The '-pkg' option isn't available on Windows. We need
+							to explicitly specify all the referenced assemblies and
+							their dependencies.
+							#/
 							for fileName in projRef.getReferencedFileNames(configSelector)
 								if refs.add(fileName)
 									argsBuilder.append(' -ref:"[fileName]"')
 									if not referencedSysCore
 										referencedSysCore = fileName.endsWith("[slash]System.Core.dll")
-				
-				if not referencedSysCore
-					/#
-					Workaround an issue where some System.Core types from .NET 4.0 cannot
-					be resolved without an explicit reference.  So, if we haven't already
-					added an explicit reference, add one now.
-					
-					This issue seems to only exist on Mono. We shouldn't check to see if
-					we should only include this workaround on non-Windows systems because
-					you can also use the Mono runtime on Windows.
-					#/
-					refs.add("System.Core")
-					argsBuilder.append(" -ref:System.Core")
-				
-				if libPaths.count > 0
-					for libPath in libPaths
-						argsBuilder.append(' -lib:"[libPath]"')
-
-				# what kind of assembly will we generate?
-				argsBuilder.append(_targetArgs[configuration.compileTarget])
-				
-				# are we targetting a specific platform?
-				if configuration.platform <> nil and configuration.platform.length > 0
-					argsBuilder.append(" -clr-platform:[configuration.platform]")
-
-
-				# a project always exists in memory, but not on disk for single files
-				if not File.exists(configuration.parentItem.fileName.toString)
-					/#
-					This is a fake project. We get this when a user directly opens a
-					source file without creating a project/solution. We'll use the
-					location of the single source file as the working directory.
-					#/
-					standAloneFile = items[0] to IFileItem
-					configuration.parentItem.baseDirectory = standAloneFile.fileName.parentDirectory
-
-				# what will we call the generated assembly?
-				asmName = configuration.compiledOutputName
-				argsBuilder.append(' -out:"[asmName.fullPath]"')
-
-				# which files should we compile and which ones should we embed as resources?
-				toCompile = StringBuilder()
-				nativeArgsBuilder = StringBuilder()
-				
-				for projFile in items.getAll<of ProjectFile>
-					
-					# workaround an issue where directories are sometimes included with project files
-					if Directory.exists(projFile.name), continue
-					
-					branch projFile.buildAction
-						on BuildAction.compile
-							toCompile.append(' "[projFile.name]"')
-						on BuildAction.embeddedResource
-							#TODO: Figure out how to specify the resource name on Windows
-							if _isWindows
-								nativeArgsBuilder.append('-res:\\"[projFile.name]\\" ')
-							else
-								nativeArgsBuilder.append('-res:\\"[projFile.name],[projFile.resourceId]\\" ')
-				
-				compilerParams = configuration.compilationParameters to CobraCompilerParameters
-				nativeArgs = nativeArgsBuilder.toString.trimEnd
-				
-				if nativeArgs.length
-					if compilerParams.nativeCompilerArgs.length
-						# native compiler args have already been specified, combine them
-						compilerParams.nativeCompilerArgs += " [nativeArgs]"
+										
+							if pkg.gacRoot and not libPaths.contains(pkg.gacRoot)
+								libPaths.add(pkg.gacRoot)
+								
+							if pkg.requires
+								for requiredPkg in pkg.requires.split(' ')
+									rpkg = runTime.assemblyContext.getPackage(requiredPkg)
+									if not rpkg, continue
+									for asm in rpkg.assemblies
+										if refs.add(asm.location)
+											argsBuilder.append(' -ref:"[asm.location]"')
+											if not referencedSysCore
+												referencedSysCore = asm.location.endsWith("[slash]System.Core.dll")
+						else
+							# when not on Windows, we can use the -pkg option directly
+							if pkgs.add(pkg.name)
+								argsBuilder.append(' -pkg:"[pkg.name]"')
 					else
-						argsBuilder.append(' -native-compiler-args:"[nativeArgs]"')
-				
-				if not compilerParams.embedRunTime
-					argsBuilder.append(" -copy-core")
-				
-				# add the user specified compiler parameters for this configuration
-				argsBuilder.append(compilerParams.createCmdLineArgs)
-				
-				# add the list of files to compile
-				argsBuilder.append(toCompile.toString)
-
-				cobraExe = CobraCore.findCobraExe
-				if cobraExe is nil or cobraExe.length == 0
-					errMsg = "Could not find cobra.exe. " + _
-						"Try adding its location to your PATH environment variable."
-					monitor.reportError(errMsg, nil)
-					failedResult = BuildResult()
-					failedResult.addError(errMsg)
-					return failedResult
-
-				# use the project directory as the working directory
-				workingDir = configuration.parentItem.baseDirectory.toString
-
-				# compile the code
-				proc = _spawnCobraCompilerProcess(cobraExe to !, argsBuilder.toString, workingDir)
-
-				monitor.log.writeLine("Working directory: " + workingDir)
-				# TODO: This creates one giant long string that requires horiztonal scrolling,
-				# it should wrap or logically group the arguments instead
-				monitor.log.writeLine(cobraExe to ! + " " + proc.startInfo.arguments)
-
-				# parse the compiler output
-				lines = List<of String>()
-
-				stdErr = proc.standardError.readToEnd
-				if stdErr.length, monitor.reportError(stdErr, nil)
-				lines.addRange(stdErr.split('\n'))
-
-				stdOut = proc.standardOutput.readToEnd
-				if stdOut.length, monitor.log.writeLine(stdOut)
-				lines.addRange(stdOut.split('\n'))
-				
-				buildResult = _parseCompilerOutput(lines)
-				buildResult.compilerOutput = stdOut
-
-				return buildResult
-		
-		def _spawnCobraCompilerProcess(cobraExe as String, cobraArgs as String, workingDir as String) as Process
-			"""
-			Executes the Cobra compiler.  Returns a Process object whose standard output and standard
-			error streams can be read for later parsing.
-			"""
-			require
-				cobraExe.length > 0
-				workingDir.length > 0
-			test
-				binding = CobraLanguageBinding()
-				
-				expect Exception
-					binding._spawnCobraCompilerProcess("", "", "")
-					
-				p = binding._spawnCobraCompilerProcess("cobra", "-version", ".")
-				assert p.standardOutput.readToEnd.startsWith("Cobra ")
-				
-				p = binding._spawnCobraCompilerProcess("cobra", "", ".")
-				stdOut = p.standardOutput.readToEnd
-				assert stdOut.contains("The Cobra Programming Language")
-				assert stdOut.contains("Usage:")
-				assert stdOut.contains("cobra -h")
-			body
-				proc = System.Diagnostics.Process()
-				# useShellExecute needs to be false so we can redirect output and hide the screen on Windows
-				proc.startInfo.useShellExecute = false
-				proc.startInfo.redirectStandardOutput = true
-				proc.startInfo.redirectStandardError = true
-				proc.startInfo.windowStyle = ProcessWindowStyle.Hidden
-				proc.startInfo.createNoWindow = true
-				
-				proc.startInfo.fileName = cobraExe
-				proc.startInfo.arguments = cobraArgs
-				proc.startInfo.workingDirectory = workingDir
-				
-				proc.start
-				proc.waitForExit
-				
-				return proc
-		
-		/#
-		regex testing: http://regexhero.net/tester/
-		or in MonoDevelop go to: Tools > Regex Toolkit...
-		#/
-		shared
-			var compilerOutputRegex = Regex( _
-				r"(?<fileName>[^\(]+)\((?<lineNum>\d+)(,(?<col>\d+))?\):(\s)+(?<msgType>error|warning):(\s)*(?<msg>[^\r]+)", _
-				RegexOptions.Compiled)
-
-		def _parseCompilerOutput(compilerOutput as List<of String>) as BuildResult
-			"""
-			Parses the error and warning messages generated by the Cobra compiler and turns
-			them into objects MonoDevelop can understand.
-			"""
-			test successfulCompilation
-				sampleOutput = List<of String>()
-				sampleOutput.add("Compilation succeeded")
-				
-				res = CobraLanguageBinding()._parseCompilerOutput(sampleOutput)
-				assert res.errors.count == 0
-				assert res.errorCount == 0
-				assert res.warningCount == 0
+						# this is either a direct assembly reference or a project reference
+						for fileName in projRef.getReferencedFileNames(configSelector)
+							if refs.add(fileName)
+								argsBuilder.append(' -ref:"[fileName]"')
+								if not referencedSysCore
+									referencedSysCore = fileName.endsWith("[slash]System.Core.dll")
 			
-			test successWithWarnings
-				sampleOutput = List<of String>()
-				sampleOutput.add("someFile.cobra(24): warning: Unnecessary parentheses. You can remove them.")
-				sampleOutput.add('someFile.cobra(51): warning: The value of variable "someVar" is never used.')
-				sampleOutput.add("Compilation succeeded - 2 warnings")
+			if not referencedSysCore
+				/#
+				Workaround an issue where some System.Core types from .NET 4.0 cannot
+				be resolved without an explicit reference.  So, if we haven't already
+				added an explicit reference, add one now.
 				
-				res = CobraLanguageBinding()._parseCompilerOutput(sampleOutput)
-				assert res.errors.count == 2
-				assert res.errorCount == 0
-				assert res.warningCount == 2
-				lineSum = 0
-				for w in res.errors
-					assert w.isWarning
-					assert w.fileName == "someFile.cobra"
-					lineSum += w.line
-					assert w.column == 0
-					assert w.errorText == "Unnecessary parentheses. You can remove them." _
-						or w.errorText == 'The value of variable "someVar" is never used.'
-				assert lineSum == 75
+				This issue seems to only exist on Mono. We shouldn't check to see if
+				we should only include this workaround on non-Windows systems because
+				you can also use the Mono runtime on Windows.
+				#/
+				refs.add("System.Core")
+				argsBuilder.append(" -ref:System.Core")
+			
+			if libPaths.count > 0
+				for libPath in libPaths
+					argsBuilder.append(' -lib:"[libPath]"')
+
+			# what kind of assembly will we generate?
+			argsBuilder.append(_targetArgs[configuration.compileTarget])
+			
+			# are we targetting a specific platform?
+			if configuration.platform <> nil and configuration.platform.length > 0
+				argsBuilder.append(" -clr-platform:[configuration.platform]")
+
+
+			# a project always exists in memory, but not on disk for single files
+			if not File.exists(configuration.parentItem.fileName.toString)
+				/#
+				This is a fake project. We get this when a user directly opens a
+				source file without creating a project/solution. We'll use the
+				location of the single source file as the working directory.
+				#/
+				standAloneFile = items[0] to IFileItem
+				configuration.parentItem.baseDirectory = standAloneFile.fileName.parentDirectory
+
+			# what will we call the generated assembly?
+			asmName = configuration.compiledOutputName
+			argsBuilder.append(' -out:"[asmName.fullPath]"')
+
+			# which files should we compile and which ones should we embed as resources?
+			toCompile = StringBuilder()
+			nativeArgsBuilder = StringBuilder()
+			
+			for projFile in items.getAll<of ProjectFile>
 				
-			test lineColumnInfo
-				sampleOutput = List<of String>()
-				sampleOutput.add('foo.cobra(4): error: Cannot find "b". There is a member named ".memberwiseClone" with a similar name.')
-				sampleOutput.add('foo.cobra(4): warning: The value of variable "a" is never used.')
-				sampleOutput.add("foo.cobra(4,15): error: Expecting an expression.")
+				# workaround an issue where directories are sometimes included with project files
+				if Directory.exists(projFile.name), continue
 				
-				res = CobraLanguageBinding()._parseCompilerOutput(sampleOutput)
-				assert res.errors.count == 3
-				assert res.errorCount == 2
-				assert res.warningCount == 1
-				for e in res.errors
-					assert e.fileName == "foo.cobra"
-					assert e.line == 4
-					try
-						assert e.column == 0
-						if e.isWarning
-							assert e.errorText == 'The value of variable "a" is never used.'
+				branch projFile.buildAction
+					on BuildAction.compile
+						toCompile.append(' "[projFile.name]"')
+					on BuildAction.embeddedResource
+						#TODO: Figure out how to specify the resource name on Windows
+						if _isWindows
+							nativeArgsBuilder.append('-res:\\"[projFile.name]\\" ')
 						else
-							assert e.errorText == 'Cannot find "b". There is a member named ".memberwiseClone" with a similar name.'
-					catch
-						assert e.column == 15
-						assert e.errorText == "Expecting an expression."
+							nativeArgsBuilder.append('-res:\\"[projFile.name],[projFile.resourceId]\\" ')
 			
-			test generalError
-				sampleOutput = List<of String>()
-				sampleOutput.add('error: Cannot find a "main" method.')
-				sampleOutput.add("Compilation failed - 1 error, 0 warnings")
-				sampleOutput.add("Not running due to errors above.")
-				
-				res = CobraLanguageBinding()._parseCompilerOutput(sampleOutput)
-				assert res.errors.count == 1
-				assert res.errorCount == 1
-				assert res.warningCount == 0
-				e = res.errors[0]
-				assert not e.isWarning
-				assert e.fileName == nil
-				assert e.line == 0
-				assert e.column == 0
-				assert e.errorText == 'error: Cannot find a "main" method.'
+			compilerParams = configuration.compilationParameters to CobraCompilerParameters
+			nativeArgs = nativeArgsBuilder.toString.trimEnd
 			
-			body
-				buildResult = BuildResult()
+			if nativeArgs.length
+				if compilerParams.nativeCompilerArgs.length
+					# native compiler args have already been specified, combine them
+					compilerParams.nativeCompilerArgs += " [nativeArgs]"
+				else
+					argsBuilder.append(' -native-compiler-args:"[nativeArgs]"')
+			
+			if not compilerParams.embedRunTime
+				argsBuilder.append(" -copy-core")
+			
+			# add the user specified compiler parameters for this configuration
+			argsBuilder.append(compilerParams.createCmdLineArgs)
+			
+			# add the list of files to compile
+			argsBuilder.append(toCompile.toString)
+
+			cobraExe = CobraCore.findCobraExe
+			if cobraExe is nil or cobraExe.length == 0
+				errMsg = "Could not find cobra.exe. " + _
+					"Try adding its location to your PATH environment variable."
+				monitor.reportError(errMsg, nil)
+				failedResult = BuildResult()
+				failedResult.addError(errMsg)
+				return failedResult
+
+			# use the project directory as the working directory
+			workingDir = configuration.parentItem.baseDirectory.toString
+
+			# compile the code
+			proc = _spawnCobraCompilerProcess(cobraExe to !, argsBuilder.toString, workingDir)
+
+			monitor.log.writeLine("Working directory: " + workingDir)
+			# TODO: This creates one giant long string that requires horiztonal scrolling,
+			# it should wrap or logically group the arguments instead
+			monitor.log.writeLine(cobraExe to ! + " " + proc.startInfo.arguments)
+
+			# parse the compiler output
+			lines = List<of String>()
+
+			stdErr = proc.standardError.readToEnd
+			if stdErr.length, monitor.reportError(stdErr, nil)
+			lines.addRange(stdErr.split('\n'))
+
+			stdOut = proc.standardOutput.readToEnd
+			if stdOut.length, monitor.log.writeLine(stdOut)
+			lines.addRange(stdOut.split('\n'))
+			
+			buildResult = _parseCompilerOutput(lines)
+			buildResult.compilerOutput = stdOut
+
+			return buildResult
+	
+	def _spawnCobraCompilerProcess(cobraExe as String, cobraArgs as String, workingDir as String) as Process
+		"""
+		Executes the Cobra compiler.  Returns a Process object whose standard output and standard
+		error streams can be read for later parsing.
+		"""
+		require
+			cobraExe.length > 0
+			workingDir.length > 0
+		test
+			binding = CobraLanguageBinding()
+			
+			expect Exception
+				binding._spawnCobraCompilerProcess("", "", "")
 				
-				for line in compilerOutput
-					match = CobraLanguageBinding.compilerOutputRegex.match(line)
-					if match.success
-						groups = match.groups
-						fileName = groups["fileName"].toString
-						lineNum = int.parse(groups["lineNum"].toString)
+			p = binding._spawnCobraCompilerProcess("cobra", "-version", ".")
+			assert p.standardOutput.readToEnd.startsWith("Cobra ")
+			
+			p = binding._spawnCobraCompilerProcess("cobra", "", ".")
+			stdOut = p.standardOutput.readToEnd
+			assert stdOut.contains("The Cobra Programming Language")
+			assert stdOut.contains("Usage:")
+			assert stdOut.contains("cobra -h")
+		body
+			proc = System.Diagnostics.Process()
+			# useShellExecute needs to be false so we can redirect output and hide the screen on Windows
+			proc.startInfo.useShellExecute = false
+			proc.startInfo.redirectStandardOutput = true
+			proc.startInfo.redirectStandardError = true
+			proc.startInfo.windowStyle = ProcessWindowStyle.Hidden
+			proc.startInfo.createNoWindow = true
+			
+			proc.startInfo.fileName = cobraExe
+			proc.startInfo.arguments = cobraArgs
+			proc.startInfo.workingDirectory = workingDir
+			
+			proc.start
+			proc.waitForExit
+			
+			return proc
+	
+	/#
+	regex testing: http://regexhero.net/tester/
+	or in MonoDevelop go to: Tools > Regex Toolkit...
+	#/
+	shared
+		var compilerOutputRegex = Regex( _
+			r"(?<fileName>[^\(]+)\((?<lineNum>\d+)(,(?<col>\d+))?\):(\s)+(?<msgType>error|warning):(\s)*(?<msg>[^\r]+)", _
+			RegexOptions.Compiled)
+
+	def _parseCompilerOutput(compilerOutput as List<of String>) as BuildResult
+		"""
+		Parses the error and warning messages generated by the Cobra compiler and turns
+		them into objects MonoDevelop can understand.
+		"""
+		test successfulCompilation
+			sampleOutput = List<of String>()
+			sampleOutput.add("Compilation succeeded")
+			
+			res = CobraLanguageBinding()._parseCompilerOutput(sampleOutput)
+			assert res.errors.count == 0
+			assert res.errorCount == 0
+			assert res.warningCount == 0
+		
+		test successWithWarnings
+			sampleOutput = List<of String>()
+			sampleOutput.add("someFile.cobra(24): warning: Unnecessary parentheses. You can remove them.")
+			sampleOutput.add('someFile.cobra(51): warning: The value of variable "someVar" is never used.')
+			sampleOutput.add("Compilation succeeded - 2 warnings")
+			
+			res = CobraLanguageBinding()._parseCompilerOutput(sampleOutput)
+			assert res.errors.count == 2
+			assert res.errorCount == 0
+			assert res.warningCount == 2
+			lineSum = 0
+			for w in res.errors
+				assert w.isWarning
+				assert w.fileName == "someFile.cobra"
+				lineSum += w.line
+				assert w.column == 0
+				assert w.errorText == "Unnecessary parentheses. You can remove them." _
+					or w.errorText == 'The value of variable "someVar" is never used.'
+			assert lineSum == 75
+			
+		test lineColumnInfo
+			sampleOutput = List<of String>()
+			sampleOutput.add('foo.cobra(4): error: Cannot find "b". There is a member named ".memberwiseClone" with a similar name.')
+			sampleOutput.add('foo.cobra(4): warning: The value of variable "a" is never used.')
+			sampleOutput.add("foo.cobra(4,15): error: Expecting an expression.")
+			
+			res = CobraLanguageBinding()._parseCompilerOutput(sampleOutput)
+			assert res.errors.count == 3
+			assert res.errorCount == 2
+			assert res.warningCount == 1
+			for e in res.errors
+				assert e.fileName == "foo.cobra"
+				assert e.line == 4
+				try
+					assert e.column == 0
+					if e.isWarning
+						assert e.errorText == 'The value of variable "a" is never used.'
+					else
+						assert e.errorText == 'Cannot find "b". There is a member named ".memberwiseClone" with a similar name.'
+				catch
+					assert e.column == 15
+					assert e.errorText == "Expecting an expression."
+		
+		test generalError
+			sampleOutput = List<of String>()
+			sampleOutput.add('error: Cannot find a "main" method.')
+			sampleOutput.add("Compilation failed - 1 error, 0 warnings")
+			sampleOutput.add("Not running due to errors above.")
+			
+			res = CobraLanguageBinding()._parseCompilerOutput(sampleOutput)
+			assert res.errors.count == 1
+			assert res.errorCount == 1
+			assert res.warningCount == 0
+			e = res.errors[0]
+			assert not e.isWarning
+			assert e.fileName == nil
+			assert e.line == 0
+			assert e.column == 0
+			assert e.errorText == 'error: Cannot find a "main" method.'
+		
+		body
+			buildResult = BuildResult()
+			
+			for line in compilerOutput
+				match = CobraLanguageBinding.compilerOutputRegex.match(line)
+				if match.success
+					groups = match.groups
+					fileName = groups["fileName"].toString
+					lineNum = int.parse(groups["lineNum"].toString)
+					col = 0
+					if not int.tryParse(groups["col"].toString, out col)
 						col = 0
-						if not int.tryParse(groups["col"].toString, out col)
-							col = 0
-						msgType = groups["msgType"].toString
-						msg = groups["msg"].toString
-						errNum = ""
+					msgType = groups["msgType"].toString
+					msg = groups["msg"].toString
+					errNum = ""
 
-						if msgType == "error"
-							buildResult.addError(fileName, lineNum, col, errNum, msg)
-						else
-							buildResult.addWarning(fileName, lineNum, col, errNum, msg)
+					if msgType == "error"
+						buildResult.addError(fileName, lineNum, col, errNum, msg)
+					else
+						buildResult.addWarning(fileName, lineNum, col, errNum, msg)
 
-					else if line.contains("error:")
-						buildResult.addError(line)
-					else if line.contains("warning:")
-						buildResult.addWarning(line)
+				else if line.contains("error:")
+					buildResult.addError(line)
+				else if line.contains("warning:")
+					buildResult.addWarning(line)
 
-				return buildResult
+			return buildResult
 
-		def createCompilationParameters(projectOptions as XmlElement?) as ConfigurationParameters
-			test
-				binding = CobraLanguageBinding()
-				compilerParams = binding.createCompilationParameters(nil)
-				assert compilerParams.getType == CobraCompilerParameters
-				assert (compilerParams to CobraCompilerParameters).performanceQualityOption == _
-						CobraCompilerParameters.PerfQualOption.Default
-			body
-				return CobraCompilerParameters()
-			
-		def createProjectParameters(projectOptions as XmlElement?) as ProjectParameters
-			test
-				pass
-			body
-				return ProjectParameters()
+	def createCompilationParameters(projectOptions as XmlElement?) as ConfigurationParameters
+		test
+			binding = CobraLanguageBinding()
+			compilerParams = binding.createCompilationParameters(nil)
+			assert compilerParams.getType == CobraCompilerParameters
+			assert (compilerParams to CobraCompilerParameters).performanceQualityOption == _
+					CobraCompilerParameters.PerfQualOption.Default
+		body
+			return CobraCompilerParameters()
 		
-		#TODO
-		def getCodeDomProvider as CodeDomProvider?
-			test
-				pass
-			body
-				return nil
+	def createProjectParameters(projectOptions as XmlElement?) as ProjectParameters
+		test
+			pass
+		body
+			return ProjectParameters()
+	
+	#TODO
+	def getCodeDomProvider as CodeDomProvider?
+		test
+			pass
+		body
+			return nil

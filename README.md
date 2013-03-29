@@ -22,32 +22,30 @@ It currently supports the following features:
 
 Compiling and Installing
 ========================
-This addin is primarily developed on Ubuntu 12.04 LTS using MonoDevelop 3.0 
-from this PPA: 
+This addin is primarily developed on Ubuntu 12.10 using MonoDevelop 4.0 
+built from source.
 
-https://launchpad.net/~keks9n/+archive/monodevelop-latest
-
-However, it will work on OS X using Mono or on Windows using either the .NET 
-Framework or Mono. An installation program is provided for convenience. Just 
-execute...
+However, it will work with Xamarin Studio on OS X using Mono or on Windows 
+using either the .NET Framework or Mono. An installation program is provided 
+for convenience. Just execute...
 
     cobra install.cobra
 
 ...to compile and execute the installation program.
 
-On Windows 7 64-bit with a 32-bit installation of MonoDevelop, you'll need 
+On Windows 64-bit with a 32-bit installation of Xamarin Studio, you'll need 
 to make sure you've installed Cobra using the '-x86' installer option first.  
 See below for more details.
 
 Requirements
 ------------
-* .NET Framework 4 or Mono 2.10
+* .NET Framework 4 or Mono 3.0
 
-* MonoDevelop 3.0
+* MonoDevelop 4.0 (Linux) or Xamarin Studio 4.0.2 (Windows/Mac)
 
-* Cobra 0.9.2
+* Cobra svn:2928 (post 0.9.3)
 
-Additional Requirements for Windows 7 64-bit
+Additional Requirements for Windows 64-bit
 --------------------------------------------
 Just skip this whole section if you are not running 64-bit Windows.
 
@@ -139,8 +137,8 @@ On Linux:
 
 On Mac:
 
-    cd /Applications/MonoDevelop.app/Contents/MacOS/
-    ./MonoDevelop --no-redirect
+    cd /Applications/Xamarin\ Studio.app/Contents/MacOS/
+    ./XamarinStudio --no-redirect
 
 
 Low-hanging Fruit
@@ -164,7 +162,7 @@ Larger Todo Tasks
 -----------------
 These will require a bit more effort...
 
-* Implement the Code Completion extension
+* Implement the Code Completion extension (in progress)
 
 * Implement a Code Formatter for smarter indentation
 

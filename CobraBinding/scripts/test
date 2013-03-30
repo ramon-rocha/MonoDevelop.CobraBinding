@@ -2,5 +2,5 @@
 
 cd "$(dirname "$0")"
 cd refs
-cobra -test -pkg:gtk-sharp-2.0 -pkg:monodevelop -ref:System.Core ../../*.cobra ../../Project/*.cobra ../../TypeSystem/*.cobra ../../Completion/*.cobra
+cobra -test -color:yes -pkg:gtk-sharp-2.0 -pkg:monodevelop -ref:System.Core ../../*.cobra ../../Project/*.cobra ../../TypeSystem/*.cobra ../../Completion/*.cobra
 rm test-*

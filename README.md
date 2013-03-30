@@ -24,29 +24,26 @@ It currently supports the following features:
 
 Compiling and Installing
 ========================
-This addin is primarily developed on Ubuntu 12.10. If you are still using 
-MonoDevelop 2.8 on Ubuntu 12.04 LTS, you can upgrade to MonoDevelop 3.0 
-with this PPA: 
+This addin is primarily developed on Ubuntu 12.10 using MonoDevelop 4.0 
+built from source.
 
-https://launchpad.net/~keks9n/+archive/monodevelop-latest
-
-The addin will also work on OS X using Mono or on Windows using either the .NET 
-Framework or Mono. An installation program is provided for convenience. Just 
-execute...
+However, it will work with Xamarin Studio on OS X using Mono or on Windows 
+using either the .NET Framework or Mono. An installation program is provided 
+for convenience. Just execute...
 
     cobra install.cobra
 
 ...to compile and execute the installation program.
 
-On Windows 64-bit with a 32-bit installation of MonoDevelop, you'll need 
+On Windows 64-bit with a 32-bit installation of Xamarin Studio, you'll need 
 to make sure you've installed Cobra using the '-x86' installer option first.  
 See below for more details.
 
 Requirements
 ------------
-* .NET Framework 4 or Mono 2.10
+* .NET Framework 4 or Mono 3.0
 
-* MonoDevelop 3.0
+* MonoDevelop 4.0 (Linux) or Xamarin Studio 4.0.2 (Windows/Mac)
 
 * Cobra svn:2928 (post 0.9.3)
 
@@ -133,6 +130,18 @@ Alternatively, on Ubuntu, you can use xbuild and a bash script instead:
 Contributing
 ============
 Any and all help is appreciated.  See below for tips on getting started.
+
+You can launch MonoDevelop from the command line with --no-redirect which 
+will allow you to see all 'print' and 'trace' statements.
+
+On Linux:
+
+    monodevelop --no-redirect
+
+On Mac:
+
+    cd /Applications/Xamarin\ Studio.app/Contents/MacOS/
+    ./XamarinStudio --no-redirect
 
 
 Low-hanging Fruit

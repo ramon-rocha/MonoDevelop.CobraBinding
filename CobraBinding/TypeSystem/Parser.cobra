@@ -11,7 +11,7 @@ use MonoDevelop.CobraBinding
 
 namespace MonoDevelop.CobraBinding.TypeSystem
 
-class Parser implements ITypeSystemParser, IFoldingParser
+class Parser inherits TypeSystemParser implements IFoldingParser
 	"""
 	The type system parser provides a ParsedDocument required for adding 
 	information to the type system service to make the file contents available 
@@ -21,17 +21,20 @@ class Parser implements ITypeSystemParser, IFoldingParser
 	"""
 	
 	const TYPICAL_LINE_COUNT = 512 # 4 kB
-		
-	def parse(storeAst as bool, fileName as String, content as TextReader,
-				project as MonoDevelop.Projects.Project?) as ParsedDocument
+	
+	def parse(storeAst as bool, fileName as String?, content as TextReader?,
+		project as MonoDevelop.Projects.Project?) as ParsedDocument
+		is override
 		"""
-		implements ITypeSystemParser.parse
-		
 		Generates folds and parses the specified file using the Cobra Parser.
 		Stores the resultant AST in the ParsedDocument when storeAst is true.
 		"""
 		module as CobraModule? = nil
 		visitor as CobraModuleVisitor? = nil
+		
+		if fileName == nil or content == nil
+			# brand new file created outside the context of a Cobra project
+			return DefaultParsedDocument(fileName)
 		
 		source = content.readToEnd
 		if source == nil, source = ""
@@ -73,7 +76,7 @@ class Parser implements ITypeSystemParser, IFoldingParser
 
 		
 		# parse the source files and bind the AST nodes to their types
-		compilerResults = CompilerManager.instance.parseAndBind(sourceMap, refs, fileName)
+		compilerResults = CompilerManager.instance.parseAndBind(sourceMap, refs, fileName to !)
 		
 		for entry in compilerResults
 			if entry inherits CobraModule
@@ -109,12 +112,12 @@ class Parser implements ITypeSystemParser, IFoldingParser
 			parsedDoc.ast = module
 
 		return parsedDoc
-		
-	def parse(fileName as String, content as String) as ParsedDocument
+
+	def parse(fileName as String?, content as String?) as ParsedDocument
 		"""
 		implements IFoldingParser.parse
-		
-		Parse the specified file to generate folds.
+
+		Parse the specified file only to generate folds.  Does not generate an AST.
 		"""
 		parsedDoc = ParsedCobraDocument(fileName, content)
 		
@@ -123,9 +126,8 @@ class Parser implements ITypeSystemParser, IFoldingParser
 		_addFolds(_getLineInformation(reader), folds)
 		
 		parsedDoc.add(folds)
-
+		
 		return parsedDoc
-	
 	
 	def _getLineInformation(reader as StringReader) as List<of LineInformation>
 		lines = List<of String>(.TYPICAL_LINE_COUNT)
@@ -170,31 +172,31 @@ class Parser implements ITypeSystemParser, IFoldingParser
 			
 			parser = Parser()
 			infoList = parser._getLineInformation(source)
-						
+			
 			assert infoList[0].opensComment == false
 			assert infoList[0].closesComment == false
 			assert infoList[0].opensDocString == false
 			assert infoList[0].closesDocString == false
 			assert infoList[0].isBlank == false
-									
+			
 			assert infoList[1].opensComment == false
 			assert infoList[1].closesComment == false
 			assert infoList[1].opensDocString == false
 			assert infoList[1].closesDocString == false
 			assert infoList[1].isBlank == true #
-						
+			
 			assert infoList[4].opensComment == false
 			assert infoList[4].closesComment == false
 			assert infoList[4].opensDocString == true #
 			assert infoList[4].closesDocString == false
 			assert infoList[4].isBlank == false
-						
+			
 			assert infoList[5].opensComment == false
 			assert infoList[5].closesComment == false
 			assert infoList[5].opensDocString == false
 			assert infoList[5].closesDocString == false
 			assert infoList[5].isBlank == false
-						
+				
 			assert infoList[6].opensComment == false
 			assert infoList[6].closesComment == false
 			assert infoList[6].opensDocString == false
@@ -230,23 +232,23 @@ class Parser implements ITypeSystemParser, IFoldingParser
 			inDocString = false
 			docStringTag as String? = nil
 			infoList = List<of LineInformation>(lines.count)
-	
+			
 			for line in lines
-	
+				
 				info = LineInformation(line, inComment, inDocString, docStringTag, info)
-	
+				
 				if not inComment and info.opensComment
 					inComment = true
 				else if inComment and info.closesComment
 					inComment = false
-	
+				
 				if not inDocString and info.opensDocString
 					inDocString = true
 					docStringTag = info.docStringTag
 				else if inDocString and info.closesDocString
 					inDocString = false
 					docStringTag = nil
-	
+			
 				infoList.add(info)
 				
 			return infoList
@@ -324,37 +326,37 @@ class Parser implements ITypeSystemParser, IFoldingParser
 			if infoList.count < 2
 				# not enough lines to create a fold
 				return
-	
+			
 			commentCloser as ClosesDelimitedBlock = do(i as LineInformation)
 				return i.opensComment
-	
+			
 			docStringCloser as ClosesDelimitedBlock = do(i as LineInformation)
 				return i.opensDocString
-	
+			
 			lineNumber = infoList.count
 			curr as LineInformation? = infoList[lineNumber - 1]
-	
+			
 			endStack = Stack<of TextLocation>()
 			levelStack = Stack<of int>()
-	
+			
 			# go through the list backwards creating folds as we go
 			while curr <> nil
-	
+			
 				closer as ClosesDelimitedBlock? = nil
-	
+				
 				# skip blank lines
 				while curr.isBlank
 					curr = curr.previous
 					if curr == nil
 						return
 					lineNumber -= 1
-	
+				
 				# handle comment blocks and doc strings
 				if curr.closesComment
 					closer = commentCloser
 				else if curr.closesDocString
 					closer = docStringCloser
-	
+				
 				if closer <> nil
 					endLocation = TextLocation(lineNumber, curr.line.length + 1)
 					
@@ -367,23 +369,23 @@ class Parser implements ITypeSystemParser, IFoldingParser
 								closes with its containing block #/
 								levelStack.push(level)
 								endStack.push(endLocation)
-	
+					
 					# we won't have a line that closes a delimited block without one that opens it
 					blockText = curr to !
 					while not closer(blockText)
 						blockText = blockText.previous to !
 						lineNumber -= 1
-	
+					
 					curr = blockText
 					startLocation = TextLocation(lineNumber, curr.line.length + 2)
 					folds.add(FoldingRegion(DomRegion(startLocation, endLocation), FoldType.Comment))
 					curr = curr.previous
 					lineNumber -= 1
 					continue
-		
+				
 				# handle indent blocks (ignore commented lines)
 				if not curr.line.trimStart.startsWith("#")
-				
+					
 					level = .getIndentLevel(curr.line)
 					
 					# should we close any regions?
@@ -401,11 +403,11 @@ class Parser implements ITypeSystemParser, IFoldingParser
 					else
 						# makes the following loop do nothing
 						first = level + 2
-																	
+					
 					for l in first : level + 1
 						levelStack.push(l)
 						endStack.push(TextLocation(lineNumber, curr.line.length + 1))
-	
+					
 				curr = curr.previous
 				lineNumber -= 1
 

@@ -6,258 +6,258 @@ use MonoDevelop.CobraBinding.Gui
 
 namespace MonoDevelop.CobraBinding.Project
 
-	class CompilerBuildOptionsPanel inherits MultiConfigItemOptionsPanel
+class CompilerBuildOptionsPanel inherits MultiConfigItemOptionsPanel
+	"""
+	This class is responsible for creating and setting up the
+	panel widget for the Project > Options > Build > Compiler
+	panel.  It also saves and loads the data to and from the
+	backend CobraCompilerParameters instance(s).
+	"""
+
+	var _widget as CompilerBuildOptionsPanelWidget
+	
+	get widget from var
+	
+	
+	cue init
+		base.init
+		_initialize
+		
+		
+	def _initialize
 		"""
-		This class is responsible for creating and setting up the
-		panel widget for the Project > Options > Build > Compiler
-		panel.  It also saves and loads the data to and from the
-		backend CobraCompilerParameters instance(s).
+		Connect the callbacks and select the default 'Performance and Quality' option.
 		"""
+		_widget = CompilerBuildOptionsPanelWidget()
+		listen _widget.perfQualDefaultRadioButton.toggled, ref _onToggledPerfQualDefault
+		listen _widget.perfQualTurboRadioButton.toggled, ref _onToggledPerfQualTurbo
+		listen _widget.perfQualCustomRadioButton.toggled, ref _onToggledPerfQualCustom
+		_widget.perfQualDefaultRadioButton.active = true
+		_onToggledPerfQualDefault(_widget.perfQualDefaultRadioButton to !, EventArgs())
+		
+		
+	def _onToggledPerfQualDefault(sender as Object, args as EventArgs)
+		"""
+		Handles the "Default" Performance/Quality radio button.
+		"""
+		if _widget.perfQualDefaultRadioButton.active
+			_widget.contractsComboBox.active = CobraCompilerParameters.ContractOption.Inline to int
+			_widget.includeAssertsCheckButton.active = true
+			_widget.includeNilChecksCheckButton.active = true
+			_widget.optimizeCheckButton.active = false
+			_widget.includeTestsCheckButton.active = true
+			_widget.includeTracesCheckButton.active = true
+			_disablePerfQualOptions
+		
+		
+	def _onToggledPerfQualTurbo(sender as Object, args as EventArgs)
+		"""
+		Handles the "Turbo" Performance/Quality radio button.
+		"""
+		if _widget.perfQualTurboRadioButton.active
+			_widget.contractsComboBox.active = CobraCompilerParameters.ContractOption.None to int
+			_widget.includeAssertsCheckButton.active = false
+			_widget.includeNilChecksCheckButton.active = false
+			_widget.optimizeCheckButton.active = true
+			_widget.includeTestsCheckButton.active = false
+			_widget.includeTracesCheckButton.active = false
+			_disablePerfQualOptions
+		
 	
-		var _widget as CompilerBuildOptionsPanelWidget
-		
-		get widget from var
-		
-		
-		cue init
-			base.init
-			_initialize
+	def _onToggledPerfQualCustom(sender as Object, args as EventArgs)
+		"""
+		Handles the "Custom" Performance/Quality radio button.
+		"""
+		if _widget.perfQualCustomRadioButton.active
+			_enablePerfQualOptions
 			
-			
-		def _initialize
-			"""
-			Connect the callbacks and select the default 'Performance and Quality' option.
-			"""
-			_widget = CompilerBuildOptionsPanelWidget()
-			listen _widget.perfQualDefaultRadioButton.toggled, ref _onToggledPerfQualDefault
-			listen _widget.perfQualTurboRadioButton.toggled, ref _onToggledPerfQualTurbo
-			listen _widget.perfQualCustomRadioButton.toggled, ref _onToggledPerfQualCustom
-			_widget.perfQualDefaultRadioButton.active = true
-			_onToggledPerfQualDefault(_widget.perfQualDefaultRadioButton to !, EventArgs())
-			
-			
-		def _onToggledPerfQualDefault(sender as Object, args as EventArgs)
-			"""
-			Handles the "Default" Performance/Quality radio button.
-			"""
-			if _widget.perfQualDefaultRadioButton.active
-				_widget.contractsComboBox.active = CobraCompilerParameters.ContractOption.Inline to int
-				_widget.includeAssertsCheckButton.active = true
-				_widget.includeNilChecksCheckButton.active = true
-				_widget.optimizeCheckButton.active = false
-				_widget.includeTestsCheckButton.active = true
-				_widget.includeTracesCheckButton.active = true
-				_disablePerfQualOptions
-			
-			
-		def _onToggledPerfQualTurbo(sender as Object, args as EventArgs)
-			"""
-			Handles the "Turbo" Performance/Quality radio button.
-			"""
-			if _widget.perfQualTurboRadioButton.active
-				_widget.contractsComboBox.active = CobraCompilerParameters.ContractOption.None to int
-				_widget.includeAssertsCheckButton.active = false
-				_widget.includeNilChecksCheckButton.active = false
-				_widget.optimizeCheckButton.active = true
-				_widget.includeTestsCheckButton.active = false
-				_widget.includeTracesCheckButton.active = false
-				_disablePerfQualOptions
-			
-		
-		def _onToggledPerfQualCustom(sender as Object, args as EventArgs)
-			"""
-			Handles the "Custom" Performance/Quality radio button.
-			"""
-			if _widget.perfQualCustomRadioButton.active
-				_enablePerfQualOptions
-				
-				config = .currentConfiguration to DotNetProjectConfiguration
-				compilerParams = config.compilationParameters to CobraCompilerParameters
-				
-				_loadPerfQualCustomData(compilerParams)
-			
-			
-		def _loadPerfQualCustomData(compilerParams as CobraCompilerParameters)
-			"""
-			Helper function to the "Custom" Performance/Quality radio button handler.
-			"""
-			branch compilerParams.contracts
-				on "inline"
-					_widget.contractsComboBox.active = _
-						CobraCompilerParameters.ContractOption.Inline to int
-				on "methods"
-					_widget.contractsComboBox.active = _
-						CobraCompilerParameters.ContractOption.Methods to int
-				on "none"
-					_widget.contractsComboBox.active = _
-						CobraCompilerParameters.ContractOption.None to int
-			
-			_widget.includeAssertsCheckButton.active = compilerParams.includeAsserts
-			_widget.includeNilChecksCheckButton.active = compilerParams.includeNilChecks
-			_widget.optimizeCheckButton.active = compilerParams.optimize
-			_widget.includeTestsCheckButton.active = compilerParams.includeTests
-			_widget.includeTracesCheckButton.active = compilerParams.includeTraces
-			
-			
-		def _disablePerfQualOptions
-			"""
-			Disables widgets on the panel that are overriden by selecting the "Default"
-			or "Turbo" Performance/Quality radio buttons.
-			"""
-			_widget.contractsLabel.sensitive = false
-			_widget.contractsComboBox.sensitive = false
-			_widget.includeAssertsCheckButton.sensitive = false
-			_widget.includeNilChecksCheckButton.sensitive = false
-			_widget.optimizeCheckButton.sensitive = false
-			_widget.includeTestsCheckButton.sensitive = false
-			_widget.includeTracesCheckButton.sensitive = false
-		
-		
-		def _enablePerfQualOptions
-			"""
-			Enables widgets on the panel that become available by selecting the "Custom"
-			Performance/Quality radio button.
-			"""
-			_widget.contractsLabel.sensitive = true
-			_widget.contractsComboBox.sensitive = true
-			_widget.includeAssertsCheckButton.sensitive = true
-			_widget.includeNilChecksCheckButton.sensitive = true
-			_widget.optimizeCheckButton.sensitive = true
-			_widget.includeTestsCheckButton.sensitive = true
-			_widget.includeTracesCheckButton.sensitive = true
-	
-	
-		def createPanelWidget as Gtk.Widget is override
-			"""
-			Creates a new widget using the project provided by the base class.
-			"""
-			_initialize
-			.loadConfigData
-			return _widget
-			
-			
-		def loadConfigData is override
-			"""
-			Load the current compiler/project options for the active configuration.
-			"""
 			config = .currentConfiguration to DotNetProjectConfiguration
 			compilerParams = config.compilationParameters to CobraCompilerParameters
 			
-			# performance and quality
-			branch compilerParams.performanceQualityOption.toString
-				on "Turbo"				
-					_widget.perfQualTurboRadioButton.active = true										
-				on "Custom"
-					_widget.perfQualCustomRadioButton.active = true				
-				else #Default
-					_widget.perfQualDefaultRadioButton.active = true					
-			
-			# develop and deploy options
-			_widget.embedRunTimeCheckButton.active = compilerParams.embedRunTime
-			_widget.keepIntermediateFilesCheckButton.active = compilerParams.keepIntermediateFiles
-			
-			branch compilerParams.debug
-				on "full"
-					_widget.debugInfoComboBox.active = _
-						CobraCompilerParameters.DebugOption.Full to int
-				on "pdbonly"
-					_widget.debugInfoComboBox.active = _
-						CobraCompilerParameters.DebugOption.PdbOnly to int
-				on "off"
-					_widget.debugInfoComboBox.active = _
-						CobraCompilerParameters.DebugOption.Off to int
-					
-			_widget.debugTipsCheckButton.active = compilerParams.debuggingTips
-			_widget.cobraArgsEntry.text = compilerParams.cobraArgs
-			
-			# backend compiler options
-			branch compilerParams.backEnd
-				on "none"
-					_widget.backEndComboBox.active = _
-						CobraCompilerParameters.BackEndOption.None to int
-				on "clr"
-					_widget.backEndComboBox.active = _
-						CobraCompilerParameters.BackEndOption.Clr to int
-				on "jvm"
-					_widget.backEndComboBox.active = _
-						CobraCompilerParameters.BackEndOption.Jvm to int
-				on "objc"
-					_widget.backEndComboBox.active = _
-						CobraCompilerParameters.BackEndOption.ObjC to int
-			
-			trace config.name
-			trace compilerParams.nativeCompiler
-			
-			if compilerParams.nativeCompiler == "auto"
+			_loadPerfQualCustomData(compilerParams)
+		
+		
+	def _loadPerfQualCustomData(compilerParams as CobraCompilerParameters)
+		"""
+		Helper function to the "Custom" Performance/Quality radio button handler.
+		"""
+		branch compilerParams.contracts
+			on "inline"
+				_widget.contractsComboBox.active = _
+					CobraCompilerParameters.ContractOption.Inline to int
+			on "methods"
+				_widget.contractsComboBox.active = _
+					CobraCompilerParameters.ContractOption.Methods to int
+			on "none"
+				_widget.contractsComboBox.active = _
+					CobraCompilerParameters.ContractOption.None to int
+		
+		_widget.includeAssertsCheckButton.active = compilerParams.includeAsserts
+		_widget.includeNilChecksCheckButton.active = compilerParams.includeNilChecks
+		_widget.optimizeCheckButton.active = compilerParams.optimize
+		_widget.includeTestsCheckButton.active = compilerParams.includeTests
+		_widget.includeTracesCheckButton.active = compilerParams.includeTraces
+		
+		
+	def _disablePerfQualOptions
+		"""
+		Disables widgets on the panel that are overriden by selecting the "Default"
+		or "Turbo" Performance/Quality radio buttons.
+		"""
+		_widget.contractsLabel.sensitive = false
+		_widget.contractsComboBox.sensitive = false
+		_widget.includeAssertsCheckButton.sensitive = false
+		_widget.includeNilChecksCheckButton.sensitive = false
+		_widget.optimizeCheckButton.sensitive = false
+		_widget.includeTestsCheckButton.sensitive = false
+		_widget.includeTracesCheckButton.sensitive = false
+	
+	
+	def _enablePerfQualOptions
+		"""
+		Enables widgets on the panel that become available by selecting the "Custom"
+		Performance/Quality radio button.
+		"""
+		_widget.contractsLabel.sensitive = true
+		_widget.contractsComboBox.sensitive = true
+		_widget.includeAssertsCheckButton.sensitive = true
+		_widget.includeNilChecksCheckButton.sensitive = true
+		_widget.optimizeCheckButton.sensitive = true
+		_widget.includeTestsCheckButton.sensitive = true
+		_widget.includeTracesCheckButton.sensitive = true
+
+
+	def createPanelWidget as Gtk.Widget is override
+		"""
+		Creates a new widget using the project provided by the base class.
+		"""
+		_initialize
+		.loadConfigData
+		return _widget
+		
+		
+	def loadConfigData is override
+		"""
+		Load the current compiler/project options for the active configuration.
+		"""
+		config = .currentConfiguration to DotNetProjectConfiguration
+		compilerParams = config.compilationParameters to CobraCompilerParameters
+		
+		# performance and quality
+		branch compilerParams.performanceQualityOption.toString
+			on "Turbo"				
+				_widget.perfQualTurboRadioButton.active = true										
+			on "Custom"
+				_widget.perfQualCustomRadioButton.active = true				
+			else #Default
+				_widget.perfQualDefaultRadioButton.active = true					
+		
+		# develop and deploy options
+		_widget.embedRunTimeCheckButton.active = compilerParams.embedRunTime
+		_widget.keepIntermediateFilesCheckButton.active = compilerParams.keepIntermediateFiles
+		
+		branch compilerParams.debug
+			on "full"
+				_widget.debugInfoComboBox.active = _
+					CobraCompilerParameters.DebugOption.Full to int
+			on "pdbonly"
+				_widget.debugInfoComboBox.active = _
+					CobraCompilerParameters.DebugOption.PdbOnly to int
+			on "off"
+				_widget.debugInfoComboBox.active = _
+					CobraCompilerParameters.DebugOption.Off to int
+				
+		_widget.debugTipsCheckButton.active = compilerParams.debuggingTips
+		_widget.cobraArgsEntry.text = compilerParams.cobraArgs
+		
+		# backend compiler options
+		branch compilerParams.backEnd
+			on "none"
+				_widget.backEndComboBox.active = _
+					CobraCompilerParameters.BackEndOption.None to int
+			on "clr"
+				_widget.backEndComboBox.active = _
+					CobraCompilerParameters.BackEndOption.Clr to int
+			on "jvm"
+				_widget.backEndComboBox.active = _
+					CobraCompilerParameters.BackEndOption.Jvm to int
+			on "objc"
+				_widget.backEndComboBox.active = _
+					CobraCompilerParameters.BackEndOption.ObjC to int
+		
+		trace config.name
+		trace compilerParams.nativeCompiler
+		
+		if compilerParams.nativeCompiler == "auto"
+			_widget.nativeCompilerFileChooser.setFilename(nil)
+		else
+			try
+				_widget.nativeCompilerFileChooser.setFilename(compilerParams.nativeCompiler)
+			catch
 				_widget.nativeCompilerFileChooser.setFilename(nil)
-			else
-				try
-					_widget.nativeCompilerFileChooser.setFilename(compilerParams.nativeCompiler)
-				catch
-					_widget.nativeCompilerFileChooser.setFilename(nil)
-	
-			_widget.nativeCompilerArgsEntry.text = compilerParams.nativeCompilerArgs
-									
-																	
-		def applyChanges is override
-			"""
-			Save the selected options for the current configuration. Does not save to disk.
-			"""
-			config = .currentConfiguration to DotNetProjectConfiguration
-			compilerParams = config.compilationParameters to CobraCompilerParameters
-			_applyPerformanceQualityChanges(compilerParams)
-			_applyDevelDeployChanges(compilerParams)
-			_applyBackEndChanges(compilerParams)
+
+		_widget.nativeCompilerArgsEntry.text = compilerParams.nativeCompilerArgs
+								
+																
+	def applyChanges is override
+		"""
+		Save the selected options for the current configuration. Does not save to disk.
+		"""
+		config = .currentConfiguration to DotNetProjectConfiguration
+		compilerParams = config.compilationParameters to CobraCompilerParameters
+		_applyPerformanceQualityChanges(compilerParams)
+		_applyDevelDeployChanges(compilerParams)
+		_applyBackEndChanges(compilerParams)
+		
+	def _applyPerformanceQualityChanges(compilerParams as CobraCompilerParameters)
+		"""
+		Helper function to .applyChanges
+		"""
+		if _widget.perfQualDefaultRadioButton.active
+			compilerParams.performanceQualityOption = _
+				CobraCompilerParameters.PerfQualOption.Default
 			
-		def _applyPerformanceQualityChanges(compilerParams as CobraCompilerParameters)
-			"""
-			Helper function to .applyChanges
-			"""
-			if _widget.perfQualDefaultRadioButton.active
-				compilerParams.performanceQualityOption = _
-					CobraCompilerParameters.PerfQualOption.Default
-				
-			else if _widget.perfQualTurboRadioButton.active
-				compilerParams.performanceQualityOption = _
-					CobraCompilerParameters.PerfQualOption.Turbo
-				
+		else if _widget.perfQualTurboRadioButton.active
+			compilerParams.performanceQualityOption = _
+				CobraCompilerParameters.PerfQualOption.Turbo
+			
+		else
+			compilerParams.performanceQualityOption = _
+				CobraCompilerParameters.PerfQualOption.Custom
+			
+		compilerParams.contracts = _widget.contractsComboBox.activeText.toLower
+		compilerParams.includeAsserts = _widget.includeAssertsCheckButton.active
+		compilerParams.includeNilChecks = _widget.includeNilChecksCheckButton.active
+		compilerParams.optimize = _widget.optimizeCheckButton.active
+		compilerParams.includeTests = _widget.includeTestsCheckButton.active
+		compilerParams.includeTraces = _widget.includeTracesCheckButton.active
+			
+	def _applyDevelDeployChanges(compilerParams as CobraCompilerParameters)
+		"""
+		Helper function to .applyChanges
+		"""
+		compilerParams.embedRunTime = _widget.embedRunTimeCheckButton.active
+		compilerParams.debug = _widget.debugInfoComboBox.activeText.toLower.replace(' ', nil) #TODO: consistent name
+		compilerParams.debuggingTips = _widget.debugTipsCheckButton.active #TODO: consistent name
+		compilerParams.keepIntermediateFiles = _widget.keepIntermediateFilesCheckButton.active
+		compilerParams.cobraArgs = _widget.cobraArgsEntry.text ? ""
+			
+	def _applyBackEndChanges(compilerParams as CobraCompilerParameters)
+		"""
+		Helper function to .applyChanges
+		"""
+		branch _widget.backEndComboBox.activeText #TODO: this shouldn't be hardcoded like this
+			on "Common Language Runtime"
+				compilerParams.backEnd = "clr"
+			on "Java Virtual Machine"
+				compilerParams.backEnd = "jvm"
+			on "Objective-C"
+				compilerParams.backEnd = "objc"
 			else
-				compilerParams.performanceQualityOption = _
-					CobraCompilerParameters.PerfQualOption.Custom
-				
-			compilerParams.contracts = _widget.contractsComboBox.activeText.toLower
-			compilerParams.includeAsserts = _widget.includeAssertsCheckButton.active
-			compilerParams.includeNilChecks = _widget.includeNilChecksCheckButton.active
-			compilerParams.optimize = _widget.optimizeCheckButton.active
-			compilerParams.includeTests = _widget.includeTestsCheckButton.active
-			compilerParams.includeTraces = _widget.includeTracesCheckButton.active
-				
-		def _applyDevelDeployChanges(compilerParams as CobraCompilerParameters)
-			"""
-			Helper function to .applyChanges
-			"""
-			compilerParams.embedRunTime = _widget.embedRunTimeCheckButton.active
-			compilerParams.debug = _widget.debugInfoComboBox.activeText.toLower.replace(' ', nil) #TODO: consistent name
-			compilerParams.debuggingTips = _widget.debugTipsCheckButton.active #TODO: consistent name
-			compilerParams.keepIntermediateFiles = _widget.keepIntermediateFilesCheckButton.active
-			compilerParams.cobraArgs = _widget.cobraArgsEntry.text ? ""
-				
-		def _applyBackEndChanges(compilerParams as CobraCompilerParameters)
-			"""
-			Helper function to .applyChanges
-			"""
-			branch _widget.backEndComboBox.activeText #TODO: this shouldn't be hardcoded like this
-				on "Common Language Runtime"
-					compilerParams.backEnd = "clr"
-				on "Java Virtual Machine"
-					compilerParams.backEnd = "jvm"
-				on "Objective-C"
-					compilerParams.backEnd = "objc"
-				else
-					compilerParams.backEnd = "none"
+				compilerParams.backEnd = "none"
 
-			compilerParams.nativeCompiler = _widget.nativeCompilerFileChooser.filename ? ""
-			if compilerParams.nativeCompiler.length == 0
-				compilerParams.nativeCompiler = "auto"
+		compilerParams.nativeCompiler = _widget.nativeCompilerFileChooser.filename ? ""
+		if compilerParams.nativeCompiler.length == 0
+			compilerParams.nativeCompiler = "auto"
 
-			compilerParams.nativeCompilerArgs = _widget.nativeCompilerArgsEntry.text ? ""
+		compilerParams.nativeCompilerArgs = _widget.nativeCompilerArgsEntry.text ? ""

@@ -392,7 +392,7 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 
 
 	def handleParameterCompletion(context as CodeCompletionContext?, completionChar as char) _
-		as IParameterDataProvider? is override
+		as ParameterDataProvider? is override
 		
 		return nil
 	

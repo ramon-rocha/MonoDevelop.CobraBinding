@@ -9,7 +9,7 @@
 	url = "http://cobra-language.com"
 	description = "Provides support for using the Cobra programming language in MonoDevelop."
 	category = "Language bindings"
-	version = "0.2">
+	version = "0.3">
 	
 	<RunTime>
 		<Import assembly="MonoDevelop.CobraBinding.dll" />
@@ -17,10 +17,10 @@
 	</RunTime>
 	
 	<Dependencies>
-		<Addin id="Core" version="3.0.0"/>
-		<Addin id="Ide" version="3.0.0"/>
-		<Addin id="SourceEditor2" version="3.0.0"/>
-		<Addin id="Refactoring" version="3.0.0"/>
+		<Addin id="Core" version="4.0"/>
+		<Addin id="Ide" version="4.0"/>
+		<Addin id="SourceEditor2" version="4.0"/>
+		<Addin id="Refactoring" version="4.0"/>
 	</Dependencies>	
 	
 	<Extension path = "/MonoDevelop/ProjectModel/MSBuildItemTypes">

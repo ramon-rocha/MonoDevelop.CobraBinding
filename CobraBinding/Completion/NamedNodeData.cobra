@@ -10,10 +10,8 @@ class NamedNodeData inherits CompletionData
 	"""
 	This class represents a single entry for use in a list of completion data.
 	"""
-
 	var _node as INamedNode
-	var _description as String? = nil
-	var _completionText as String? = nil
+	var _tooltipInfo as TooltipInformation? = nil
 	
 	cue init(node as INamedNode)
 		base.init
@@ -51,82 +49,101 @@ class NamedNodeData inherits CompletionData
 			if _node.isGeneric
 				tagPos = _node.name.indexOf(c'<')
 				return _node.name.substring(0, tagPos) + "<of"
-				
+		
 		return _node.name
+		
+	def createTooltipInformation(smartWrap as bool) as TooltipInformation is override
+		"""
+		Create the tooltip that displays next to the highlighted completion entry.
+		"""
+		if _tooltipInfo <> nil, return _tooltipInfo
+		
+		info = TooltipInformation()
+		info.signatureMarkup = .signature
+		info.summaryMarkup = .description
+		
+		_tooltipInfo = info
+		return _tooltipInfo to !
+		
+	get signature as String
+		"""
+		Appears as the signatureMarkup in the tooltip for this completion entry.
+		"""
+		
+		# a node may not have a type if we couldn't bind the types in the AST
+		desc = "?"
+		
+		try
+			if _node inherits Box
+				desc = _node.qualifiedName
+				if _node.isGeneric
+					genericStrings = _createGenericStrings(_node)
+					toReplace = genericStrings.a
+					replaceWith = genericStrings.b
+					desc = desc.replace(toReplace, replaceWith)
+				
+			else if _node inherits AbstractMethod
+				if _node inherits Method
+					desc = _createMethodSignature(_node)
+				else
+					desc = _node.resultType.name
+				
+			else if _node inherits Property
+				desc = _node.resultType.name
+			
+			else if _node inherits BoxEvent
+				desc = _node.resultType.name
+			
+			else if _node inherits BoxField
+				desc = _node.type.name
+			
+			else if _node inherits AbstractLocalVar
+				desc = _node.type.name
+			
+			else if _node inherits NameSpace
+				desc = _node.fullName
+			
+			else if _node inherits EnumDecl
+				desc = "[_node.parentNameSpace.fullName].[_node.name]"
+			
+			else if _node inherits EnumMember
+				if _node.value == nil
+					# no need to include tooltip because the user has already typed the EnumDecl name
+					desc = ""
+				else
+					desc = "[_node.resultType.name] (value = [_node.value])"
+			else
+				desc = _node.getType.assemblyQualifiedName ? ""
+		catch ex as Exception
+			desc = ex.toString
+		
+		# remove tab characters otherwise it messes up the formatting in the tooltip
+		desc = desc.replace("\t", "")
+		
+		#TODO: fix line breaks in the doc string
+		return desc
+		
+	get summary as String
+		return .description
 	
 	get description as String is override
 		"""
-		Appears as a tooltip when this entry is highlighted.		
+		Appears as the summaryMarkup in the tooltip for this completion entry.
 		"""
-		if _description == nil
-			# a node may not have a type if we couldn't bind the types in the AST
-			try
-				if _node inherits Box
-					_description = _node.qualifiedName
-					if _node.isGeneric
-						genericStrings = _createGenericStrings(_node)
-						toReplace = genericStrings.a
-						replaceWith = genericStrings.b
-						_description = _description.replace(toReplace, replaceWith)
-					if not String.isNullOrEmpty(_node.docString)
-						_description += "\n[_node.docString]"
-						
-				else if _node inherits AbstractMethod
-					if _node inherits Method
-						_description = _createMethodDescription(_node)
-					else
-						_description = _node.resultType.name
-					if not String.isNullOrEmpty(_node.docString)
-						_description += "\n[_node.docString]"
-						
-				else if _node inherits Property
-					_description = _node.resultType.name
-					if not String.isNullOrEmpty(_node.docString)
-						_description += "\n[_node.docString]"
-						
-				else if _node inherits BoxEvent
-					_description = _node.resultType.name
-					
-				else if _node inherits BoxField
-					_description = _node.type.name
-					
-				else if _node inherits AbstractLocalVar
-					_description = _node.type.name
-					
-				else if _node inherits NameSpace
-					_description = _node.fullName
-					if not String.isNullOrEmpty(_node.docString)
-						_description += "\n[_node.docString]"
-				
-				else if _node inherits EnumDecl
-					_description = "[_node.parentNameSpace.fullName].[_node.name]"
-					if not String.isNullOrEmpty(_node.docString)
-						_description += "\n[_node.docString]"
-						
-				else if _node inherits EnumMember
-					if _node.value == nil
-						# no need to include tooltip because the user has already typed the EnumDecl name
-						_description = ""
-					else
-						_description = "[_node.resultType.name] (value = [_node.value])"
-				else
-					_description = _node.getType.assemblyQualifiedName
-			catch ex as Exception
-				_description = ex.toString
-			
-			if _description == nil
-				_description = "?"
-			
+		n = _node to dynamic
+		try
+			desc = n.docString ? ""
 			# remove tab characters otherwise it messes up the formatting in the tooltip
-			_description = _description.replace("\t", "")
-			
-			#TODO: fix line breaks
-			
-		return _description to !
+			desc = desc.replace("\t", "")
+			#TODO: fix line breaks in the doc string
+		catch
+			desc = ""
 		
-	def _createMethodDescription(m as Method) as String
+		return desc
+		
+	def _createMethodSignature(m as Method) as String
 		"""
-		Displays the parameter names and types (if any) in the method's tooltip.
+		Returns a string with the parameter names and types (if any) in the method's tooltip.
 		"""
 		if m.params.count > 0
 			sb = StringBuilder()

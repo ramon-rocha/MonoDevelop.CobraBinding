@@ -87,6 +87,7 @@ class CobraBindingAddinInstaller
 	var _winRefsPartialPaths = [
 		r"\Xamarin Studio\bin\MonoDevelop.Core.dll",
 		r"\Xamarin Studio\bin\MonoDevelop.Ide.dll",
+		r"\Xamarin Studio\bin\Mono.TextEditor.dll",
 		r"\Xamarin Studio\bin\ICSharpCode.NRefactory.dll",
 		r"\GtkSharp\2.12\lib\gtk-sharp-2.0\gtk-sharp.dll",
 		r"\GtkSharp\2.12\lib\gtk-sharp-2.0\gdk-sharp.dll",

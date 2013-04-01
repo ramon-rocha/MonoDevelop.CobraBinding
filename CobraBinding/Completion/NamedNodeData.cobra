@@ -17,17 +17,15 @@ class NamedNodeData inherits CompletionData
 		base.init
 		_node = node
 		.icon = Icons.getStock(node)
+		name = node.name
 		if node inherits Box
 			if node.isGeneric
-				# TODO: How should we handle all the Action<of T1...Tn> generics?
-				genericStrings = _createGenericStrings(node)
-				toReplace = genericStrings.a
-				replaceWith = genericStrings.b
-				.displayText = node.name.replace(toReplace, replaceWith)
+				tagPos = name.indexOf(c'<')
+				.displayText = name.substring(0, tagPos) + "<of"
 			else
-				.displayText = node.name
+				.displayText = name
 		else
-			.displayText = node.name
+			.displayText = name
 		
 		# this is text visible in the completion list in a slightly darker color font, is it useful?
 		#.displayDescription = ""
@@ -45,12 +43,13 @@ class NamedNodeData inherits CompletionData
 		The actual text inserted into the document
 		when a completion data entry is selected.
 		"""
+		name = _node.name
 		if _node inherits Box
 			if _node.isGeneric
-				tagPos = _node.name.indexOf(c'<')
-				return _node.name.substring(0, tagPos) + "<of"
+				tagPos = name.indexOf(c'<')
+				return name.substring(0, tagPos) + "<of"
 		
-		return _node.name
+		return name
 		
 	def createTooltipInformation(smartWrap as bool) as TooltipInformation is override
 		"""
@@ -59,8 +58,14 @@ class NamedNodeData inherits CompletionData
 		if _tooltipInfo <> nil, return _tooltipInfo
 		
 		info = TooltipInformation()
-		info.signatureMarkup = .signature
-		info.summaryMarkup = .description
+		
+		sigMarkup = .signature
+		sigMarkup = sigMarkup.replace("<", "&lt;")
+		sigMarkup = sigMarkup.replace(">", "&gt;")
+		info.signatureMarkup = sigMarkup
+		
+		sumMarkup = .description
+		info.summaryMarkup = sumMarkup
 		
 		_tooltipInfo = info
 		return _tooltipInfo to !
@@ -75,12 +80,10 @@ class NamedNodeData inherits CompletionData
 		
 		try
 			if _node inherits Box
-				desc = _node.qualifiedName
 				if _node.isGeneric
-					genericStrings = _createGenericStrings(_node)
-					toReplace = genericStrings.a
-					replaceWith = genericStrings.b
-					desc = desc.replace(toReplace, replaceWith)
+					desc = _createGenericSignature(_node)
+				else
+					desc = _node.qualifiedName
 				
 			else if _node inherits AbstractMethod
 				if _node inherits Method
@@ -159,12 +162,9 @@ class NamedNodeData inherits CompletionData
 		else
 			return m.resultType.name
 			
-	def _createGenericStrings(b as Box) as Pair<of String>
+	def _createGenericSignature(b as Box) as String
 		"""
-		Given a box declaration for a generic type, will return a pair of
-		strings so a more accurate type name can be created.  The first
-		string in the pair should be replaced with the second string in
-		the box name.
+		Given a box declaration for a generic type, will return a string suitable for use in a tooltip.
 		"""
 		require b.isGeneric
 		
@@ -183,13 +183,45 @@ class NamedNodeData inherits CompletionData
 			toReplace += ">"
 			replaceWith += ">"
 			
-		return Pair<of String>(toReplace, replaceWith)
+		return b.qualifiedName.replace(toReplace, replaceWith)
 		
 	get hasOverloads as bool is override
 		if _node inherits Method
 			if _node.overloadGroup <> nil
 				return _node.overloadGroup.members.count > 0
+		else if _node inherits Box
+			if _node.isGeneric
+				return _hasGenericOverloads
+				
 		return false
+		
+	def _hasGenericOverloads as bool
+		"""
+		Returns true if the parent NameSpace of _node has other Box declarations inside it 
+		that differ only by the number of generic parameters compared to _node.
+		
+		e.g. for _node = Action<of T> class, we would return true since the System namespace 
+		also contains Action<of T1, T2>, Action<of T1, T2, T3>, etc.
+		"""
+		require
+			_node inherits Box
+			# TODO: replace this...
+			_node.name.indexOf(c'<') > 0
+			# with this...
+			#(_node to Box).isGeneric
+			# or this...
+			#_node.isGeneric
+		body
+			b = _node to Box
+			baseName = b.name
+			tagPos = baseName.indexOf(c'<')
+			baseName = baseName.substring(0, tagPos)
+			ns = b.parentNameSpace
+			for d in ns.declsInOrder
+				if d inherits Box
+					if d.isGeneric and d.name.startsWith(baseName)
+						return true
+			return false
 	
 	get overloadedData as IEnumerable<of ICompletionData>? is override
 		if _node inherits Method
@@ -197,6 +229,18 @@ class NamedNodeData inherits CompletionData
 				overloads = CompletionDataList()
 				for m in _node.overloadGroup.members
 					overloads.add(NamedNodeData(m))
+				return overloads
+		else if _node inherits Box
+			if _node.isGeneric
+				overloads = CompletionDataList()
+				baseName = _node.name
+				tagPos = baseName.indexOf(c'<')
+				baseName = baseName.substring(0, tagPos)
+				ns = _node.parentNameSpace
+				for d in ns.declsInOrder
+					if d inherits Box
+						if d.isGeneric and d.name.startsWith(baseName) and d.name[tagPos] == c'<'
+							overloads.add(NamedNodeData(d))
 				return overloads
 		return nil
 		

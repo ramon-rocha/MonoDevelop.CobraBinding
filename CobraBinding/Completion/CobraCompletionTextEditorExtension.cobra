@@ -133,6 +133,7 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 			c'"',
 			c"'",
 			c'=',
+			c'>',
 		]
 		#'# TODO: handle the syntax highlighting bug above in CobraSyntaMode.xml
 	
@@ -255,8 +256,8 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 			preceedingText = lineText.substring(0, .editor.caret.column - 2)
 		else
 			preceedingText = ""
-		#print "preceedingText = [preceedingText]"
-		#print "completionChar = [completionChar]\n"
+		print "preceedingText = [preceedingText]"
+		print "completionChar = [completionChar]\n"
 		
 		if completionChar == c'_' _
 		and (preceedingText.endsWith(' ') or preceedingText.endsWith('\t') or preceedingText.length == 0)

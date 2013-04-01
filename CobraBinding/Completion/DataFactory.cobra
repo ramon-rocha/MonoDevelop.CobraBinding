@@ -124,6 +124,8 @@ class DataFactory
 			"post",
 			"break",
 			"continue",
+			"ref",
+			"do",
 			"return",
 		]
 		

@@ -27,12 +27,13 @@ class Icons
 			BoxVar : [Gui.Stock.field, Gui.Stock.protectedField, Gui.Stock.privateField, Gui.Stock.internalField],
 			BoxConst : [Gui.Stock.literal],
 			Method : [Gui.Stock.method, Gui.Stock.protectedMethod, Gui.Stock.privateMethod, Gui.Stock.internalMethod],
+			MemberOverload : [Gui.Stock.method, Gui.Stock.protectedMethod, Gui.Stock.privateMethod, Gui.Stock.internalMethod],
 			LocalVar : [Gui.Stock.field],
 			Param : [Gui.Stock.field],
 			MethodSig : [Gui.Stock.delegate, Gui.Stock.protectedDelegate, Gui.Stock.privateDelegate, Gui.Stock.internalDelegate],
 			Property : [Gui.Stock.property, Gui.Stock.protectedProperty, Gui.Stock.privateProperty, Gui.Stock.internalProperty],
 			BoxEvent : [Gui.Stock.event, Gui.Stock.protectedEvent, Gui.Stock.privateEvent, Gui.Stock.internalEvent],			
-			Extension : [Gui.Stock.internalClass], # TODO: don't show these
+			Extension : [Gui.Stock.internalClass],
 			#TODO: AttributeDecl, Mixin, etc.
 		}
 			

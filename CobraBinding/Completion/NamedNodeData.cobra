@@ -10,6 +10,88 @@ class NamedNodeData inherits CompletionData
 	"""
 	This class represents a single entry for use in a list of completion data.
 	"""
+	test notGenericNoOverloads
+		ast = CobraCompletionTextEditorExtension.createTestData
+		for ud in ast.topNameSpace.useDirectives
+			if ud.boundNameSpace <> nil and ud.boundNameSpace.fullName == "System"
+				objectType = ud.boundNameSpace.memberForName("Object")
+				stringType = ud.boundNameSpace.memberForName("String")
+				break
+		
+		oData = NamedNodeData(objectType)
+		assert not oData.hasOverloads
+		assert oData.displayText == oData.completionText == "Object"
+		
+		sData = NamedNodeData(stringType)
+		assert not sData.hasOverloads
+		assert sData.displayText == sData.completionText == "String"
+		
+		if stringType inherits Box
+			# method w/o overload
+			methodType = stringType.declForName("getHashCode")
+			hcData = NamedNodeData(methodType)
+			assert not hcData.hasOverloads
+			assert hcData.displayText == hcData.completionText == "getHashCode"
+			
+			# method with overload
+			overloadedMethodType = stringType.declForName("equals")
+			eData = NamedNodeData(overloadedMethodType)
+			assert eData.hasOverloads
+			assert eData.displayText == eData.completionText == "equals"
+			overloadCount = 0
+			for o in eData.overloadedData
+				overloadCount += 1
+			assert overloadCount == 6
+	
+	test isGenericNoOverloads
+		ast = CobraCompletionTextEditorExtension.createTestData
+		for ud in ast.topNameSpace.useDirectives
+			if ud.boundNameSpace <> nil and ud.boundNameSpace.fullName == "System.Collections.Generic"
+				linkedListType = ud.boundNameSpace.memberForName("LinkedList<of>")
+				dictionaryType = ud.boundNameSpace.memberForName("Dictionary<of,>")
+				break
+		
+		lData = NamedNodeData(linkedListType)
+		assert not lData.hasOverloads
+		assert lData.displayText == lData.completionText == "LinkedList<of"
+		assert lData.signature == "System.Collections.Generic.LinkedList<of T>"
+		
+		dData = NamedNodeData(dictionaryType)
+		assert not dData.hasOverloads
+		assert dData.displayText == dData.completionText == "Dictionary<of"
+		assert dData.signature == "System.Collections.Generic.Dictionary<of TKey, TValue>"
+	
+	test isGenericHasOverloads
+		ast = CobraCompletionTextEditorExtension.createTestData
+		actionType as IMember? = nil
+		pairType as IMember? = nil
+		for ud in ast.topNameSpace.useDirectives
+			if ud.boundNameSpace <> nil and (actionType == nil or pairType == nil)
+				if ud.boundNameSpace.fullName == "System" and actionType == nil
+					actionType = ud.boundNameSpace.memberForName("Action<of>")
+				else if ud.boundNameSpace.fullName.startsWith("Cobra.Core") and pairType == nil
+					pairType = ud.boundNameSpace.memberForName("Pair<of>")
+			if actionType <> nil and pairType <> nil
+				break
+		
+		aData = NamedNodeData(actionType)
+		assert aData.completionText == aData.displayText == "Action<of"
+		assert aData.signature == "System.Action<of T>"
+		assert aData.hasOverloads
+		overloadCount = 0
+		for o in aData.overloadedData
+			overloadCount += 1
+		assert overloadCount == 8
+		
+		pData = NamedNodeData(pairType)
+		assert pData.completionText == pData.displayText == "Pair<of"
+		assert pData.signature == "Cobra.Core.Pair<of T>"
+		assert pData.hasOverloads
+		overloadCount = 0
+		for o in pData.overloadedData
+			overloadCount += 1
+		assert overloadCount == 2
+
 	var _node as INamedNode
 	var _tooltipInfo as TooltipInformation? = nil
 	
@@ -186,7 +268,9 @@ class NamedNodeData inherits CompletionData
 		return b.qualifiedName.replace(toReplace, replaceWith)
 		
 	get hasOverloads as bool is override
-		if _node inherits Method
+		if _node inherits MemberOverload
+			return _node.members.count <> 0
+		else if _node inherits Method
 			if _node.overloadGroup <> nil
 				return _node.overloadGroup.members.count > 0
 		else if _node inherits Box
@@ -218,8 +302,9 @@ class NamedNodeData inherits CompletionData
 			baseName = baseName.substring(0, tagPos)
 			ns = b.parentNameSpace
 			for d in ns.declsInOrder
+				if d is b, continue
 				if d inherits Box
-					if d.isGeneric and d.name.startsWith(baseName)
+					if d.isGeneric and d.name.startsWith(baseName) and d.name[tagPos] == c'<'
 						return true
 			return false
 	
@@ -242,5 +327,10 @@ class NamedNodeData inherits CompletionData
 						if d.isGeneric and d.name.startsWith(baseName) and d.name[tagPos] == c'<'
 							overloads.add(NamedNodeData(d))
 				return overloads
+		else if _node inherits MemberOverload
+			overloads = CompletionDataList()
+			for m in _node.members
+				overloads.add(NamedNodeData(m))
+			return overloads
 		return nil
 		

@@ -219,6 +219,14 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 			return DomRegion(region.fileName, region.begin, endLocation)
 			
 	
+	def codeCompletionCommand(context as CodeCompletionContext?) as ICompletionDataList? is override
+		"""
+		Called when user hits Ctrl+Space.
+		"""
+		#TODO: use the correct trigger word length
+		triggerWordLength = 0
+		return .handleCodeCompletion(context, c'\0', inout triggerWordLength)
+	
 	def handleCodeCompletion(context as CodeCompletionContext?, completionChar as char,
 							triggerWordLength as inout int) as ICompletionDataList? is override
 		"""

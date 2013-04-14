@@ -223,9 +223,25 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 		"""
 		Called when user hits Ctrl+Space.
 		"""
-		#TODO: use the correct trigger word length
-		triggerWordLength = 0
-		return .handleCodeCompletion(context, c'\0', inout triggerWordLength)
+		trace context.triggerLineOffset
+		trace .editor.getLineText(context.triggerLine).length
+		
+		if context.triggerOffset > 0
+			completionChar = .editor.getCharAt(context.triggerOffset - 1)
+			triggerWordLength = context.triggerWordLength
+			if completionChar.isWhiteSpace
+				# no punctuation was found, grab the first letter if any
+				completionChar = .editor.getCharAt(context.triggerOffset)
+				triggerWordLength -= 1
+			context.triggerLineOffset -= triggerWordLength
+		else
+			completionChar = c'\0'
+			triggerWordLength = 0
+		
+		trace completionChar
+		trace triggerWordLength
+		
+		return .handleCodeCompletion(context, completionChar, inout triggerWordLength)
 	
 	def handleCodeCompletion(context as CodeCompletionContext?, completionChar as char,
 							triggerWordLength as inout int) as ICompletionDataList? is override
@@ -260,12 +276,15 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 		containingRegions = .getContainingRegions(line, col, regionMap.values)
 		
 		completionData = CompletionDataList()
-		if .editor.caret.column - 2 > 0
-			preceedingText = lineText.substring(0, .editor.caret.column - 2)
+		
+		# the text before the completion chararacter should not include the completion character or the trigger word
+		if context.triggerLineOffset - 1 > 0
+			preceedingText = lineText.substring(0, context.triggerLineOffset - 1)
 		else
 			preceedingText = ""
-		print "preceedingText = [preceedingText]"
-		print "completionChar = [completionChar]\n"
+			
+		trace preceedingText
+		trace completionChar
 		
 		if completionChar == c'_' _
 		and (preceedingText.endsWith(' ') or preceedingText.endsWith('\t') or preceedingText.length == 0)

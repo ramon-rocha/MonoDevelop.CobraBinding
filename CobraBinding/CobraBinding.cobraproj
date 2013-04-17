@@ -108,6 +108,7 @@
     <Compile Include="Completion\MethodVarsList.cobra" />
     <Compile Include="Completion\BoxMembersList.cobra" />
     <Compile Include="Completion\NameSpaceDeclsList.cobra" />
+    <Compile Include="Completion\CobraCompletionList.cobra" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Gui\Gui.csproj">

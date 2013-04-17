@@ -311,13 +311,13 @@ class NamedNodeData inherits CompletionData
 	get overloadedData as IEnumerable<of ICompletionData>? is override
 		if _node inherits Method
 			if _node.overloadGroup <> nil
-				overloads = CompletionDataList()
+				overloads = CobraCompletionList()
 				for m in _node.overloadGroup.members
 					overloads.add(NamedNodeData(m))
 				return overloads
 		else if _node inherits Box
 			if _node.isGeneric
-				overloads = CompletionDataList()
+				overloads = CobraCompletionList()
 				baseName = _node.name
 				tagPos = baseName.indexOf(c'<')
 				baseName = baseName.substring(0, tagPos)
@@ -328,7 +328,7 @@ class NamedNodeData inherits CompletionData
 							overloads.add(NamedNodeData(d))
 				return overloads
 		else if _node inherits MemberOverload
-			overloads = CompletionDataList()
+			overloads = CobraCompletionList()
 			for m in _node.members
 				overloads.add(NamedNodeData(m))
 			return overloads

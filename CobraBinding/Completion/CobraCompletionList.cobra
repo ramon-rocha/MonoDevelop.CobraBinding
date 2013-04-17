@@ -1,0 +1,14 @@
+namespace MonoDevelop.CobraBinding.Completion
+
+class CobraCompletionList inherits MonoDevelop.Ide.CodeCompletion.CompletionDataList
+	"""
+	The default selection mode for autocomplete in MonoDevelop is to select the highlighted
+	entry when entering whitespace.  This doesn't make much sense for Cobra code since
+	the data type does not preceede the identifier for variable declarions.  Therefore, we
+	will turn off this behavior.
+	"""
+
+	cue init
+		base.init
+		.autoSelect = false
+		.autoCompleteUniqueMatch = false

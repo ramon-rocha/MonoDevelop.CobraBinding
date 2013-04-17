@@ -347,7 +347,7 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 		
 		trace preceedingText
 		
-		completionData = CompletionDataList()
+		completionData = CobraCompletionList()
 		
 		if completionChar == c'_' _
 		and (preceedingText.endsWith(' ') or preceedingText.endsWith('\t') or preceedingText.length == 0)
@@ -1102,7 +1102,7 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 		"""
 		Returns completion data in the context of the given DomRegion.
 		"""
-		dataList = CompletionDataList()
+		dataList = CobraCompletionList()
 		
 		try
 			node = nodeMap[region]

@@ -6,7 +6,7 @@ use ICSharpCode.NRefactory.Completion
 
 namespace MonoDevelop.CobraBinding.Completion
 
-class BoxMembersList inherits CompletionDataList
+class BoxMembersList inherits CobraCompletionList
 	"""
 	This class is a completion data list whose entries are the members of the given Box.
 	"""

@@ -6,7 +6,7 @@ use ICSharpCode.NRefactory.Completion
 
 namespace MonoDevelop.CobraBinding.Completion
 
-class NameSpaceDeclsList inherits CompletionDataList
+class NameSpaceDeclsList inherits CobraCompletionList
 	"""
 	This class is a completion data list whose entries are the declarations inside the given NameSpace.
 	"""

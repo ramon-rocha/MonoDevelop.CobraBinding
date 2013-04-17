@@ -52,7 +52,7 @@ class Icons
 		def getStock(node as dynamic) as IconId
 			"""
 			Returns the icon that should be used for the
-			CompletionDataList entry for the given node.
+			CobraCompletionList entry for the given node.
 			"""
 			try
 				listOfIcons = _icons[node.getType]

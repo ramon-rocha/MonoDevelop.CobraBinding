@@ -13,8 +13,8 @@ class DataFactory
 
 	shared
 	
-		def _createKeywordList(keywords as String[]) as CompletionDataList
-			list = CompletionDataList()
+		def _createKeywordList(keywords as String[]) as CobraCompletionList
+			list = CobraCompletionList()
 		
 			for kw in keywords
 				list.add(kw, Icons.keyword)
@@ -39,9 +39,9 @@ class DataFactory
 			"is",
 		]
 		
-		var _kwListTopLevel as CompletionDataList?
+		var _kwListTopLevel as CobraCompletionList?
 		
-		get keywordListTopLevel as CompletionDataList
+		get keywordListTopLevel as CobraCompletionList
 			/# I think we technically have a race condition here
 			   but it's pretty benign and locking is expensive, soooooo...meh #/
 			if _kwListTopLevel == nil
@@ -59,9 +59,9 @@ class DataFactory
 			"override",
 		]
 		
-		var _kwListFollowingIs as CompletionDataList?
+		var _kwListFollowingIs as CobraCompletionList?
 		
-		get keywordListFollowingIs as CompletionDataList
+		get keywordListFollowingIs as CobraCompletionList
 			if _kwListFollowingIs == nil
 				_kwListFollowingIs = _createKeywordList(_keywordsFollowingIs)
 			return _kwListFollowingIs to !
@@ -88,9 +88,9 @@ class DataFactory
 			"sig",
 		]
 		
-		var _kwListInBox as CompletionDataList?
+		var _kwListInBox as CobraCompletionList?
 		
-		get keywordListInBox as CompletionDataList
+		get keywordListInBox as CobraCompletionList
 			if _kwListInBox == nil
 				_kwListInBox = _createKeywordList(_keywordsInBox)
 			return _kwListInBox to !
@@ -126,12 +126,14 @@ class DataFactory
 			"continue",
 			"ref",
 			"do",
+			"this",
+			"base",
 			"return",
 		]
 		
-		var _kwListInMethod as CompletionDataList?
+		var _kwListInMethod as CobraCompletionList?
 		
-		get keywordListInMethod as CompletionDataList
+		get keywordListInMethod as CobraCompletionList
 			if _kwListInMethod == nil
 				_kwListInMethod = _createKeywordList(_keywordsInMethod)
 			return _kwListInMethod to !
@@ -147,9 +149,9 @@ class DataFactory
 			"dynamic"
 		]
 		
-		var _kwListCobraTypes as CompletionDataList?
+		var _kwListCobraTypes as CobraCompletionList?
 		
-		get keywordListCobraTypes as CompletionDataList
+		get keywordListCobraTypes as CobraCompletionList
 			if _kwListCobraTypes == nil
 				_kwListCobraTypes = _createKeywordList(_keywordsCobraTypes)
 			return _kwListCobraTypes to !
@@ -160,9 +162,9 @@ class DataFactory
 			"nil"
 		]
 		
-		var _kwListLiterals as CompletionDataList?
+		var _kwListLiterals as CobraCompletionList?
 		
-		get keywordListLiterals as CompletionDataList
+		get keywordListLiterals as CobraCompletionList
 			if _kwListLiterals == nil
 				_kwListLiterals = _createKeywordList(_keywordsLiterals)
 			return _kwListLiterals to !
@@ -173,8 +175,8 @@ class DataFactory
 			"""
 			return NamedNodeData(node)
 		
-		def createEnumMembersList(e as EnumDecl) as CompletionDataList
-			data = CompletionDataList()
+		def createEnumMembersList(e as EnumDecl) as CobraCompletionList
+			data = CobraCompletionList()
 			for d in e.declsInOrder
 				data.add(NamedNodeData(d))
 			return data
@@ -201,14 +203,14 @@ class DataFactory
 		def createNameSpaceDeclsList(nameSpace as NameSpace) as NameSpaceDeclsList
 			return NameSpaceDeclsList(nameSpace)
 		
-		def createModuleDeclsList(ast as CobraModule) as CompletionDataList
+		def createModuleDeclsList(ast as CobraModule) as CobraCompletionList
 			"""
 			Returns all declarations that are visible in the context of the given
 			Cobra module.
 			
 			TODO: Cache completion lists from implict use statements.  They don't change.
 			"""
-			dataList = CompletionDataList()
+			dataList = CobraCompletionList()
 			
 			topNs = ast.topNameSpace
 			dataList.addRange(NameSpaceDeclsList(topNs))

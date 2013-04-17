@@ -64,6 +64,7 @@ class CobraBindingAddinInstaller
 		"TypeSystem[__s]LineInformation.cobra",
 		"TypeSystem[__s]CobraModuleVisitor.cobra",
 		"TypeSystem[__s]ParsedCobraDocument.cobra",
+		"Completion[__s]CobraCompletionList.cobra",
 		"Completion[__s]CobraCompletionTextEditorExtension.cobra",
 		"Completion[__s]DataFactory.cobra",
 		"Completion[__s]Icons.cobra",

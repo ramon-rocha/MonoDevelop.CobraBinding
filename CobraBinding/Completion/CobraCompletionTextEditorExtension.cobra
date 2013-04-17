@@ -134,6 +134,8 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 			c"'",
 			c'=',
 			c'>',
+			c'+',
+			c'-',
 		]
 		#'# TODO: handle the syntax highlighting bug above in CobraSyntaMode.xml
 	
@@ -222,26 +224,58 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 	def codeCompletionCommand(context as CodeCompletionContext?) as ICompletionDataList? is override
 		"""
 		Called when user hits Ctrl+Space.
+		
+		context.triggerOffset
+		Treating the entire document as a string, this is the character offset used to get the
+		completion character.  Backtracking	from the current cursor position, it will be the
+		last alphanumeric character (including underscores and dashes) before hitting a
+		non-alphanumeric character.
+		
+		context.triggerLine
+		The line number, the first line is considered line number 1.
+		
+		context.triggerLineOffset
+		Treating the current line as a string, this is the character offset to the current
+		position of the cursor.  It does not necessarily correspond to the character found
+		using the context.triggerOffset.  The value can be negative which represents ???
+		TODO: findout what a negative value means
+		
+		context.triggerWordLength
+		This is the length of the "word" starting from the context.triggerOffset position
+		
+		Example #1:
+		use Cobra.Compiler
+		
+		If this is line 1 and the cursor is at the end of the line
+		context.triggerLine = 1
+		context.triggerOffset = 10, corresponds to the 'C' in 'Compiler'
+		context.triggerLineOffset = 18, corresponds to the position after the 'r' in 'Compiler'
+		context.triggerWordLength = 8, the length of the word 'Compiler'
 		"""
-		trace context.triggerLineOffset
-		trace .editor.getLineText(context.triggerLine).length
+		
+		print "codeCompletionCommand"
+		trace context.toString
+		if context.triggerLineOffset > 0
+			trace .editor.getLineText(context.triggerLine).substring(0, context.triggerLineOffset)
+		if context.triggerOffset > 0
+			trace .editor.getCharAt(context.triggerOffset - 1)
+		if context.triggerOffset > 0 and context.triggerOffset + context.triggerWordLength > 0
+			trace .editor.getTextBetween(context.triggerOffset, context.triggerOffset + context.triggerWordLength)
+		print
+		
 		
 		if context.triggerOffset > 0
 			completionChar = .editor.getCharAt(context.triggerOffset - 1)
 			triggerWordLength = context.triggerWordLength
-			if completionChar.isWhiteSpace
+			if completionChar.isWhiteSpace and context.triggerOffset < .editor.length
 				# no punctuation was found, grab the first letter if any
 				completionChar = .editor.getCharAt(context.triggerOffset)
-				triggerWordLength -= 1
-			context.triggerLineOffset -= triggerWordLength
 		else
 			completionChar = c'\0'
 			triggerWordLength = 0
 		
-		trace completionChar
-		trace triggerWordLength
-		
 		return .handleCodeCompletion(context, completionChar, inout triggerWordLength)
+	
 	
 	def handleCodeCompletion(context as CodeCompletionContext?, completionChar as char,
 							triggerWordLength as inout int) as ICompletionDataList? is override
@@ -249,6 +283,17 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 		This method is called indirectly by .keyPress or when the user hits Ctrl+Space.
 		"""
 
+		print "handleCodeCompletion"
+		trace context.toString
+		trace completionChar
+		if context.triggerLineOffset > 0
+			trace .editor.getLineText(context.triggerLine).substring(0, context.triggerLineOffset)
+		if context.triggerOffset > 0
+			trace .editor.getCharAt(context.triggerOffset - 1)
+		if context.triggerOffset > 0 and context.triggerOffset + context.triggerWordLength > 0
+			trace .editor.getTextBetween(context.triggerOffset, context.triggerOffset + context.triggerWordLength)
+		print
+		
 		if not _canHandleCodeCompletion(context, completionChar)
 			# not enough information to provide completion results
 			return nil
@@ -267,29 +312,46 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 		# generate a reverse map (regions to nodes)
 		nodeMap = _createNodeMap(regionMap)
 		node as ISyntaxNode? = nil
-
-		line = context.triggerLine
-		col = context.triggerLineOffset
 		
+		line = context.triggerLine
 		lineText = .editor.document.getLineText(line) ? ""
-
+		
+		col = context.triggerLineOffset
+		if col > lineText.length
+			col = lineText.length
+		else if col < 0
+			col = 0
+			
+		if triggerWordLength == 0 _
+		and completionChar <> c'.' _
+		and (completionChar == c'_' or completionChar.isLetterOrDigit)
+			/# This was not Ctrl+Space completion. Build the trigger word by
+			backtracking through the line of text until we hit a character
+			that is not valid for an identifier #/
+			
+			# TODO: proper backtracking, for now, just handle the case when we are preceeded by whitespace
+			triggerWordLength = 1
+		
 		containingRegions = .getContainingRegions(line, col, regionMap.values)
 		
-		completionData = CompletionDataList()
-		
 		# the text before the completion chararacter should not include the completion character or the trigger word
-		if context.triggerLineOffset - 1 > 0
+		if context.triggerLineOffset > 0 and lineText.length > 0
 			preceedingText = lineText.substring(0, context.triggerLineOffset - 1)
+			
+			if completionChar == c'.' and triggerWordLength <> 0
+				# hit Ctrl+Space on keyboard, we may have some extra characters
+				dotPos = preceedingText.lastIndexOf(completionChar)
+				if dotPos > 0, preceedingText = preceedingText.substring(0, dotPos)
 		else
 			preceedingText = ""
-			
+		
 		trace preceedingText
-		trace completionChar
+		
+		completionData = CompletionDataList()
 		
 		if completionChar == c'_' _
 		and (preceedingText.endsWith(' ') or preceedingText.endsWith('\t') or preceedingText.length == 0)
 			# protected/private member completion in the context of the current class
-			triggerWordLength += 1
 			
 			node = _getContainingBox(containingRegions, nodeMap)
 			if node inherits Box
@@ -300,10 +362,6 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 		
 		else if completionChar == c'.'
 			# member completion
-
-			# don't include the dot or anything before it in the trigger word length
-			triggerWordLength = 0
-
 			if preceedingText.endsWith(' ') or preceedingText.endsWith('\t') or preceedingText.length == 0
 				# return fields and methods in the context of the current class
 				node = _getContainingBox(containingRegions, nodeMap)
@@ -351,11 +409,6 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 				
 				print "should be displaying members for [node]\n"
 				return completionData
-		else
-			# do this so that the letter just typed is considered part of the word to complete
-			while col > 0 and lineText[col - 1] not in @[c'\t', c' ', c'[', c'(']
-				triggerWordLength += 1
-				col -= 1
 		
 		# return unique completion data entries
 		dataSet = HashSet<of String>()
@@ -372,7 +425,12 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 		if completionData.count <> 0
 			return completionData
 		else
-			return nil
+			/# this can happen if we are somehow not in a region (e.g. the very first position
+			of the document, the parser has not returned the updated document yet, etc.) #/
+			if .ast <> nil
+				return DataFactory.createModuleDeclsList(.ast to !)
+			else
+				return nil
 
 
 	def _resolveTextToNode(text as String, containingRegions as List<of DomRegion>,
@@ -491,6 +549,8 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 				
 				inString = false
 				stringDelim as char? = nil
+				
+				if col > lineText.length, col = lineText.length
 				
 				for i in 0:col
 					c = lineText[i]
@@ -794,12 +854,21 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 			assert ids[0] == "someProp"
 		test openParenthesis
 			ext = CobraCompletionTextEditorExtension()
+			sampleText = "foo = .someMethod("
+			ids = ext._getIdsFromText(sampleText)
+			assert ids.count == 0
+			
 			sampleText = "foo = .someMethod(aParam"
 			ids = ext._getIdsFromText(sampleText)
 			assert ids.count == 1
 			assert ids[0] == "aParam"
 			
 			sampleText = "foo = .someMethod(aParam, anotherParam"
+			ids = ext._getIdsFromText(sampleText)
+			assert ids.count == 1
+			assert ids[0] == "anotherParam"
+			
+			sampleText = "foo = .someMethod(aParam.someOtherMethod(anotherParam"
 			ids = ext._getIdsFromText(sampleText)
 			assert ids.count == 1
 			assert ids[0] == "anotherParam"
@@ -829,6 +898,10 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 			assert ids[2] == "replace"
 		test openBracket
 			ext = CobraCompletionTextEditorExtension()
+			sampleText = ns'foo = someArray['
+			ids = ext._getIdsFromText(sampleText)
+			assert ids.count == 0
+			
 			sampleText = ns'foo = someArray[index'
 			ids = ext._getIdsFromText(sampleText)
 			assert ids.count == 1
@@ -869,10 +942,14 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 			assert ids[4] == ns'[]'
 		body
 			text = text.trim
+			if text.endsWith('(') or text.endsWith(ns'[')
+				# we are in the context of unmatched pair of parenthesis or brackets
+				# ignore all preceeding text
+				return List<of String>()
 			
 			startIndex = 0
 			openIndex = text.indexOf(c'(', startIndex)
-			while openIndex >= 0 and openIndex < text.length
+			while openIndex > 0 and openIndex < text.length
 				closeIndex = text.indexOf(c')', openIndex + 1)
 				if closeIndex >= 0
 					# we have a matching pair of parenthesis, remove them and the text they surround
@@ -887,7 +964,7 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 			
 			startIndex = 0
 			openIndex = text.indexOf(c'[', startIndex)
-			while openIndex >= 0 and openIndex < text.length
+			while openIndex > 0 and openIndex < text.length
 				closeIndex = text.indexOf(c']', openIndex + 1)
 				if closeIndex >= 0
 					# we have a matching pair of brackets, replace them and their contents with ".[]."

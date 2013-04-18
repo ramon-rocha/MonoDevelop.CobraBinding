@@ -258,11 +258,11 @@ class CobraLanguageBinding implements IDotNetLanguageBinding
 			
 			expect Exception
 				binding._spawnCobraCompilerProcess("", "", "")
-				
-			p = binding._spawnCobraCompilerProcess("cobra", "-version", ".")
+			cobraExe = CobraCore.findCobraExe to !
+			p = binding._spawnCobraCompilerProcess(cobraExe, "-version", ".")
 			assert p.standardOutput.readToEnd.startsWith("Cobra ")
 			
-			p = binding._spawnCobraCompilerProcess("cobra", "", ".")
+			p = binding._spawnCobraCompilerProcess(cobraExe, "", ".")
 			stdOut = p.standardOutput.readToEnd
 			assert stdOut.contains("The Cobra Programming Language")
 			assert stdOut.contains("Usage:")

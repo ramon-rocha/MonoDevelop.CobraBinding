@@ -925,6 +925,12 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 			assert ids[0] == "someArray"
 			assert ids[1] == ns'[]'
 			assert ids[2] == "someProp"
+			
+			sampleText = ns'if lineText[col].isLetter or lineText[col] == c"_" or lineText[col]'
+			ids = ext._getIdsFromText(sampleText)
+			assert ids.count == 2
+			assert ids[0] == "lineText"
+			assert ids[1] == ns'[]'
 		test parenthesisAndBracks
 			ext = CobraCompletionTextEditorExtension()
 			sampleText = ns'foo = someArray[index].someMethod(aParam).aProp[bar'
@@ -971,8 +977,13 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 					# that way, it will resolve to the indexer member of the parent correctly
 					removeCount = closeIndex - openIndex + 1
 					textToReplace = text.substring(openIndex, removeCount)
-					text = text.replace(textToReplace, ns'.[].')
-					startIndex = openIndex + 4
+					if textToReplace == ns'[]'
+						# this can happen if we use the same index variable multiple times in a line
+						# don't do a replacement in this case otherwise we'll enter an infinite loop
+						startIndex = closeIndex + 1
+					else
+						text = text.replace(textToReplace, ns'.[].')
+						startIndex = openIndex + 4
 				else if openIndex < text.length - 1
 					# we have an unmatched opening bracket with some trailing text, remove the preceeding text
 					text = text.substring(openIndex + 1)

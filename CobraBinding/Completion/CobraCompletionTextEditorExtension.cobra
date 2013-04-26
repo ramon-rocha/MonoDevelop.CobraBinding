@@ -328,7 +328,7 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 			that is not valid for an identifier #/
 			#trace completionChar
 			# include the letter that was just typed as part of the trigger word
-			while col > 0
+			while col >= 0
 				/#
 				trace col
 				trace lineText[col]

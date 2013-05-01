@@ -148,6 +148,9 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 			return false
 			
 		parsedDoc = .document.parsedDocument to ParsedCobraDocument
+		if parsedDoc.ast == nil and not __prevAstMap.containsKey(parsedDoc.fileName)
+			return false
+		
 		if parsedDoc.regionMap == nil and not __prevRegionMap.containsKey(parsedDoc.fileName)
 			return false
 			
@@ -288,12 +291,15 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 			#TODO handle parameter completion
 			return nil
 		
+		# we are guranteed to have a usable AST at this point
+		ast = .ast to !
+		
 		# get code regions and symbol table from last valid AST
 		regionMap = .regionMap
 		symbolTable = .symbolTable
 		
 		# extend code regions to include blank lines
-		_extendRegions(regionMap, symbolTable)
+		_extendRegions(ast, regionMap, symbolTable)
 		
 		# generate a reverse map (regions to nodes)
 		nodeMap = _createNodeMap(regionMap)
@@ -674,12 +680,12 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 				i += 1
 			return containingBox
 		
-	def _extendRegions(regionMap as Dictionary<of ISyntaxNode, DomRegion>,
+	def _extendRegions(ast as CobraModule, regionMap as Dictionary<of ISyntaxNode, DomRegion>,
 						symbolTable as Dictionary<of DomRegion, Dictionary<of String, INamedNode>?>)
 		"""
 		Extends the code regions in the given dictionaries to include blank lines.
 		"""
-		require .ast <> nil
+		require ast.topNameSpace in regionMap.keys
 		
 		extendedRegionMap = Dictionary<of ISyntaxNode, DomRegion>()
 		
@@ -687,13 +693,12 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 			
 			extendedRegion = _extendRegion(region)
 			
-			if extendedRegion.beginLine == 1 and extendedRegion.endColumn == Int32.maxValue
-				if node is not .ast.topNameSpace
-					# special case to make sure the top-level namespace
-					# for the module encompasses all other regions
-					extendedRegion = DomRegion(region.fileName,
-					extendedRegion.beginLine, extendedRegion.beginColumn,
-					extendedRegion.endLine, Int32.maxValue - 1)
+			if node is ast.topNameSpace
+				# special case to make sure the top-level namespace
+				# for the module encompasses all other regions
+				extendedRegion = DomRegion(region.fileName,
+				extendedRegion.beginLine, extendedRegion.beginColumn,
+				extendedRegion.endLine, Int32.maxValue)
 			
 			extendedRegionMap[node] = extendedRegion
 			
@@ -704,8 +709,8 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 				
 		for node, extendedRegion in extendedRegionMap
 			regionMap[node] = extendedRegion
-			
-			
+
+
 	def _extendRegion(region as DomRegion) as DomRegion
 		"""
 		Returns a copy of the given region but extends the last line
@@ -737,7 +742,7 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 			
 			if line == textDoc.lineCount
 				# special case for end of document
-				col = Int32.maxValue
+				col = Int32.maxValue - 1
 			else
 				col = 0
 			

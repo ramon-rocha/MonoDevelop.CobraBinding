@@ -122,29 +122,15 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 			
 			return Dictionary<of DomRegion, Dictionary<of String, INamedNode>?>()
 	
-	shared
-		var _charsToIgnore = @[
-			c' ',
-			c'\t',
-			c',',
-			c')',
-			c'[',
-			c']',
-			c'"',
-			c"'",
-			c'=',
-			c'>',
-			c'+',
-			c'-',
-		]
-		#'# TODO: handle the syntax highlighting bug above in CobraSyntaMode.xml
 	
 	def _canHandleCodeCompletion(context as CodeCompletionContext?, completionChar as char) as bool
 		"""
 		Returns true if the extension is able to provide completion results in the given
 		context for the given completion character or false otherwise.
 		"""
-		if completionChar in _charsToIgnore
+		if completionChar <> c'.' _
+		and completionChar <> '_' _
+		and not completionChar.isLetter
 			return false
 			
 		# .document is a MonoDevelop.Ide.Gui.Document

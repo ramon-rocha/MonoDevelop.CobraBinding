@@ -321,7 +321,7 @@ class CobraBindingAddinInstaller
 		to compile the CobraBinding project.
 		"""
 		cobraArgs = StringBuilder(
-			'-compile -turbo -copy-core -target:lib -out:"bin[__s]Debug[__s]MonoDevelop.CobraBinding.dll"'
+			'-compile -include-tests:no -copy-core -target:lib -out:"bin[__s]Debug[__s]MonoDevelop.CobraBinding.dll"'
 		)
 
 		if _verbosity >= 2, cobraArgs.append(' -v -verbosity-ref:2')

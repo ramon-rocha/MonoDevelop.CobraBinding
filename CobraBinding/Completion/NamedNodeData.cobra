@@ -301,11 +301,12 @@ class NamedNodeData inherits CompletionData
 			tagPos = baseName.indexOf(c'<')
 			baseName = baseName.substring(0, tagPos)
 			ns = b.parentNameSpace
-			for d in ns.declsInOrder
-				if d is b, continue
-				if d inherits Box
-					if d.isGeneric and d.name.startsWith(baseName) and d.name[tagPos] == c'<'
-						return true
+			if ns <> nil
+				for d in ns.declsInOrder
+					if d is b, continue
+					if d inherits Box
+						if d.isGeneric and d.name.startsWith(baseName) and d.name[tagPos] == c'<'
+							return true
 			return false
 	
 	get overloadedData as IEnumerable<of ICompletionData>? is override

@@ -728,7 +728,12 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 			result.endLine >= region.endLine
 		body
 			textDoc = .editor.document
+			
 			beginText = textDoc.getLineText(region.beginLine) ? ""
+			if beginText.length == 0
+				trace region
+				return region
+			
 			minIndentLevel = .ParserAlias.getIndentLevel(beginText)
 			fromLine = region.endLine + 1
 			untilLine = textDoc.lineCount

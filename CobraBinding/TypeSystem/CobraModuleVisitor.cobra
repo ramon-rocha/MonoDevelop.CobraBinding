@@ -76,7 +76,7 @@ class CobraModuleVisitor inherits Cobra.Core.Visitor
 				idMap[nsMember.name] = nsMember
 				
 			if parent.name.startsWith("(top")
-				asmRefs = parent.addOnValues[CobraLanguageBinding.AddInKeys.assemblyReferences] to List<of AssemblyModule>
+				asmRefs = parent.addOnValues[CobraLanguageBinding.AddOnKeys.assemblyReferences] to List<of AssemblyModule>
 				for asm in asmRefs
 					for nsMember in asm.topNameSpace.declsInOrder
 						idMap[nsMember.name] = nsMember

@@ -225,7 +225,7 @@ class DataFactory
 				catch ex as Exception
 					trace ex.message
 					
-			asmRefs = topNs.addOnValues[CobraLanguageBinding.AddInKeys.assemblyReferences] to List<of AssemblyModule>
+			asmRefs = topNs.addOnValues[CobraLanguageBinding.AddOnKeys.assemblyReferences] to List<of AssemblyModule>
 			for asm in asmRefs
 				dataList.addRange(NameSpaceDeclsList(asm.topNameSpace))
 			

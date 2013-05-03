@@ -403,7 +403,7 @@ class CompilerManager
 							asmRefs.add(mod)
 					
 					# these will be used in CobraModuleVisitor when creating the symbol table
-					boundAst.topNameSpace.addOnValues[CobraLanguageBinding.AddInKeys.assemblyReferences] = asmRefs
+					boundAst.topNameSpace.addOnValues[CobraLanguageBinding.AddOnKeys.assemblyReferences] = asmRefs
 
 				for module in compiler.modules
 					results.add(module)

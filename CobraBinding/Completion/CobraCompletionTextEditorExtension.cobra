@@ -424,18 +424,15 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 					if members <> nil, completionData.addRange(members)
 				
 				print "should be displaying members for [node]\n"
-				return completionData
+				return DataFactory.uniqueCompletionEntries(completionData)
 		
-		# return unique completion data entries
-		dataSet = HashSet<of String>()
-		
-		uniqueData = List<of ICompletionData>()
-		
+		# return completion data based on containing regions
+		regionData = CobraCompletionList()
 		for region in containingRegions
 			for d in _getCompletionData(region, preceedingText, "TODO", nodeMap)
-				if dataSet.add(d.toString)
-					uniqueData.add(d)
+				regionData.add(d)
 		
+		uniqueData = DataFactory.uniqueCompletionEntries(regionData)		
 		completionData.addRange(uniqueData)
 
 		if completionData.count <> 0
@@ -730,10 +727,6 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 			textDoc = .editor.document
 			
 			beginText = textDoc.getLineText(region.beginLine) ? ""
-			if beginText.length == 0
-				trace region
-				return region
-			
 			minIndentLevel = .ParserAlias.getIndentLevel(beginText)
 			fromLine = region.endLine + 1
 			untilLine = textDoc.lineCount

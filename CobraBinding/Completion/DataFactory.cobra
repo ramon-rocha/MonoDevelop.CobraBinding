@@ -1,5 +1,7 @@
 use Cobra.Compiler
 
+use MonoDevelop.CobraBinding
+
 use MonoDevelop.Ide.CodeCompletion
 
 use ICSharpCode.NRefactory.Completion
@@ -222,5 +224,33 @@ class DataFactory
 					if ns <> nil, dataList.addRange(NameSpaceDeclsList(ns))
 				catch ex as Exception
 					trace ex.message
+					
+			asmRefs = topNs.addOnValues[CobraLanguageBinding.AddInKeys.assemblyReferences] to List<of AssemblyModule>
+			for asm in asmRefs
+				dataList.addRange(NameSpaceDeclsList(asm.topNameSpace))
 			
-			return dataList
+			return .uniqueCompletionEntries(dataList)
+			
+		def uniqueCompletionEntries(dataList as CobraCompletionList) as CobraCompletionList
+			"""
+			Return unique completion data entries from the given list.
+			"""
+			test
+				initialList = CobraCompletionList()
+				initialList.add("foo")
+				initialList.add("foo")
+				initialList.add("bar")
+				initialList.add("bar")
+				initialList.add("baz")
+				filteredList = DataFactory.uniqueCompletionEntries(initialList)
+				assert filteredList.count == 3
+				assert initialList.count == 5
+			body
+				dataSet = HashSet<of String>()
+				uniqueData = CobraCompletionList()
+				
+				for d in dataList
+					if dataSet.add(d.toString)
+						uniqueData.add(d)
+				
+				return uniqueData

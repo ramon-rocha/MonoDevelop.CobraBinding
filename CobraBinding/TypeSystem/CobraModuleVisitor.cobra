@@ -1,5 +1,7 @@
 use Cobra.Compiler
 
+use MonoDevelop.CobraBinding
+
 use ICSharpCode.NRefactory.TypeSystem
 
 namespace MonoDevelop.CobraBinding.TypeSystem
@@ -40,7 +42,6 @@ class CobraModuleVisitor inherits Cobra.Core.Visitor
 		el = node.endToken.lineNum
 		ec = node.endToken.colNum
 		region = DomRegion(_fileName, bl, bc, el, ec)
-		node.addOnValues["DomRegion"] = region
 		_regionMap[node] = region
 
 		if node implements INamedNode
@@ -73,6 +74,12 @@ class CobraModuleVisitor inherits Cobra.Core.Visitor
 		
 			for nsMember in parent.declsInOrder
 				idMap[nsMember.name] = nsMember
+				
+			if parent.name.startsWith("(top")
+				asmRefs = parent.addOnValues[CobraLanguageBinding.AddInKeys.assemblyReferences] to List<of AssemblyModule>
+				for asm in asmRefs
+					for nsMember in asm.topNameSpace.declsInOrder
+						idMap[nsMember.name] = nsMember
 
 		else if parent inherits Box
 			for boxMember in parent.allMembers

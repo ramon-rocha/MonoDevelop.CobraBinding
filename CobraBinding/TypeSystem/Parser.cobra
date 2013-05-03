@@ -416,8 +416,6 @@ class Parser inherits TypeSystemParser implements IFoldingParser
 		"""
 		Returns the number of indents for the given line.
 		"""
-		require
-			line.trim.length > 0
 		ensure
 			result >= 0
 		test

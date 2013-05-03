@@ -30,6 +30,13 @@ class CobraLanguageBinding implements IDotNetLanguageBinding
 		var languageName = "Cobra"
 		var sourceFileExtension = ".cobra"
 		
+	class AddInKeys
+	
+		cue init is private
+			base.init
+	
+		const assemblyReferences = "MonoDevelop.CobraBinding.AddInKeys.assemblyReferences"
+		
 	var _isWindows as bool
 	var _targetArgs as Dictionary<of CompileTarget, String>
 	

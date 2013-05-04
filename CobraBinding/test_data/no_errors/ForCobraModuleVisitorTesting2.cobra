@@ -1,0 +1,34 @@
+use System.Diagnostics
+
+namespace Foo
+
+class Bar
+	def main
+		sw = Stopwatch()
+		sw.start
+		b1 = Baz()
+		b2 = Baz(1, 2, 3)
+		print "[b1.toString] [b2.toString]"
+		sw.stop
+		print sw.elapsed
+
+class Baz
+	
+	var _foo as int
+	var _bar as int
+	var _baz as int
+	
+	cue init
+		base.init
+		_foo = 0
+		_bar = 0
+		_baz = 0
+		
+	cue init(x as int, y as int, z as int)
+		base.init
+		_foo = x
+		_bar = y
+		_baz = z
+		
+	def toString as String is override
+		return"[_foo] [_bar] [_baz]"

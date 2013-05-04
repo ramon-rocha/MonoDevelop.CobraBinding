@@ -143,6 +143,11 @@ class CompilerManager
 							on "ForCompletionTesting.cobra"
 								# this gets tested by the CobraCompletionTextEditorExtension class
 								pass
+								
+							on "ForCobraModuleVisitorTesting1.cobra" _
+							or "ForCobraModuleVisitorTesting2.cobra"
+								# these get tested by the CobraModuleVisitor class
+								pass
 
 							else
 								# unhandled file, a case should be added for it

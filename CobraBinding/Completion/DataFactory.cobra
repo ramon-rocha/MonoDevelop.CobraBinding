@@ -70,6 +70,20 @@ class DataFactory
 		
 		var _keywordsInBox = @[
 			"is",
+			"shared",
+			"override",
+			"new",
+			"private",
+			"public",
+			"protected",
+			"internal",
+			"virtual",
+			"nonvirtual",
+			"abstract",
+			"extern",
+			"partial",
+			"readonly",
+			
 			"def",
 			"var",
 			"test",
@@ -224,10 +238,12 @@ class DataFactory
 					if ns <> nil, dataList.addRange(NameSpaceDeclsList(ns))
 				catch ex as Exception
 					trace ex.message
-					
-			asmRefs = topNs.addOnValues[CobraLanguageBinding.AddOnKeys.assemblyReferences] to List<of AssemblyModule>
-			for asm in asmRefs
-				dataList.addRange(NameSpaceDeclsList(asm.topNameSpace))
+			
+			key = CobraLanguageBinding.AddOnKeys.assemblyReferences
+			if topNs.addOnValues.containsKey(key)
+				asmRefs = topNs.addOnValues[key] to List<of AssemblyModule>
+				for asm in asmRefs
+					dataList.addRange(NameSpaceDeclsList(asm.topNameSpace))
 			
 			return .uniqueCompletionEntries(dataList)
 			

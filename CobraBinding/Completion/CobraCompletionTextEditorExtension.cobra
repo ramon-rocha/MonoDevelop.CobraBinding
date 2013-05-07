@@ -122,7 +122,6 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 			
 			return Dictionary<of DomRegion, Dictionary<of String, INamedNode>?>()
 	
-	
 	def _canHandleCodeCompletion(context as CodeCompletionContext?, completionChar as char) as bool
 		"""
 		Returns true if the extension is able to provide completion results in the given
@@ -146,7 +145,11 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 			
 		if _isInsideString(context)
 			return false
-			
+		
+		txt = .editor.getTextBetween(context.triggerLine, 0, context.triggerLine, context.triggerLineOffset) ? ""
+		if .ParserAlias.isStartingDecl(txt)
+			return false
+		
 		parsedDoc = .document.parsedDocument to ParsedCobraDocument
 		if parsedDoc.ast == nil and not __prevAstMap.containsKey(parsedDoc.fileName)
 			return false
@@ -366,7 +369,7 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 		completionData = CobraCompletionList()
 		
 		if completionChar == c'_' _
-		and (preceedingText.endsWith(' ') or preceedingText.endsWith('\t') or preceedingText.length == 0)
+		and (preceedingText.length == 0 or not preceedingText[preceedingText.length - 1].isLetterOrDigit)
 			# protected/private member completion in the context of the current class
 			
 			node = _getContainingBox(containingRegions, nodeMap)
@@ -378,7 +381,7 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 		
 		else if completionChar == c'.'
 			# member completion
-			if preceedingText.endsWith(' ') or preceedingText.endsWith('\t') or preceedingText.length == 0
+			if preceedingText.length == 0 or not preceedingText[preceedingText.length - 1].isLetterOrDigit
 				# return fields and methods in the context of the current class
 				node = _getContainingBox(containingRegions, nodeMap)
 				if node inherits Box
@@ -595,6 +598,7 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 			nodeMap = Dictionary<of DomRegion, ISyntaxNode>()
 			for node, region in regionMap
 				nodeMap[region] = node
+				
 			return nodeMap
 	
 

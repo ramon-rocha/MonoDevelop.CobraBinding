@@ -411,16 +411,54 @@ class Parser inherits TypeSystemParser implements IFoldingParser
 				curr = curr.previous
 				lineNumber -= 1
 
-
-	def getIndentLevel(line as String) as int is shared
-		"""
-		Returns the number of indents for the given line.
-		"""
-		ensure
-			result >= 0
-		test
-			assert .getIndentLevel("print 'hello'") == 0
-			assert .getIndentLevel("\tprint 'hello'") == 1
-			assert .getIndentLevel("\t\tprint 'hello'") == 2
-		body
-			return line.length - line.trimStart.length
+	shared
+		def getIndentLevel(line as String) as int
+			"""
+			Returns the number of indents for the given line.
+			"""
+			ensure
+				result >= 0
+			test
+				assert .getIndentLevel("print 'hello'") == 0
+				assert .getIndentLevel("\tprint 'hello'") == 1
+				assert .getIndentLevel("\t\tprint 'hello'") == 2
+			body
+				return line.length - line.trimStart.length
+		
+		var _declStarters = @[
+			"def ",
+			"var ",
+			"get ",
+			"set ",
+			"pro ",
+			"class ",
+			"interface ",
+			"struct ",
+		]
+		
+		def isStartingDecl(line as String) as bool
+			"""
+			Returns true if the line is an unfinished declaration such
+			as 'def foo' or 'var _bar' but not 'def foo ' and not 'var _bar is'
+			"""
+			test
+				assert Parser.isStartingDecl("class ")
+				assert Parser.isStartingDecl("\tdef ")
+				assert Parser.isStartingDecl("\tdef foo(")
+				assert Parser.isStartingDecl("\t\tdef foo")
+				assert Parser.isStartingDecl("    def bar")
+				assert not Parser.isStartingDecl("use ")
+				
+				assert not Parser.isStartingDecl("class Bar ")
+				assert not Parser.isStartingDecl("\t\tdef foo ")
+				assert not Parser.isStartingDecl("    def foo is")
+				assert not Parser.isStartingDecl("use MonoDevelop.Cobr")
+			body
+				trimmed = line.trimStart
+				if trimmed.indexOf(c' ') == trimmed.lastIndexOf(c' ')
+					# only one or zero spaces in the trimmed line of text, might be declaring something
+					for starter in _declStarters
+						if trimmed.startsWith(starter)
+							return true
+				
+				return false

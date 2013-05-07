@@ -109,6 +109,8 @@ class CompilerManager
 						astCount += 1
 						ast as CobraModule = r
 						assert ast.didBindImp
+						key = CobraLanguageBinding.AddOnKeys.assemblyReferences
+						assert ast.topNameSpace.addOnValues.containsKey(key)
 
 						name =  FileInfo(filePath).name
 						branch name

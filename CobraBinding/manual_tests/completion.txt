@@ -102,3 +102,75 @@ Define a simple class with a main and then:
 
 ACTUAL RESULTS
 PASS
+
+---
+
+CASE 9
+class f_
+
+EXPECTED RESULTS
+No completion results are displayed when declaring a class
+
+ACTUAL RESULTS
+PASS
+
+---
+
+CASE 10
+class foo i_
+
+EXPECTED RESULTS
+Completion results are displayed when typing after a class identifier
+
+ACTUAL RESULTS
+PASS
+
+---
+
+CASE 11
+class foo
+	def b_
+
+EXPECTED RESULTS
+No completion results are displayed when declaring a method
+
+ACTUAL RESULTS
+PASS
+
+---
+
+CASE 12
+class foo
+	def bar(burgers, f_
+
+EXPECTED RESULTS
+No completion results are displayed when declaring a method parameter
+
+ACTUAL RESULTS
+FAIL
+Only the first parameter behaves correctly and only if there is no space
+before or after the opening parenthesis.
+
+---
+
+CASE 13
+class MyProgram
+
+	def one as int
+		return 1
+	
+	def two as int
+		return 2
+	
+	def sum(a as int, b as int) as int
+		return a + b
+
+	def main
+		print 'Hello, world!'
+		.sum(._
+
+EXPECTED RESULTS
+Completion results include 'one', 'two', 'sum', etc.
+
+ACTUAL RESULTS
+PASS

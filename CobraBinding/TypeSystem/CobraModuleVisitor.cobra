@@ -199,10 +199,12 @@ class CobraModuleVisitor inherits Cobra.Core.Visitor
 				idMap[nsMember.name] = nsMember
 				
 			if parent is __ast.topNameSpace
-				asmRefs = parent.addOnValues[CobraLanguageBinding.AddOnKeys.assemblyReferences] to List<of AssemblyModule>
-				for asm in asmRefs
-					for nsMember in asm.topNameSpace.declsInOrder
-						idMap[nsMember.name] = nsMember
+				key = CobraLanguageBinding.AddOnKeys.assemblyReferences
+				if parent.addOnValues.containsKey(key)
+					asmRefs = parent.addOnValues[key] to List<of AssemblyModule>
+					for asm in asmRefs
+						for nsMember in asm.topNameSpace.declsInOrder
+							idMap[nsMember.name] = nsMember
 
 		else if parent inherits Box
 			for boxMember in parent.allMembers
@@ -241,6 +243,13 @@ class CobraModuleVisitor inherits Cobra.Core.Visitor
 		.dispatch(ns.declsInOrder)
 		
 	def visit(b as Box)
+	
+		if b inherits MethodSig
+			# this is a Box but its member declarations
+			# map to the same region as the parent which
+			# causes issues later
+			return
+	
 		_addRegion(b)
 		.dispatch(b.declsInOrder)
 		.dispatch(b.testMethods)

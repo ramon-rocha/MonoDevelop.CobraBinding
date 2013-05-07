@@ -237,11 +237,11 @@ class DataFactory
 			"""
 			test
 				initialList = CobraCompletionList()
-				initialList.add("foo")
-				initialList.add("foo")
-				initialList.add("bar")
-				initialList.add("bar")
-				initialList.add("baz")
+				initialList.add("foo", Icons.error, "", "")
+				initialList.add("foo", Icons.error, "", "")
+				initialList.add("bar", Icons.error, "", "")
+				initialList.add("bar", Icons.error, "", "")
+				initialList.add("baz", Icons.error, "", "")
 				filteredList = DataFactory.uniqueCompletionEntries(initialList)
 				assert filteredList.count == 3
 				assert initialList.count == 5

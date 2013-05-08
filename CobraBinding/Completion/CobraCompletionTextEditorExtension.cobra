@@ -4,8 +4,11 @@ use Cobra.Compiler
 
 use MonoDevelop.CobraBinding.TypeSystem
 
+use Mono.TextEditor
+
 use MonoDevelop.Core
 use MonoDevelop.Projects
+use MonoDevelop.Ide.Gui
 use MonoDevelop.Ide.Gui.Content
 use MonoDevelop.Ide.CodeCompletion
 use MonoDevelop.Ide.TypeSystem
@@ -26,8 +29,7 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 		#/
 		var __parsedDocCache = Dictionary<of String, ParsedCobraDocument?>()
 	
-		
-	get _parsedDocument as ParsedCobraDocument?
+	def _getBestParsedDocument(doc as Document?) as ParsedCobraDocument?
 		"""
 		Return the last valid parsed document (if any). Prefer a document
 		with a type-bound AST.
@@ -40,36 +42,53 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 			cachedDoc = __parsedDocCache[fileName]
 			cachedAst = cachedDoc.getAst<of CobraModule?>
 		
-		doc = .document
 		if doc == nil
 			return cachedDoc
 		
 		parsedDoc = doc.parsedDocument to ParsedCobraDocument?
 		if parsedDoc <> nil
-			if cachedAst == nil
+			if cachedDoc == nil
 				__parsedDocCache[fileName] = parsedDoc
 				return parsedDoc
 			else
 				# We have a cached document and a current document.
 				# Return the one with a more complete AST.
 				ast = parsedDoc.getAst<of CobraModule?>
-				if ast == nil
+				
+				if ast == nil and cachedAst == nil
+					__parsedDocCache[fileName] = parsedDoc
+					return parsedDoc
+				
+				else if ast == nil and cachedAst <> nil
 					return cachedDoc
+					
+				else if ast <> nil and cachedAst == nil
+					__parsedDocCache[fileName] = parsedDoc
+					return parsedDoc
+				
 				else
 					# we have two ASTs, prefer the type-bound one
-					if ast.didBindImp
-						# save this info for next time.
+					if ast.didBindImp and not cachedAst.didBindImp
 						__parsedDocCache[fileName] = parsedDoc
 						return parsedDoc
-					else if cachedAst.didBindImp 
+						
+					else if not ast.didBindImp and cachedAst.didBindImp
 						# the previous AST had better info
 						return cachedDoc
+						
+					else if ast.didBindImp and cachedAst.didBindImp
+						__parsedDocCache[fileName] = parsedDoc
+						return parsedDoc
+					else
+						# neither AST is bound
+						__parsedDocCache[fileName] = parsedDoc
+						return parsedDoc
 		
 		return cachedDoc
 		
 	
 	def _canHandleCodeCompletion(context as CodeCompletionContext?, completionChar as char,
-								parsedDoc as ParsedCobraDocument?) as bool
+								txtDoc as TextDocument?, parsedDoc as ParsedCobraDocument?) as bool
 		"""
 		Returns true if the extension is able to provide completion results in the given
 		context for the given completion character or false otherwise.
@@ -79,11 +98,9 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 		and completionChar <> c'\0' _
 		and not completionChar.isLetter
 			return false
-			
-		# .document is a MonoDevelop.Ide.Gui.Document
-		# .document.parsedDocument is a MonoDevelop.CobraBinding.TypeSystem.ParsedCobraDocument
+		
 		if context == nil _
-		or .editor == nil _
+		or txtDoc == nil _
 		or parsedDoc == nil
 			return false
 			
@@ -92,15 +109,20 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 		or parsedDoc.symbolTable == nil
 			return false
 
-		if _isInsideComment(context)
-			return false
-			
-		if _isInsideString(context)
+		if _isInsideComment(context, parsedDoc, txtDoc)
 			return false
 		
-		txt = .editor.getTextBetween(context.triggerLine, 0, context.triggerLine, context.triggerLineOffset) ? ""
-		if .ParserAlias.isStartingDecl(txt)
+		if _isInsideString(context, txtDoc)
 			return false
+		
+		beginningText = txtDoc.getTextBetween(
+			context.triggerLine, 0,
+			context.triggerLine, context.triggerLineOffset
+		)
+		
+		if beginningText <> nil
+			if .ParserAlias.isStartingDecl(beginningText)
+				return false
 	
 		return true
 		
@@ -109,50 +131,51 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 		"""
 		Look for Return/Enter key presses and extend regions of doc strings and comment blocks.
 		"""
-		if key == Gdk.Key.Return or key == Gdk.Key.KP_Enter
-			if .document and .document.parsedDocument
-				line = .editor.caret.line - 1
-				prevLineText  = .editor.getLineText(line) ? ""
+		editor = .editor
+		doc = .document
+		if key == Gdk.Key.Return or key == Gdk.Key.KP_Enter and doc <> nil and editor <> nil
+			parsedDoc = doc.parsedDocument
+			txtDoc = editor.document
+			if parsedDoc <> nil and txtDoc <> nil
+				line = editor.caret.line - 1
+				prevLineText  = txtDoc.getLineText(line) ? ""
 				col = prevLineText.length + 1
-				for fold in .document.parsedDocument.foldings
+				for fold in parsedDoc.foldings
 					if fold.type == FoldType.Comment
 						if fold.region.beginLine == line or fold.region.isInside(line, col)
-							fold.region = _resizeNonCodeRegion(fold.region)
+							fold.region = _resizeNonCodeRegion(fold.region, txtDoc to !)
 		
 		# Returns true if the key that was pressed should be processed by this extension or not.
 		return base.keyPress(key, keyChar, modifier)
 		
 		
-	def _resizeNonCodeRegion(region as DomRegion) as DomRegion
+	def _resizeNonCodeRegion(region as DomRegion, txtDoc as TextDocument) as DomRegion
 		"""
 		Extends the given DomRegion based on the text contents of the document.  Useful for
 		handling Enter/Return key-presses before the regions of the .parsedDocument have been
 		updated by the parser.
 		"""
-		require
-			.editor
-		body
-			if .editor.getLineText(region.beginLine).contains('"""')
-				# look for closing doc string tag
-				tag = '"""'
-			else if .editor.getLineText(region.beginLine).contains("'''")
-				# look for alternate style closing doc string tag
-				tag = "'''"
+		if txtDoc.getLineText(region.beginLine).contains('"""')
+			# look for closing doc string tag
+			tag = '"""'
+		else if txtDoc.getLineText(region.beginLine).contains("'''")
+			# look for alternate style closing doc string tag
+			tag = "'''"
+		else
+			# assume we are resizing a comment block, might be a bad assumption...
+			tag = "#/"
+		
+		lineNum = region.beginLine + 1
+		
+		while lineNum < txtDoc.lineCount
+			lineText = txtDoc.getLineText(lineNum)
+			if lineText.contains(tag)
+				break
 			else
-				# assume we are resizing a comment block, might be a bad assumption...
-				tag = "#/"
-			
-			lineNum = region.beginLine + 1
-			
-			while lineNum < .editor.lineCount
-				lineText = .editor.getLineText(lineNum)
-				if lineText.contains(tag)
-					break
-				else
-					lineNum += 1
-			
-			endLocation = ICSharpCode.NRefactory.TextLocation(lineNum, Int32.maxValue)
-			return DomRegion(region.fileName, region.begin, endLocation)
+				lineNum += 1
+		
+		endLocation = ICSharpCode.NRefactory.TextLocation(lineNum, Int32.maxValue)
+		return DomRegion(region.fileName, region.begin, endLocation)
 			
 	
 	def codeCompletionCommand(context as CodeCompletionContext?) as ICompletionDataList? is override
@@ -186,13 +209,19 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 		context.triggerLineOffset = 18, corresponds to the position after the 'r' in 'Compiler'
 		context.triggerWordLength = 8, the length of the word 'Compiler'
 		"""
+		editor = .editor
+		if editor == nil
+			return nil
+		txtDoc = editor.document
+		if txtDoc == nil
+			return nil
 		
 		if context.triggerOffset > 0
-			completionChar = .editor.getCharAt(context.triggerOffset - 1)
+			completionChar = txtDoc.getCharAt(context.triggerOffset - 1)
 			triggerWordLength = context.triggerWordLength
-			if completionChar.isWhiteSpace and context.triggerOffset < .editor.length
+			if completionChar.isWhiteSpace and txtDoc.contains(context.triggerOffset)
 				# no punctuation was found, grab the first letter if any
-				completionChar = .editor.getCharAt(context.triggerOffset)
+				completionChar = txtDoc.getCharAt(context.triggerOffset)
 		else
 			completionChar = c'\0'
 			triggerWordLength = 0
@@ -205,9 +234,15 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 		"""
 		This method is called indirectly by .keyPress or when the user hits Ctrl+Space.
 		"""
+		editor = .editor
+		if editor == nil
+			# shouldn't happen
+			return nil
 		
-		parsedDoc = _parsedDocument
-		if not _canHandleCodeCompletion(context, completionChar, parsedDoc)
+		txtDoc = editor.document
+		doc = .document
+		parsedDoc = _getBestParsedDocument(doc)
+		if not _canHandleCodeCompletion(context, completionChar, txtDoc, parsedDoc)
 			# not enough information to provide completion results
 			return nil
 
@@ -222,14 +257,14 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 		symbolTable = parsedDoc.symbolTable to !
 		
 		# extend code regions to include blank lines
-		_extendRegions(ast, regionMap, symbolTable)
+		_extendRegions(ast.topNameSpace, txtDoc to !, regionMap, symbolTable)
 		
 		# generate a reverse map (regions to nodes)
 		nodeMap = _createNodeMap(regionMap)
 		node as ISyntaxNode? = nil
 		
 		line = context.triggerLine
-		lineText = .editor.document.getLineText(line) ? ""
+		lineText = txtDoc.getLineText(line) ? ""
 		
 		col = context.triggerLineOffset - 1
 		if col >= lineText.length
@@ -344,7 +379,7 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 			for d in _getCompletionData(region, preceedingText, "TODO", nodeMap, ast)
 				regionData.add(d)
 		
-		uniqueData = DataFactory.uniqueCompletionEntries(regionData)		
+		uniqueData = DataFactory.uniqueCompletionEntries(regionData)
 		completionData.addRange(uniqueData)
 
 		if completionData.count <> 0
@@ -363,6 +398,10 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 		Parses the given line of text and returns the corresponding node from the AST.
 		"""
 		ids = _getIdsFromText(text)
+		if ids.count == 0
+			print "couldn't parse identifers from text [text]\n"
+			return nil
+		
 		try
 			return _getNodeFromIds(ids, containingRegions, symbolTable)
 			
@@ -406,34 +445,30 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 		
 		return nil
 	
-	def _isInsideComment(context as CodeCompletionContext) as bool
+	def _isInsideComment(context as CodeCompletionContext, parsedDoc as ParsedCobraDocument,
+						txtDoc as TextDocument) as bool
 		"""
 		Returns true if the cursor is inside a comment region.
 		"""
-		require
-			.editor <> nil
-			.document <> nil
-			.document.parsedDocument <> nil
-		body
-			line = context.triggerLine
-			col = context.triggerLineOffset
-			if line < 1, line = 1
-			if col < 0, col = 0
+		line = context.triggerLine
+		col = context.triggerLineOffset
+		if line < 1, line = 1
+		if col < 0, col = 0
+		
+		lineText = txtDoc.getLineText(line) ? ""
+		
+		if _isInsideComment(line, col, lineText, parsedDoc.foldings)
+			return true
 			
-			lineText = .editor.getLineText(line) ? ""
-			
-			if _isInsideComment(line, col, lineText, .document.parsedDocument.foldings)
-				return true
-				
-			# handle corner case with empty doc strings
-			prevLineText = .editor.getLineText(line - 1) ? ""
-			nextLineText = .editor.getLineText(line + 1) ? ""
-			if prevLineText.endsWith('"""') and nextLineText.endsWith('"""')
-				return true
-			else if prevLineText.endsWith("'''") and nextLineText.endsWith("'''")
-				return true
-			
-			return false
+		# handle corner case with empty doc strings
+		prevLineText = txtDoc.getLineText(line - 1) ? ""
+		nextLineText = txtDoc.getLineText(line + 1) ? ""
+		if prevLineText.endsWith('"""') and nextLineText.endsWith('"""')
+			return true
+		else if prevLineText.endsWith("'''") and nextLineText.endsWith("'''")
+			return true
+		
+		return false
 	
 	def _isInsideComment(line as int, col as int, lineText as String, foldings as IEnumerable<of FoldingRegion>) as bool
 		"""
@@ -589,20 +624,21 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 				i += 1
 			return containingBox
 		
-	def _extendRegions(ast as CobraModule, regionMap as Dictionary<of ISyntaxNode, DomRegion>,
+	def _extendRegions(topNameSpace as NameSpace, txtDoc as TextDocument,
+						regionMap as Dictionary<of ISyntaxNode, DomRegion>,
 						symbolTable as Dictionary<of DomRegion, Dictionary<of String, INamedNode>?>)
 		"""
 		Extends the code regions in the given dictionaries to include blank lines.
 		"""
-		require ast.topNameSpace in regionMap.keys
+		require topNameSpace in regionMap.keys
 		
 		extendedRegionMap = Dictionary<of ISyntaxNode, DomRegion>()
 		
 		for node, region in regionMap
 			
-			extendedRegion = _extendRegion(region)
+			extendedRegion = _extendRegion(region, txtDoc)
 			
-			if node is ast.topNameSpace
+			if node is topNameSpace
 				# special case to make sure the top-level namespace
 				# for the module encompasses all other regions
 				extendedRegion = DomRegion(region.fileName,
@@ -620,7 +656,7 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 			regionMap[node] = extendedRegion
 
 
-	def _extendRegion(region as DomRegion) as DomRegion
+	def _extendRegion(region as DomRegion, txtDoc as TextDocument) as DomRegion
 		"""
 		Returns a copy of the given region but extends the last line
 		to include all blank lines that immediately follow it.
@@ -629,28 +665,24 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 		line.
 		"""
 		require
-			.editor <> nil
-			.editor.document <> nil
 			region.beginLine > 0
 		ensure
 			result.beginLine == region.beginLine
 			result.endLine >= region.endLine
 		body
-			textDoc = .editor.document
-			
-			beginText = textDoc.getLineText(region.beginLine) ? ""
+			beginText = txtDoc.getLineText(region.beginLine) ? ""
 			minIndentLevel = .ParserAlias.getIndentLevel(beginText)
 			fromLine = region.endLine + 1
-			untilLine = textDoc.lineCount
+			untilLine = txtDoc.lineCount
 			
 			for line in fromLine:untilLine
-				text = textDoc.getLineText(line)
+				text = txtDoc.getLineText(line)
 				if text <> nil _
 				and text.trim.length <> 0 _
 				and .ParserAlias.getIndentLevel(text to !) <= minIndentLevel
 					break
 			
-			if line == textDoc.lineCount
+			if line == txtDoc.lineCount
 				# special case for end of document
 				col = Int32.maxValue - 1
 			else
@@ -663,25 +695,21 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 			return extendedRegion
 	
 	
-	def _isInsideString(context as CodeCompletionContext) as bool
+	def _isInsideString(context as CodeCompletionContext, txtDoc as TextDocument) as bool
 		"""
 		Returns true if we should not provide code completion in the given
 		context because we are inside a string literal and not inside
 		[expression brackets].
 		"""
-		require
-			.editor
-			.editor.document
-		body
-			line = context.triggerLine
-			col = context.triggerLineOffset
-			if line < 1, line = 1
-			if col < 0, col = 0
-			
-			lineText = .editor.document.getLineText(line) ? ""
-			if col > lineText.length, col = lineText.length
-			
-			return _isInsideString(lineText.substring(0, col))
+		line = context.triggerLine
+		col = context.triggerLineOffset
+		if line < 1, line = 1
+		if col < 0, col = 0
+		
+		lineText = txtDoc.getLineText(line) ? ""
+		if col > lineText.length, col = lineText.length
+		
+		return _isInsideString(lineText.substring(0, col))
 	
 	
 	def _isInsideString(text as String) as bool

@@ -88,9 +88,7 @@ EXPECTED RESULTS
 Public non-shared members of the String class are displayed
 
 ACTUAL RESULTS
-FAIL
-Current Box members are displayed instead.  This is a regression introduced by
-commit 64f050e21b72d930f32dac0b37f5b3e0914fe7a9.
+PASS
 
 ---
 
@@ -108,7 +106,7 @@ PASS
 ---
 
 CASE 9
-class f_
+class F_
 
 EXPECTED RESULTS
 No completion results are displayed when declaring a class

@@ -275,10 +275,12 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 		
 		completionData = CobraCompletionList()
 		
-		if completionChar == c'_' _
-		and (preceedingText.length == 0 or not preceedingText[preceedingText.length - 1].isLetterOrDigit)
+		prevChar = c' '
+		if preceedingText.length <> 0
+			prevChar = preceedingText[preceedingText.length - 1]
+		
+		if completionChar == c'_' and not prevChar.isLetterOrDigit
 			# protected/private member completion in the context of the current class
-			
 			node = _getContainingBox(containingRegions, nodeMap)
 			if node inherits Box
 				return BoxMembersList(node)
@@ -288,7 +290,7 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 		
 		else if completionChar == c'.'
 			# member completion
-			if preceedingText.length == 0 or not preceedingText[preceedingText.length - 1].isLetterOrDigit
+			if not prevChar.isLetterOrDigit and prevChar <> c')' and prevChar <> c']'
 				# return fields and methods in the context of the current class
 				node = _getContainingBox(containingRegions, nodeMap)
 				if node inherits Box

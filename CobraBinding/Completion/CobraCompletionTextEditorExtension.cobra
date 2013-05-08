@@ -244,17 +244,6 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 		context.triggerLineOffset = 18, corresponds to the position after the 'r' in 'Compiler'
 		context.triggerWordLength = 8, the length of the word 'Compiler'
 		"""
-		/#
-		print "codeCompletionCommand"
-		trace context.toString
-		if context.triggerLineOffset > 0
-			trace .editor.getLineText(context.triggerLine).substring(0, context.triggerLineOffset)
-		if context.triggerOffset > 0
-			trace .editor.getCharAt(context.triggerOffset - 1)
-		if context.triggerOffset > 0 and context.triggerOffset + context.triggerWordLength > 0
-			trace .editor.getTextBetween(context.triggerOffset, context.triggerOffset + context.triggerWordLength)
-		print
-		#/
 		
 		if context.triggerOffset > 0
 			completionChar = .editor.getCharAt(context.triggerOffset - 1)
@@ -274,18 +263,7 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 		"""
 		This method is called indirectly by .keyPress or when the user hits Ctrl+Space.
 		"""
-		/#
-		print "handleCodeCompletion"
-		trace context.toString
-		trace completionChar
-		if context.triggerLineOffset > 0
-			trace .editor.getLineText(context.triggerLine).substring(0, context.triggerLineOffset)
-		if context.triggerOffset > 0
-			trace .editor.getCharAt(context.triggerOffset - 1)
-		if context.triggerOffset > 0 and context.triggerOffset + context.triggerWordLength > 0
-			trace .editor.getTextBetween(context.triggerOffset, context.triggerOffset + context.triggerWordLength)
-		print
-		#/
+		
 		if not _canHandleCodeCompletion(context, completionChar)
 			# not enough information to provide completion results
 			return nil
@@ -316,19 +294,14 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 			col = lineText.length - 1
 		if col < 0
 			col = 0
-		#print "==========================="
+		
 		if triggerWordLength == 0 and completionChar <> c'.'
 			/# This was not Ctrl+Space completion. Build the trigger word by
 			backtracking through the line of text until we hit a character
 			that is not valid for an identifier #/
-			#trace completionChar
+			
 			# include the letter that was just typed as part of the trigger word
 			while col >= 0
-				/#
-				trace col
-				trace lineText[col]
-				trace triggerWordLength
-				#/
 				if  lineText[col] == c'_' or lineText[col].isLetterOrDigit
 					# include this character in the trigger word
 					triggerWordLength += 1
@@ -341,12 +314,6 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 					col += 1
 					break
 				col -= 1
-			/#
-			trace completionChar
-			trace col
-			if col >= 0, trace lineText[col]
-			trace triggerWordLength
-			#/
 			
 			if col < 0
 				col = 0
@@ -363,8 +330,6 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 				if dotPos > 0, preceedingText = preceedingText.substring(0, dotPos)
 		else
 			preceedingText = ""
-		
-		#trace preceedingText
 		
 		completionData = CobraCompletionList()
 		

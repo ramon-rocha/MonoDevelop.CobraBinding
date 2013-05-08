@@ -20,124 +20,76 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 
 	shared
 		/#
-		These '__prev' maps are used when the current parsed
-		document has errors or the previous values have better
-		information for completion (i.e. bound vs unbound types).
-		
-		They are all keyed by fileName.
+		This is used when the current parsed document has errors or
+		the previous parsed document has better information for
+		completion (i.e. bound vs unbound types). It is keyed by fileName.
 		#/
-		var __prevAstMap = Dictionary<of String, CobraModule?>()
-
-		var __prevRegionMap = Dictionary<of String, _
-			Dictionary<of ISyntaxNode, DomRegion>>()
-
-		var __prevSymbolTable = Dictionary<of String, _
-			Dictionary<of DomRegion, Dictionary<of String, INamedNode>?>>()
+		var __parsedDocCache = Dictionary<of String, ParsedCobraDocument?>()
+	
 		
+	get _parsedDocument as ParsedCobraDocument?
+		"""
+		Return the last valid parsed document (if any). Prefer a document
+		with a type-bound AST.
+		"""
+		fileName = .fileName.toString
 		
-	get ast as CobraModule?
-		"""
-		Return the last valid abstract syntax tree from the parsed document (if any).
-		"""
-		require
-			.document <> nil
-			.document.parsedDocument <> nil
-		body
-			parsedDoc = .document.parsedDocument
-			currAst = parsedDoc.getAst<of CobraModule?>
-			prevAst as CobraModule? = nil
-			if __prevAstMap.containsKey(parsedDoc.fileName)
-				prevAst = __prevAstMap[parsedDoc.fileName]
-			
-			if prevAst == nil
-				# save for next time
-				__prevAstMap[parsedDoc.fileName] = currAst
-				return currAst
-				
-			else if currAst <> nil
-				# prefer type-bound ASTs
-				if currAst.didBindImp
-					# current AST is bound, save for next time
-					__prevAstMap[parsedDoc.fileName] = currAst
-					return currAst
-				else if prevAst.didBindImp or parsedDoc.hasErrors
-					# previous AST has better information
-					return prevAst
+		cachedDoc as ParsedCobraDocument? = nil
+		cachedAst as CobraModule? = nil
+		if __parsedDocCache.containsKey(fileName)
+			cachedDoc = __parsedDocCache[fileName]
+			cachedAst = cachedDoc.getAst<of CobraModule?>
+		
+		doc = .document
+		if doc == nil
+			return cachedDoc
+		
+		parsedDoc = doc.parsedDocument to ParsedCobraDocument?
+		if parsedDoc <> nil
+			if cachedAst == nil
+				__parsedDocCache[fileName] = parsedDoc
+				return parsedDoc
+			else
+				# We have a cached document and a current document.
+				# Return the one with a more complete AST.
+				ast = parsedDoc.getAst<of CobraModule?>
+				if ast == nil
+					return cachedDoc
 				else
-					# save for next time, even though it's unbound
-					__prevAstMap[parsedDoc.fileName] = currAst
-					return currAst
-			
-			return prevAst
-
+					# we have two ASTs, prefer the type-bound one
+					if ast.didBindImp
+						# save this info for next time.
+						__parsedDocCache[fileName] = parsedDoc
+						return parsedDoc
+					else if cachedAst.didBindImp 
+						# the previous AST had better info
+						return cachedDoc
+		
+		return cachedDoc
+		
 	
-	get regionMap as Dictionary<of ISyntaxNode, DomRegion>
-		"""
-		Return code regions from last valid AST.
-		Values are keyed by the declaring syntax node.
-		"""
-		require
-			.document <> nil
-			.document.parsedDocument <> nil
-			.document.parsedDocument inherits ParsedCobraDocument
-		body
-			parsedDoc = .document.parsedDocument to ParsedCobraDocument
-			map = parsedDoc.regionMap
-			
-			if map <> nil
-				__prevRegionMap[parsedDoc.fileName] = map
-				return map
-			else if __prevRegionMap.containsKey(parsedDoc.fileName)
-				return __prevRegionMap[parsedDoc.fileName]
-			
-			return Dictionary<of ISyntaxNode, DomRegion>()
-	
-	
-	get symbolTable as Dictionary<of DomRegion, Dictionary<of String, INamedNode>?>
-		"""
-		Return the symbol table from last valid AST.
-		Values are nilable dictionaries mapping identifiers	to
-		their corresponding nodes and are keyed by code region.
-		"""
-		require
-			.document <> nil
-			.document.parsedDocument <> nil
-			.document.parsedDocument inherits ParsedCobraDocument
-		body
-			parsedDoc = .document.parsedDocument to ParsedCobraDocument
-			currAst = parsedDoc.getAst<of CobraModule?>
-			if currAst <> nil and not currAst.didBindImp _
-			and __prevAstMap.containsKey(parsedDoc.fileName) _
-			and __prevSymbolTable.containsKey(parsedDoc.fileName)
-				# the previous symbol table probably has more information
-				return __prevSymbolTable[parsedDoc.fileName]
-			
-			table = parsedDoc.symbolTable
-			
-			if table <> nil
-				__prevSymbolTable[parsedDoc.fileName] = table
-				return table
-			else if __prevSymbolTable.containsKey(parsedDoc.fileName)
-				return __prevSymbolTable[parsedDoc.fileName]
-			
-			return Dictionary<of DomRegion, Dictionary<of String, INamedNode>?>()
-	
-	def _canHandleCodeCompletion(context as CodeCompletionContext?, completionChar as char) as bool
+	def _canHandleCodeCompletion(context as CodeCompletionContext?, completionChar as char,
+								parsedDoc as ParsedCobraDocument?) as bool
 		"""
 		Returns true if the extension is able to provide completion results in the given
 		context for the given completion character or false otherwise.
 		"""
 		if completionChar <> c'.' _
-		and completionChar <> '_' _
+		and completionChar <> c'_' _
+		and completionChar <> c'\0' _
 		and not completionChar.isLetter
 			return false
 			
 		# .document is a MonoDevelop.Ide.Gui.Document
 		# .document.parsedDocument is a MonoDevelop.CobraBinding.TypeSystem.ParsedCobraDocument
 		if context == nil _
-		or .document == nil _
-		or .document.parsedDocument == nil _
-		or .editor == nil
+		or .editor == nil _
+		or parsedDoc == nil
+			return false
+			
+		if parsedDoc.ast == nil _
+		or parsedDoc.regionMap == nil _
+		or parsedDoc.symbolTable == nil
 			return false
 
 		if _isInsideComment(context)
@@ -148,16 +100,6 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 		
 		txt = .editor.getTextBetween(context.triggerLine, 0, context.triggerLine, context.triggerLineOffset) ? ""
 		if .ParserAlias.isStartingDecl(txt)
-			return false
-		
-		parsedDoc = .document.parsedDocument to ParsedCobraDocument
-		if parsedDoc.ast == nil and not __prevAstMap.containsKey(parsedDoc.fileName)
-			return false
-		
-		if parsedDoc.regionMap == nil and not __prevRegionMap.containsKey(parsedDoc.fileName)
-			return false
-			
-		if parsedDoc.symbolTable == nil and not __prevSymbolTable.containsKey(parsedDoc.fileName)
 			return false
 	
 		return true
@@ -264,7 +206,8 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 		This method is called indirectly by .keyPress or when the user hits Ctrl+Space.
 		"""
 		
-		if not _canHandleCodeCompletion(context, completionChar)
+		parsedDoc = _parsedDocument
+		if not _canHandleCodeCompletion(context, completionChar, parsedDoc)
 			# not enough information to provide completion results
 			return nil
 
@@ -272,12 +215,11 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 			#TODO handle parameter completion
 			return nil
 		
-		# we are guranteed to have a usable AST at this point
-		ast = .ast to !
-		
-		# get code regions and symbol table from last valid AST
-		regionMap = .regionMap
-		symbolTable = .symbolTable
+		# get metadata from the parsed document to help
+		# us with creating completion results
+		ast = parsedDoc.getAst<of CobraModule>
+		regionMap = parsedDoc.regionMap to !
+		symbolTable = parsedDoc.symbolTable to !
 		
 		# extend code regions to include blank lines
 		_extendRegions(ast, regionMap, symbolTable)
@@ -397,7 +339,7 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 		# return completion data based on containing regions
 		regionData = CobraCompletionList()
 		for region in containingRegions
-			for d in _getCompletionData(region, preceedingText, "TODO", nodeMap)
+			for d in _getCompletionData(region, preceedingText, "TODO", nodeMap, ast)
 				regionData.add(d)
 		
 		uniqueData = DataFactory.uniqueCompletionEntries(regionData)		
@@ -406,12 +348,11 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 		if completionData.count <> 0
 			return completionData
 		else
-			/# this can happen if we are somehow not in a region (e.g. the very first position
-			of the document, the parser has not returned the updated document yet, etc.) #/
-			if .ast <> nil
-				return DataFactory.createModuleDeclsList(.ast to !)
-			else
-				return nil
+			/#
+			This can happen if we are somehow not in a region (e.g. the very first position
+			of the document, the parser has not returned the updated document yet, etc.)
+			#/
+			return DataFactory.createModuleDeclsList(ast)
 
 
 	def _resolveTextToNode(text as String, containingRegions as List<of DomRegion>,
@@ -1091,7 +1032,7 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 	
 
 	def _getCompletionData(region as DomRegion, preceedingText as String, currText as String,
-							nodeMap as Dictionary<of DomRegion, ISyntaxNode>) as ICompletionDataList
+							nodeMap as Dictionary<of DomRegion, ISyntaxNode>, ast as CobraModule) as ICompletionDataList
 		"""
 		Returns completion data in the context of the given DomRegion.
 		"""
@@ -1109,8 +1050,7 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 				dataList.addRange(DataFactory.keywordListTopLevel)
 				dataList.addRange(DataFactory.keywordListCobraTypes)
 				dataList.addRange(DataFactory.keywordListLiterals)
-				ast = .ast
-				if ast <> nil, dataList.addRange(DataFactory.createModuleDeclsList(ast))
+				dataList.addRange(DataFactory.createModuleDeclsList(ast))
 			else
 				dataList.addRange(NameSpaceDeclsList(node))
 			

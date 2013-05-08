@@ -88,7 +88,9 @@ EXPECTED RESULTS
 Public non-shared members of the String class are displayed
 
 ACTUAL RESULTS
-PASS
+FAIL
+Current Box members are displayed instead.  This is a regression introduced by
+commit 64f050e21b72d930f32dac0b37f5b3e0914fe7a9.
 
 ---
 
@@ -117,7 +119,7 @@ PASS
 ---
 
 CASE 10
-class foo i_
+class Foo i_
 
 EXPECTED RESULTS
 Completion results are displayed when typing after a class identifier
@@ -128,7 +130,7 @@ PASS
 ---
 
 CASE 11
-class foo
+class Foo
 	def b_
 
 EXPECTED RESULTS
@@ -140,7 +142,7 @@ PASS
 ---
 
 CASE 12
-class foo
+class Foo
 	def bar(burgers, f_
 
 EXPECTED RESULTS

@@ -133,7 +133,7 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 		"""
 		editor = .editor
 		doc = .document
-		if key == Gdk.Key.Return or key == Gdk.Key.KP_Enter and doc <> nil and editor <> nil
+		if (key == Gdk.Key.Return or key == Gdk.Key.KP_Enter) and doc <> nil and editor <> nil
 			parsedDoc = doc.parsedDocument
 			txtDoc = editor.document
 			if parsedDoc <> nil and txtDoc <> nil

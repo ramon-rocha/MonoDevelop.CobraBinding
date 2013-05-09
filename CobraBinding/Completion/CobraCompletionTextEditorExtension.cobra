@@ -382,14 +382,12 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 		uniqueData = DataFactory.uniqueCompletionEntries(regionData)
 		completionData.addRange(uniqueData)
 
-		if completionData.count <> 0
-			return completionData
-		else
-			/#
-			This can happen if we are somehow not in a region (e.g. the very first position
-			of the document, the parser has not returned the updated document yet, etc.)
-			#/
-			return DataFactory.createModuleDeclsList(ast)
+		if completionData.count == 0
+			# this can happen if we are somehow not in a region
+			# (e.g. the very first position of the document)
+			completionData.addRange(_getTopNameSpaceCompletionData(ast))
+		
+		return completionData
 
 
 	def _resolveTextToNode(text as String, containingRegions as List<of DomRegion>,
@@ -1076,11 +1074,8 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 		
 		if node inherits NameSpace
 			# being inside a namespace means we have access to all the classes inside of it
-			if node.name.startsWith("(top")
-				dataList.addRange(DataFactory.keywordListTopLevel)
-				dataList.addRange(DataFactory.keywordListCobraTypes)
-				dataList.addRange(DataFactory.keywordListLiterals)
-				dataList.addRange(DataFactory.createModuleDeclsList(ast))
+			if node is ast.topNameSpace
+				dataList.addRange(_getTopNameSpaceCompletionData(ast))
 			else
 				dataList.addRange(NameSpaceDeclsList(node))
 			
@@ -1096,7 +1091,14 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 			print "TODO: handle this type of container: [node.toString]"
 		
 		return dataList
-	
+		
+	def _getTopNameSpaceCompletionData(ast as CobraModule) as ICompletionDataList
+		dataList = CobraCompletionList()
+		dataList.addRange(DataFactory.keywordListTopLevel)
+		dataList.addRange(DataFactory.keywordListCobraTypes)
+		dataList.addRange(DataFactory.keywordListLiterals)
+		dataList.addRange(DataFactory.createModuleDeclsList(ast))
+		return dataList
 
 	shared
 		def createTestData as CobraModule

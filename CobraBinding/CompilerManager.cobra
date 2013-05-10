@@ -109,7 +109,7 @@ class CompilerManager
 						astCount += 1
 						ast as CobraModule = r
 						assert ast.didBindImp
-						key = CobraLanguageBinding.AddOnKeys.assemblyReferences
+						key = CobraLanguageBinding.AddOnKeys.globalNameSpace
 						assert ast.topNameSpace.addOnValues.containsKey(key)
 
 						name =  FileInfo(filePath).name
@@ -391,7 +391,6 @@ class CompilerManager
 					# BindImplementationPhase
 					
 					boundAst as CobraModule? = nil
-					asmRefs = List<of AssemblyModule>()
 					
 					for mod in compiler.modules.clone
 						if mod.fileName == fileToBind
@@ -406,11 +405,10 @@ class CompilerManager
 								compiler.recordError(ex)
 							catch
 								print "[fileToBind] triggers a compiler bug"
-						else if mod inherits AssemblyModule
-							asmRefs.add(mod)
 					
-					# these will be used in CobraModuleVisitor when creating the symbol table
-					boundAst.topNameSpace.addOnValues[CobraLanguageBinding.AddOnKeys.assemblyReferences] = asmRefs
+					# this will be used in CobraModuleVisitor when creating the symbol table
+					key = CobraLanguageBinding.AddOnKeys.globalNameSpace
+					boundAst.topNameSpace.addOnValues[key] = compiler.globalNS
 
 				for module in compiler.modules
 					results.add(module)

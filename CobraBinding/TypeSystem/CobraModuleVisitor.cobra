@@ -177,7 +177,7 @@ class CobraModuleVisitor inherits Cobra.Core.Visitor
 				__addIdentifiers(node, region)
 
 
-	def __addIdentifiers(parent as INamedNode, region as DomRegion)
+	def __addIdentifiers(node as INamedNode, region as DomRegion)
 		"""
 		Should only be called by _addRegion
 		"""
@@ -187,36 +187,36 @@ class CobraModuleVisitor inherits Cobra.Core.Visitor
 		
 		idMap = _symbolTable[region]
 		
-		if parent inherits NameSpace
-			for useDirective in parent.useDirectives
-				if useDirective.boundNameSpace <> nil
-					for nsMember in useDirective.boundNameSpace.declsInOrder
-						idMap[nsMember.name] = nsMember
-		
-			for nsMember in parent.declsInOrder
-				idMap[nsMember.name] = nsMember
+		if node inherits NameSpace
+			key = CobraLanguageBinding.AddOnKeys.globalNameSpace
+			if node is __ast.topNameSpace and node.addOnValues.containsKey(key)
+				# use the unified global namespace instead of the module's topNameSpace
+				globalNS = node.addOnValues[key] to NameSpace
+				for nsMember in globalNS.declsInOrder
+					idMap[nsMember.name] = nsMember
 				
-			if parent is __ast.topNameSpace
-				key = CobraLanguageBinding.AddOnKeys.assemblyReferences
-				if parent.addOnValues.containsKey(key)
-					asmRefs = parent.addOnValues[key] to List<of AssemblyModule>
-					for asm in asmRefs
-						for nsMember in asm.topNameSpace.declsInOrder
+				# declarations from used namespaces are visible in this context
+				for useDirective in node.useDirectives
+					if useDirective.boundNameSpace <> nil
+						for nsMember in useDirective.boundNameSpace.declsInOrder
 							idMap[nsMember.name] = nsMember
+			else
+				for nsMember in node.declsInOrder
+					idMap[nsMember.name] = nsMember
 
-		else if parent inherits Box
-			for boxMember in parent.allMembers
+		else if node inherits Box
+			for boxMember in node.allMembers
 				idMap[boxMember.name] = boxMember
 
-		else if parent inherits AbstractMethod
-			for v in parent.locals
+		else if node inherits AbstractMethod
+			for v in node.locals
 				idMap[v.name] = v
 
-			for p in parent.params
+			for p in node.params
 				idMap[p.name] = p
 			
 		else
-			print "Unkown IContainer: [parent.toString] for region [region.toString]"
+			print "Unkown IContainer: [node.toString] for region [region.toString]"
 
 
 	get methodName as String is override

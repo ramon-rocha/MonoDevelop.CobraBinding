@@ -35,7 +35,7 @@ class CobraLanguageBinding implements IDotNetLanguageBinding
 		cue init is private
 			base.init
 	
-		const assemblyReferences = "MonoDevelop.CobraBinding.AddOnKeys.assemblyReferences"
+		const globalNameSpace = "MonoDevelop.CobraBinding.AddOnKeys.globalNameSpace"
 		
 	var _isWindows as bool
 	var _targetArgs as Dictionary<of CompileTarget, String>

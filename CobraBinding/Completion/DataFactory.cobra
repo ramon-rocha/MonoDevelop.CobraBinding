@@ -239,11 +239,10 @@ class DataFactory
 				catch ex as Exception
 					trace ex.message
 			
-			key = CobraLanguageBinding.AddOnKeys.assemblyReferences
+			key = CobraLanguageBinding.AddOnKeys.globalNameSpace
 			if topNs.addOnValues.containsKey(key)
-				asmRefs = topNs.addOnValues[key] to List<of AssemblyModule>
-				for asm in asmRefs
-					dataList.addRange(NameSpaceDeclsList(asm.topNameSpace))
+				globalNS = topNs.addOnValues[key] to NameSpace
+				dataList.addRange(NameSpaceDeclsList(globalNS))
 			
 			return .uniqueCompletionEntries(dataList)
 			

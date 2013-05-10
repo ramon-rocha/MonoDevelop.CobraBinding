@@ -23,7 +23,7 @@
 	
 	<!-- Compiler directives -->
 	<Rule name="CompilerDirective">
-		<Keywords color="Preprocessor Keyword">
+		<Keywords color="Script Keyword">
 			<Word>args</Word>
 			<Word>help</Word>
 			<Word>error</Word>
@@ -31,7 +31,7 @@
 		</Keywords>
 	</Rule>
 	
-	<Span color="Preprocessor Keyword" rule="CompilerDirective" tagColor="Preprocessor" stopAtEol="True">
+	<Span color="Script Keyword" rule="CompilerDirective" tagColor="Preprocessor" stopAtEol="True">
 		<Begin startsLine="True" firstNonWs="True">@</Begin>
 		<End> </End>
 	</Span>

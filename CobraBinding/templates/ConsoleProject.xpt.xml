@@ -3,7 +3,7 @@
 <Template
 	originator = "Ramón Rocha" 
 	created = "07/22/2012"
-	lastModified = "07/30/2012">
+	lastModified = "05/10/2013">
 
 	<!-- Template Header -->
 	<TemplateConfiguration>
@@ -17,7 +17,7 @@
 	<!-- Template Content -->
 	
 	<Actions>
-		<Open filename="MyProgram.cobra" />
+		<Open filename="Program.cobra" />
 	</Actions>
 	
 	<Combine name="${ProjectName}" directory=".">
@@ -28,11 +28,11 @@
 		<Project name="${ProjectName}" directory=".">
 			<Options ExternalConsole="True" />
 			<Files>
-				<File name="MyProgram.cobra" AddStandardHeader="True"><![CDATA["""
+				<File name="Program.cobra" AddStandardHeader="True"><![CDATA["""
 Replace this text with a description of your program.
 """
 
-class MyProgram
+class Program
 
 	def main
 		print 'Hello, world!']]></File>

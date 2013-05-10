@@ -3,7 +3,7 @@
 <Template
 	originator = "Ramón Rocha" 
 	created = "07/24/2012"
-	lastModified = "07/30/2012">
+	lastModified = "05/10/2013">
 
 	<!-- Template Header -->
 	<TemplateConfiguration>
@@ -17,7 +17,7 @@
 	<!-- Template Content -->
 	
 	<Actions>
-		<Open filename="MyClass.cobra" />
+		<Open filename="Class1.cobra" />
 	</Actions>
 	
 	<Combine name="${ProjectName}" directory=".">
@@ -28,11 +28,11 @@
 		<Project name="${ProjectName}" directory=".">
 			<Options Target="Library" />
 			<Files>
-				<File name="MyClass.cobra" AddStandardHeader="True"><![CDATA["""
+				<File name="Class1.cobra" AddStandardHeader="True"><![CDATA["""
 Replace this text with a description of your library.
 """
 
-class MyClass
+class Class1
 	"""
 	Replace this text with a description of your class.
 	"""

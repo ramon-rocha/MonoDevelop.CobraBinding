@@ -289,8 +289,13 @@ class CobraBindingAddinInstaller
 			if _verbosity >= 3
 				info.environmentVariables['MONO_LOG_LEVEL'] = "debug"
 				info.environmentVariables['MONO_LOG_MASK'] = "dll"
-
-			info.fileName = CobraCore.findCobraExe
+			
+			if CobraCore.isRunningOnMono
+				# let the script have Mono run the actual EXE
+				info.fileName = CobraCommand.find.path
+			else
+				# Run the EXE directly
+				info.fileName = CobraCommand.findExe.path
 			info.arguments = _getCobraArguments
 			info.workingDirectory += "CobraBinding"
 			cmds.add(Process(startInfo = info))
@@ -321,9 +326,12 @@ class CobraBindingAddinInstaller
 		to compile the CobraBinding project.
 		"""
 		cobraArgs = StringBuilder(
-			'-compile -include-tests:no -copy-core -target:lib -out:"bin[__s]Debug[__s]MonoDevelop.CobraBinding.dll"'
+			'-compile -copy-core -target:lib -out:"bin[__s]Debug[__s]MonoDevelop.CobraBinding.dll"'
 		)
-
+		
+		 # TODO: change to ' -turbo:yes' before merging into master branch
+		cobraArgs.append(' -include-tests:no')
+		
 		if _verbosity >= 2, cobraArgs.append(' -v -verbosity-ref:2')
 		else if _verbosity >= 1, cobraArgs.append(' -v -verbosity-ref:1')
 
@@ -375,24 +383,6 @@ class CobraBindingAddinInstaller
 			path = installer._getCobraCompilerDllPath
 			assert File.exists(path)
 		body
-			/#
-			Get the location of cobra.exe, this will actually
-			return cobra.bat or a BASH script in most cases.
-			#/
-			cobraCmd = CobraCore.findCobraExe
-			
-			# execute: 'cobra -path'
-			proc = System.Diagnostics.Process()
-			proc.startInfo.fileName = cobraCmd
-			proc.startInfo.arguments = "-path"
-			proc.startInfo.useShellExecute = false
-			proc.startInfo.createNoWindow = true
-			proc.startInfo.windowStyle = ProcessWindowStyle.Hidden
-			proc.startInfo.workingDirectory = Directory.getCurrentDirectory + __s
-			proc.startInfo.environmentVariables["PATH"] = Environment.getEnvironmentVariable("PATH")
-			
-			# this should return something like '/usr/local/cobra/Cobra-0.9.0/bin/cobra.exe'
-			output = proc.runAndCaptureAllOutput.trim
-			cobraExeInfo = FileInfo(output)
-			cobraDir = cobraExeInfo.directoryName
+			cobraExe = CobraCommand.findExe.path
+			cobraDir = Path.getDirectoryName(cobraExe)
 			return cobraDir + __s + "Cobra.Compiler.dll"

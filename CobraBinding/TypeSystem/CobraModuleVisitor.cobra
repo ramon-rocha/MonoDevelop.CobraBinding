@@ -34,7 +34,7 @@ class CobraModuleVisitor inherits Cobra.Core.Visitor
 		assert wholeFileRegion.beginColumn == 1
 		assert wholeFileRegion.endLine == 229
 		assert wholeFileRegion.endColumn == Int32.maxValue
-		assert visitor.symbolTable[wholeFileRegion].count == 437 # includes all decls from implicit use directives
+		assert visitor.symbolTable[wholeFileRegion].count == 439 # includes all decls from implicit use directives
 		
 		c = ast.topNameSpace.memberForName("HowToUseLists") to Class
 		classRegion = visitor.regionMap[c]
@@ -164,6 +164,16 @@ class CobraModuleVisitor inherits Cobra.Core.Visitor
 			endCol += 1
 		
 		region = DomRegion(_fileName, beginLine, beginCol, endLine, endCol)
+		if _symbolTable.containsKey(region)
+			# do not violate contract in __addIdentifiers
+			# TODO: we need to make sure the correct node
+			# has been saved in the _regionMap and the
+			# correct entries are in the _symbolTable
+			print "duplicate region [region]"
+			print "existing = [_symbolTable[region].keys]"
+			print "duplicate = [node]"
+			return
+		
 		_regionMap[node] = region
 
 		if node implements INamedNode

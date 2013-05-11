@@ -39,13 +39,13 @@ On Windows 64-bit with a 32-bit installation of Xamarin Studio, you'll need
 to make sure you've installed Cobra using the '-x86' installer option first.  
 See below for more details.
 
-Requirements
+Minimum Requirements
 ------------
 * .NET Framework 4 or Mono 3.0
 
 * MonoDevelop 4.0 (Linux) or Xamarin Studio 4.0.2 (Windows/Mac)
 
-* Cobra svn:2928 (post 0.9.3)
+* Cobra svn:2962 (post 0.9.3)
 
 Additional Requirements for Windows 64-bit
 --------------------------------------------

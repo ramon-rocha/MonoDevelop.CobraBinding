@@ -1077,7 +1077,7 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 			if node is ast.topNameSpace
 				dataList.addRange(_getTopNameSpaceCompletionData(ast))
 			else
-				dataList.addRange(NameSpaceDeclsList(node))
+				dataList.addRange(DataFactory.createNameSpaceDeclsList(node))
 			
 		else if node inherits Box
 			# being inside a box gives us access to certain keywords

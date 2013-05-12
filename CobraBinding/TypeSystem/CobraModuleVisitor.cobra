@@ -210,8 +210,12 @@ class CobraModuleVisitor inherits Cobra.Core.Visitor
 					if useDirective.boundNameSpace <> nil
 						for nsMember in useDirective.boundNameSpace.declsInOrder
 							idMap[nsMember.name] = nsMember
-			else
+			else if node.isUnified or node.unifiedNameSpace == nil
 				for nsMember in node.declsInOrder
+					idMap[nsMember.name] = nsMember
+			else
+				# the unified namespace will include all decls, not just the ones from this module
+				for nsMember in node.unifiedNameSpace.declsInOrder
 					idMap[nsMember.name] = nsMember
 
 		else if node inherits Box
@@ -246,7 +250,58 @@ class CobraModuleVisitor inherits Cobra.Core.Visitor
 		
 	def visit(ns as NameSpace)
 		_addRegion(ns)
-		.dispatch(ns.declsInOrder)
+		if ns is __ast.topNameSpace
+			# regions for namespace decls incorrectly encompass the
+			# entirety of the subnamespaces they declare/contain.
+			# Only visit the "right-most" namespace declaration.
+			for d in ns.declsInOrder
+				if d inherits NameSpace
+					ns = _getDeepestNameSpaceDecl(d)
+					.dispatch(ns)
+				else
+					.dispatch(d)
+		else
+			.dispatch(ns.declsInOrder)
+	
+	def _getDeepestNameSpaceDecl(rootNS as NameSpace) as NameSpace
+		"""
+		Finds the "right-most" namespace declaration on the same line as the
+		given namespace declaration.
+		
+		Example: given the NameSpace node for MonoDevelop coming from a line
+		that declares 'namespace MonoDevelop.CobraBinding.TypeSystem',
+		this function returns the node for the TypeSystem NameSpace.
+		"""
+		test noNameSpaceDecls
+			visitor = CobraModuleVisitor()
+			ast = .createTestData2
+			sw = Diagnostics.Stopwatch()
+			sw.start
+			assert visitor._getDeepestNameSpaceDecl(ast.topNameSpace) is ast.topNameSpace
+			print sw.elapsed
+		test singleNameSpaceDecl
+			visitor = CobraModuleVisitor()
+			ast = .createTestData2
+			ns = ast.topNameSpace.memberForName("Foo") to NameSpace
+			sw = Diagnostics.Stopwatch()
+			sw.start
+			assert visitor._getDeepestNameSpaceDecl(ns).name == "Foo"
+			print sw.elapsed
+		test multipleNameSpaceDecls
+			visitor = CobraModuleVisitor()
+			ast = Completion.CobraCompletionTextEditorExtension.createTestData
+			ns = ast.topNameSpace.memberForName("TopLevelNameSpace") to NameSpace
+			sw = Diagnostics.Stopwatch()
+			sw.start
+			assert visitor._getDeepestNameSpaceDecl(ns).name == "ThirdLevelNameSpace"
+			print sw.elapsed
+		body
+			lineNum = rootNS.token.lineNum
+			for d in rootNS.declsInOrder
+				if d inherits NameSpace
+					if d.token.lineNum == lineNum
+						return _getDeepestNameSpaceDecl(d)
+			return rootNS
 		
 	def visit(b as Box)
 	

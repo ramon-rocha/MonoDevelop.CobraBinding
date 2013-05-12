@@ -217,7 +217,10 @@ class DataFactory
 			return MethodVarsList(method)
 		
 		def createNameSpaceDeclsList(nameSpace as NameSpace) as NameSpaceDeclsList
-			return NameSpaceDeclsList(nameSpace)
+			if nameSpace.isUnified or nameSpace.unifiedNameSpace == nil
+				return NameSpaceDeclsList(nameSpace)
+			else
+				return NameSpaceDeclsList(nameSpace.unifiedNameSpace)
 		
 		def createModuleDeclsList(ast as CobraModule) as CobraCompletionList
 			"""

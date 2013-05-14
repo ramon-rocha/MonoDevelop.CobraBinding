@@ -109,10 +109,10 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 		or parsedDoc.symbolTable == nil
 			return false
 
-		if _isInsideComment(context, parsedDoc, txtDoc)
+		if _isInsideComment(context to !, parsedDoc to !, txtDoc to !)
 			return false
 		
-		if _isInsideString(context, txtDoc)
+		if _isInsideString(context to !, txtDoc to !)
 			return false
 		
 		beginningText = txtDoc.getTextBetween(
@@ -391,7 +391,7 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 
 
 	def _resolveTextToNode(text as String, containingRegions as List<of DomRegion>,
-		symbolTable as Dictionary<of DomRegion, Dictionary<of String, INamedNode>?>) as ISyntaxNode?
+		symbolTable as Dictionary<of DomRegion, Dictionary<of String, INamedNode>>) as ISyntaxNode?
 		"""
 		Parses the given line of text and returns the corresponding node from the AST.
 		"""
@@ -455,7 +455,7 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 		
 		lineText = txtDoc.getLineText(line) ? ""
 		
-		if _isInsideComment(line, col, lineText, parsedDoc.foldings)
+		if _isInsideComment(line, col, lineText, parsedDoc.foldings to !)
 			return true
 			
 		# handle corner case with empty doc strings
@@ -1009,7 +1009,7 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 			
 			if found
 				# we found a node with this name, limit the rest of our search to this node
-				return _getNodeFromIds(ids[1:ids.count], correspondingNode)
+				return _getNodeFromIds(ids[1:ids.count], correspondingNode to !)
 			
 			throw ArgumentException()
 			

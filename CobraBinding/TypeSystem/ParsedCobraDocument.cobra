@@ -28,7 +28,7 @@ class ParsedCobraDocument inherits DefaultParsedDocument
 
 	var _content as String
 	var _regionMap as Dictionary<of ISyntaxNode, DomRegion>?
-	var _symbolTable as Dictionary<of DomRegion, Dictionary<of String, INamedNode>?>?
+	var _symbolTable as Dictionary<of DomRegion, Dictionary<of String, INamedNode>>?
 
 	cue init(fileName as String, content as String)
 		base.init(fileName)
@@ -44,7 +44,7 @@ class ParsedCobraDocument inherits DefaultParsedDocument
 				throw ArgumentNullException()
 			_regionMap = value
 
-	pro symbolTable as Dictionary<of DomRegion, Dictionary<of String, INamedNode>?>?
+	pro symbolTable as Dictionary<of DomRegion, Dictionary<of String, INamedNode>>?
 		get
 			return _symbolTable
 		set

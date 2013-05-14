@@ -134,7 +134,7 @@ class CobraModuleVisitor inherits Cobra.Core.Visitor
 	
 	var _fileName as String
 	var _regionMap as Dictionary<of ISyntaxNode, DomRegion>
-	var _symbolTable as Dictionary<of DomRegion, Dictionary<of String, INamedNode>?>
+	var _symbolTable as Dictionary<of DomRegion, Dictionary<of String, INamedNode>>
 
 	get fileName from var
 	get regionMap from var
@@ -145,7 +145,7 @@ class CobraModuleVisitor inherits Cobra.Core.Visitor
 		__ast = nil
 		_fileName = ""
 		_regionMap = Dictionary<of ISyntaxNode, DomRegion>()
-		_symbolTable = Dictionary<of DomRegion, Dictionary<of String, INamedNode>?>()
+		_symbolTable = Dictionary<of DomRegion, Dictionary<of String, INamedNode>>()
 
 	def _addRegion(node as ISyntaxNode)
 	

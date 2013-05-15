@@ -275,26 +275,17 @@ class CobraModuleVisitor inherits Cobra.Core.Visitor
 		test noNameSpaceDecls
 			visitor = CobraModuleVisitor()
 			ast = .createTestData2
-			sw = Diagnostics.Stopwatch()
-			sw.start
 			assert visitor._getDeepestNameSpaceDecl(ast.topNameSpace) is ast.topNameSpace
-			print sw.elapsed
 		test singleNameSpaceDecl
 			visitor = CobraModuleVisitor()
 			ast = .createTestData2
 			ns = ast.topNameSpace.memberForName("Foo") to NameSpace
-			sw = Diagnostics.Stopwatch()
-			sw.start
 			assert visitor._getDeepestNameSpaceDecl(ns).name == "Foo"
-			print sw.elapsed
 		test multipleNameSpaceDecls
 			visitor = CobraModuleVisitor()
 			ast = Completion.CobraCompletionTextEditorExtension.createTestData
 			ns = ast.topNameSpace.memberForName("TopLevelNameSpace") to NameSpace
-			sw = Diagnostics.Stopwatch()
-			sw.start
 			assert visitor._getDeepestNameSpaceDecl(ns).name == "ThirdLevelNameSpace"
-			print sw.elapsed
 		body
 			lineNum = rootNS.token.lineNum
 			for d in rootNS.declsInOrder

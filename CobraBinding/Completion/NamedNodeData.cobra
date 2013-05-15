@@ -200,7 +200,8 @@ class NamedNodeData inherits CompletionData
 			else
 				desc = _node.getType.assemblyQualifiedName ? ""
 		catch ex as Exception
-			desc = ex.toString
+			desc = "Doh! Something went wrong trying to generate the signatureMarkup..."
+			trace ex.toString
 		
 		# remove tab characters otherwise it messes up the formatting in the tooltip
 		desc = desc.replace("\t", "")

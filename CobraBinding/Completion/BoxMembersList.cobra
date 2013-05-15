@@ -56,7 +56,7 @@ class BoxMembersList inherits CobraCompletionList
 		catch
 			print "Failed to access .declsInOrder for [b.name]"
 		
-				
+		
 	def _addMembers(members as IBoxMember*, filter as Filter?)
 		
 		/# Pretend we've already seen 'cue.init' and the indexer '[]'

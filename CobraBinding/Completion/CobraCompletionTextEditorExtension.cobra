@@ -1099,6 +1099,7 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 	def _getTopNameSpaceCompletionData(ast as CobraModule) as ICompletionDataList
 		dataList = CobraCompletionList()
 		dataList.addRange(DataFactory.keywordListTopLevel)
+		dataList.addRange(DataFactory.keywordListFollowingIs)
 		dataList.addRange(DataFactory.keywordListCobraTypes)
 		dataList.addRange(DataFactory.keywordListLiterals)
 		dataList.addRange(DataFactory.createModuleDeclsList(ast))

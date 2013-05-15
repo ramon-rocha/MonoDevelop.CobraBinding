@@ -95,6 +95,7 @@ class DataFactory
 			"pro",
 			"get",
 			"set",
+			"from",
 			
 			"class",
 			"interface",
@@ -118,6 +119,7 @@ class DataFactory
 			"body",
 			
 			"print",
+			"stop",
 			"pass",
 			"lock",
 			"using",

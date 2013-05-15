@@ -339,7 +339,11 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 				if node == nil, return nil
 				
 				if node inherits NameSpace
-					completionData.addRange(NameSpaceDeclsList(node))
+					if preceedingText.startsWith("use ")
+						# creating a use directive, only show namespaces
+						return DataFactory.createSubNameSpaceList(node)
+					else
+						completionData.addRange(NameSpaceDeclsList(node))
 				else
 					typ = _getTypeForMemberCompletion(node to !)
 					if typ == nil, return nil

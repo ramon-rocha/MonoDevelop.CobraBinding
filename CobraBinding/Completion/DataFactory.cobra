@@ -249,6 +249,16 @@ class DataFactory
 			
 			return .uniqueCompletionEntries(dataList)
 			
+		def createSubNameSpaceList(ns as NameSpace) as CobraCompletionList
+			"""
+			Only return namespace decls from the given namespace.
+			"""
+			subNameSpaces = CobraCompletionList()
+			for d in ns.declsInOrder
+				if d inherits NameSpace
+					subNameSpaces.add(NamedNodeData(d))
+			return subNameSpaces
+			
 		def uniqueCompletionEntries(dataList as CobraCompletionList) as CobraCompletionList
 			"""
 			Return unique completion data entries from the given list.

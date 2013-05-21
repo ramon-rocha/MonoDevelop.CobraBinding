@@ -53,12 +53,14 @@ class NamedNodeData inherits CompletionData
 		
 		lData = NamedNodeData(linkedListType)
 		assert not lData.hasOverloads
-		assert lData.displayText == lData.completionText == "LinkedList<of"
+		assert lData.displayText == "LinkedList<of"
+		assert lData.completionText == "LinkedList<of "
 		assert lData.signature == "System.Collections.Generic.LinkedList<of T>"
 		
 		dData = NamedNodeData(dictionaryType)
 		assert not dData.hasOverloads
-		assert dData.displayText == dData.completionText == "Dictionary<of"
+		assert dData.displayText == "Dictionary<of"
+		assert dData.completionText == "Dictionary<of "
 		assert dData.signature == "System.Collections.Generic.Dictionary<of TKey, TValue>"
 	
 	test isGenericHasOverloads
@@ -75,7 +77,8 @@ class NamedNodeData inherits CompletionData
 				break
 		
 		aData = NamedNodeData(actionType)
-		assert aData.completionText == aData.displayText == "Action<of"
+		assert aData.displayText == "Action<of"
+		assert aData.completionText == "Action<of "
 		assert aData.signature == "System.Action<of T>"
 		assert aData.hasOverloads
 		overloadCount = 0
@@ -84,7 +87,8 @@ class NamedNodeData inherits CompletionData
 		assert overloadCount == 8
 		
 		pData = NamedNodeData(pairType)
-		assert pData.completionText == pData.displayText == "Pair<of"
+		assert pData.displayText == "Pair<of"
+		assert pData.completionText == "Pair<of "
 		assert pData.signature == "Cobra.Core.Pair<of T>"
 		assert pData.hasOverloads
 		overloadCount = 0

@@ -11,7 +11,7 @@
     <UsePartialTypes>false</UsePartialTypes>
     <AssemblyName>MonoDevelop.CobraBinding</AssemblyName>
     <Description>This project provides the Cobra language binding addin for MonoDevelop.</Description>
-    <ReleaseVersion>0.2</ReleaseVersion>
+    <ReleaseVersion>0.4</ReleaseVersion>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>

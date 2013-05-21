@@ -9,7 +9,7 @@
 	url = "http://cobra-language.com"
 	description = "Provides support for using the Cobra programming language in MonoDevelop."
 	category = "Language bindings"
-	version = "0.3">
+	version = "0.4">
 	
 	<RunTime>
 		<Import assembly="MonoDevelop.CobraBinding.dll" />

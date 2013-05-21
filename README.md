@@ -208,7 +208,7 @@ technically possible. You can check here for more information on how to do this:
 http://stackoverflow.com/questions/9637994/how-can-i-debug-monodevelop-add-ins-with-monodevelop
 
 "Debugging" via the Console
--------------------------
+---------------------------
 This is usually how I go about debugging the addin.  You can launch MonoDevelop
 from the command line with --no-redirect which will allow you to see all 'print'
 and 'trace' statements.
@@ -225,6 +225,24 @@ On Mac:
 On Windows, you cannot use the --no-redirect option.  Instead review the log files located at:
 
     C:\Users\<username>\AppData\Local\XamarinStudio-4.0\Logs
+
+Debugging Tips
+--------------
+When manually testing your changes to the addin, it is recommended that you
+modify install.cobra so that the addin is compiled and installed with contracts
+and assertions enabled.  To do this, search install.cobra for this line:
+
+    cobraArgs.append(' -turbo:yes')
+
+and change it to this:
+
+    cobraArgs.append(' -include-tests:no')
+
+This will include contracts and asserts but not the unit tests.  It is
+important that tests not be included in the compiled version of addin as
+performance is significantly degraded otherwise. You shouldn't include
+this modification in your pull request though.  Enabling contracts in a
+"production" build would also negatively impact performance.
 
 Running Tests
 -------------

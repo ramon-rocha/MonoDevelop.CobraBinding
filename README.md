@@ -61,24 +61,20 @@ to the Cobra compiler as the same reflection mechanism will throw the same
 exception in C#.
 
 At this time, the workaround is to target the x86 platform when installing 
-Cobra.  If you have already installed Cobra, you'll need to reinstall it.  
+Cobra.  If you have already installed Cobra, you'll need to run the installer
+again.  You do not need to uninstall the previously installed version.
 
 Make sure to run these commands from the Visual Studio or Windows SDK Command 
 Prompt with the correct privileges (i.e. 'Run as Administrator').
 
-First, remove Cobra.Core and Cobra.Compiler from the GAC:
-
-    gacutil /u Cobra.Core
-    gacutil /u Cobra.Compiler
-
-Next, set your system to use the 32-bit CLR by executing this command:
+First, set your system to use the 32-bit CLR by executing this command:
 
     C:\Windows\Microsoft.NET\Framework64\v2.0.50727\Ldr64.exe setwow
 
-Then, run the Cobra installer again this time including the '-x86' option:
+Then, run the Cobra installer including the '-x86' and '-net4' options:
 
     cd\<path\to\cobra\workspace>\Source
-    bin\install-from-workspace.bat -x86
+    bin\install-from-workspace.bat -x86 -net4
 
 Finally, restore your system to defaulting to the 64-bit CLR via:
 
@@ -88,12 +84,13 @@ You can verify success by executing:
 
     gacutil /l Cobra.Core
 
-Check the reported processorArchitecure. It should read 'x86' and not 
-'MSIL'.  Now, as long you make sure to target your Cobra programs to the x86 
-platform (the default option in MonoDevelop) when compiling, running, and 
-debugging, you shouldn't have any issues.  If you have .NET 4.5 installed, 
-you need to make sure you set .NET as the active runtime when debugging as not 
-all of 4.5 mscorlib has been implemented in Mono yet.
+Check the reported processorArchitecure. There should be an entry that reads
+'x86' instead of 'MSIL'.  It's okay to have multiple entries as long as at
+least one them is 'x86'.  Now, just make sure to target your Cobra programs
+to the x86 platform (the default option in MonoDevelop) when compiling,
+running, and debugging, and you shouldn't have any issues.  If you have
+.NET 4.5 installed, you need to make sure you set .NET as the active runtime
+when debugging as not all of 4.5 mscorlib has been implemented in Mono yet.
 
 NOTE: Some alternate workarounds may include compiling MonoDevelop from source 
 or maybe installing Cobra targetting the 'anycpu32bitpreferred' platform 

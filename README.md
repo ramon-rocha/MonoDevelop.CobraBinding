@@ -236,7 +236,7 @@ and change it to this:
     cobraArgs.append(' -include-tests:no')
 
 This will include contracts and asserts but not the unit tests.  It is
-important that tests not be included in the compiled version of addin as
+important that tests not be included in the compiled version of the addin as
 performance is significantly degraded otherwise. You shouldn't include
 this modification in your pull request though.  Enabling contracts in a
 "production" build would also negatively impact performance.

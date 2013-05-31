@@ -384,7 +384,8 @@ class Parser inherits TypeSystemParser implements IFoldingParser
 					continue
 				
 				# handle indent blocks (ignore commented lines)
-				if not curr.line.trimStart.startsWith("#")
+				trimmedStart = curr.line.trimStart
+				if not trimmedStart.startsWith("#")
 					
 					level = .getIndentLevel(curr.line)
 					
@@ -393,7 +394,10 @@ class Parser inherits TypeSystemParser implements IFoldingParser
 						levelStack.pop
 						endLocation = endStack.pop
 						startLocation = TextLocation(lineNumber, curr.line.length + 2)
-						folds.add(FoldingRegion(DomRegion(startLocation, endLocation), FoldType.Undefined))
+						region = DomRegion(startLocation, endLocation)
+						fold = FoldingRegion(region, FoldType.Undefined)
+						fold.isFoldedByDefault = trimmedStart.startsWith("test")
+						folds.add(fold)
 					
 					# should we open any regions?
 					if levelStack.count == 0

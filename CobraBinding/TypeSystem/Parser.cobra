@@ -29,9 +29,6 @@ class Parser inherits TypeSystemParser implements IFoldingParser
 		Generates folds and parses the specified file using the Cobra Parser.
 		Stores the resultant AST in the ParsedDocument when storeAst is true.
 		"""
-		module as CobraModule? = nil
-		visitor as CobraModuleVisitor? = nil
-		
 		if fileName == nil or content == nil
 			# brand new file created outside the context of a Cobra project
 			return DefaultParsedDocument(fileName)
@@ -78,36 +75,20 @@ class Parser inherits TypeSystemParser implements IFoldingParser
 		# parse the source files and bind the AST nodes to their types
 		compilerResults = CompilerManager.instance.parseAndBind(sourceMap, refs, fileName to !)
 		
-		for entry in compilerResults
-			if entry inherits CobraModule
-				if entry.fileName == fileName
-					# this was the requested module
-					module = entry
-
-		if module <> nil
-			# create type and region maps
-			visitor = CobraModuleVisitor()
-			visitor.visit(module)
-		
 		# add folds
 		parsedDoc = .parse(fileName, source) to ParsedCobraDocument
-
-		if visitor <> nil
-			parsedDoc.regionMap = visitor.regionMap
-			parsedDoc.symbolTable = visitor.symbolTable
 		
-		# underline errors
-		for err in compilerResults
-			if err inherits ParserException
-				if err.fileName == fileName, parsedDoc.add(err)
-			else if err inherits SourceException
-				if err.fileName == fileName, parsedDoc.add(err)
-			else if not err inherits Module
-				print err.toString
-		
-		if storeAst
-			parsedDoc.ast = module
-
+		# underline errors and save AST
+		for entry in compilerResults
+			if entry inherits ParserException
+				if entry.fileName == fileName, parsedDoc.add(entry)
+			else if entry inherits SourceException
+				if entry.fileName == fileName, parsedDoc.add(entry)
+			else if entry inherits Module
+				if storeAst and entry.fileName == fileName
+					parsedDoc.add(entry to CobraModule)
+			else
+				print "Unknown entry in results from CompilerManager: [entry.toString]"
 		return parsedDoc
 
 	def parse(fileName as String?, content as String?) as ParsedDocument

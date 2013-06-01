@@ -60,7 +60,7 @@ class CompilerBuildOptionsPanel inherits MultiConfigItemOptionsPanel
 			_widget.includeNilChecksCheckButton.active = false
 			_widget.optimizeCheckButton.active = true
 			_widget.includeTestsCheckButton.active = false
-			_widget.includeTracesCheckButton.active = false
+			_widget.includeTracesCheckButton.active = true
 			_disablePerfQualOptions
 		
 	

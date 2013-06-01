@@ -1,1 +1,3 @@
-Run the 'build' and 'test' scripts from the parent directory.
+On Linux, run the 'build' or 'test' scripts from the parent directory.
+
+On Windows, run 'test.bat' from the 'refs' directory instead.

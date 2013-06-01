@@ -298,9 +298,7 @@ class CompilerManager
 					trace ex
 				
 				doc = TypeSystem.ParsedCobraDocument(fileToBind, sourceMap[fileToBind])
-				
-				for err in compiler.errors
-					doc.add(err)
+				doc.add(compiler.errors)
 
 				for module in compiler.modules
 					if module.fileName == fileToBind

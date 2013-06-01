@@ -41,7 +41,11 @@ class ParsedCobraDocument inherits DefaultParsedDocument
 	get regionMap from var
 
 	get symbolTable from var
-		
+	
+	def add(errors as SourceException*)
+		for err in errors
+			.add(err)
+	
 	def add(err as SourceException)
 		col = err.colNum
 		# most of the time, we don't get a valid column number for these.

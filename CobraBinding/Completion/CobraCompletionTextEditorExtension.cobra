@@ -1118,10 +1118,7 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 				if filePath.endsWith("ForCompletionTesting.cobra")
 					sourceMap = Dictionary<of String, String>()
 					sourceMap[filePath] = code
-					results = cm.parseAndBind(sourceMap, refs, filePath)
-			for r in results
-				if r inherits CobraModule
-					return r
+					return cm.parseAndBind(sourceMap, refs, filePath).getAst<of CobraModule>
 			
 			throw FallThroughException()
 

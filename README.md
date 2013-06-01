@@ -45,7 +45,7 @@ Minimum Requirements
 
 * MonoDevelop 4.0 (Linux) or Xamarin Studio 4.0.2 (Windows/Mac)
 
-* Cobra 0.9.4
+* Cobra svn:2990 (post 0.9.4)
 
 Additional Requirements for Windows 64-bit
 --------------------------------------------
@@ -71,10 +71,10 @@ First, set your system to use the 32-bit CLR by executing this command:
 
     C:\Windows\Microsoft.NET\Framework64\v2.0.50727\Ldr64.exe setwow
 
-Then, run the Cobra installer including the '-x86' and '-net4' options:
+Then, run the Cobra installer including the '-x86' option:
 
     cd\<path\to\cobra\workspace>\Source
-    bin\install-from-workspace.bat -x86 -net4
+    bin\install-from-workspace.bat -x86
 
 Finally, restore your system to defaulting to the 64-bit CLR via:
 

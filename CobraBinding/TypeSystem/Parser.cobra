@@ -27,7 +27,9 @@ class Parser inherits TypeSystemParser implements IFoldingParser
 		is override
 		"""
 		Generates folds and parses the specified file using the Cobra Parser.
-		Stores the resultant AST in the ParsedDocument when storeAst is true.
+		Always stores the resultant AST in the ParsedDocument regardless of
+		the value of the storeAst parameter because we aren't using NRefactory
+		for completion information.
 		"""
 		if fileName == nil or content == nil
 			# brand new file created outside the context of a Cobra project
@@ -46,10 +48,8 @@ class Parser inherits TypeSystemParser implements IFoldingParser
 		sourceMap = Dictionary<of String, String>()
 		sourceMap[fileName] = source to !
 		
-		refs = List<of String>()
-		
 		# workaround an issue with some types from .NET 4 on Mono such as HashSet<of T>
-		refs.add("System.Core")
+		refs = ["System.Core"]
 
 		if project <> nil
 			proj = project to DotNetProject #TODO to CobraProject
@@ -70,25 +70,9 @@ class Parser inherits TypeSystemParser implements IFoldingParser
 							otherSource = reader.readToEnd
 							if otherSource == nil, otherSource = ""
 							sourceMap[path] = otherSource to !
-
 		
-		# parse the source files and bind the AST nodes to their types
-		compilerResults = CompilerManager.instance.parseAndBind(sourceMap, refs, fileName to !)
-		
-		# add folds
-		parsedDoc = .parse(fileName, source) to ParsedCobraDocument
-		
-		# underline errors and save AST
-		for entry in compilerResults
-			if entry inherits ParserException
-				if entry.fileName == fileName, parsedDoc.add(entry)
-			else if entry inherits SourceException
-				if entry.fileName == fileName, parsedDoc.add(entry)
-			else if entry inherits Module
-				if storeAst and entry.fileName == fileName
-					parsedDoc.add(entry to CobraModule)
-			else
-				print "Unknown entry in results from CompilerManager: [entry.toString]"
+		parsedDoc = CompilerManager.instance.parseAndBind(sourceMap, refs, fileName to !)
+		_addFolds(parsedDoc)
 		return parsedDoc
 
 	def parse(fileName as String?, content as String?) as ParsedDocument
@@ -98,14 +82,14 @@ class Parser inherits TypeSystemParser implements IFoldingParser
 		Parse the specified file only to generate folds.  Does not generate an AST.
 		"""
 		parsedDoc = ParsedCobraDocument(fileName, content)
+		_addFolds(parsedDoc)
+		return parsedDoc
 		
-		reader = StringReader(content)
+	def _addFolds(doc as ParsedCobraDocument)
+		reader = StringReader(doc.content)
 		folds = List<of FoldingRegion>()
 		_addFolds(_getLineInformation(reader), folds)
-		
-		parsedDoc.add(folds)
-		
-		return parsedDoc
+		doc.add(folds)
 	
 	def _getLineInformation(reader as StringReader) as List<of LineInformation>
 		lines = List<of String>(.TYPICAL_LINE_COUNT)

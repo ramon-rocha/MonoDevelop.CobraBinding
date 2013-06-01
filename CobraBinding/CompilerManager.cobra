@@ -13,6 +13,35 @@ class CompilerManager
 		cm1 = CompilerManager.instance
 		cm2 = CompilerManager.instance
 		assert cm1 is cm2
+
+	class CustomBindImplementationPhase inherits BindImplementationPhase is protected
+		"""
+		Bind the AST nodes inside methods and properties but only for a single file.
+		"""
+		var _fileName as String
+		
+		cue init(c as Compiler, fileToBind as String)
+			base.init(c)
+			_fileName = fileToBind
+		
+		get description as String is override
+			return 'Binding implementation for [_fileName]'
+		
+		def innerRun is override
+			c = .compiler
+			for mod in c.modules.clone
+				if mod.fileName == _fileName
+					c.curModule = mod
+					try
+						mod.bindImp
+					catch ce as SourceException
+						c.recordError(ce)
+					break
+			
+			# this will be used in CobraModuleVisitor when creating the symbol table
+			key = CobraLanguageBinding.AddOnKeys.globalNameSpace
+			boundAst = mod to CobraModule
+			boundAst.topNameSpace.addOnValues[key] = c.globalNS
 	
 	shared
 		var _instance as CompilerManager? = nil
@@ -24,6 +53,17 @@ class CompilerManager
 			
 		# only the thread holding the conch can use the compiler
 		var _theConch = Object()
+		
+		# the compiler phases we want to run for all files
+		var _phaseTypes = @[
+			BindRunTimeLibraryPhase,
+			ReadLibrariesPhase,
+			ParsePhase,
+			BindUsePhase,
+			BindInheritancePhase,
+			BindInterfacePhase,
+			ComputeMatchingBaseMembersPhase,
+		] # .CustomBindImplementationPhase gets added manually later
 
 	# Callers have to use CompilerManager.instance instead
 	cue init is protected
@@ -52,368 +92,221 @@ class CompilerManager
 		Node.typeProvider = compiler
 		
 		return compiler
-		
-		
-	def __createParser(c as Compiler) as CobraParser
-		"""
-		Returns a fresh instance of the Cobra parser.
-		"""
-		parser = CobraParser()
-		parser.typeProvider = c
-		parser.warningRecorder = c
-		parser.errorRecorder = c
-		parser.globalNS = c.globalNS
-		parser.backEnd = c.backEnd
-		
-		return parser
 	
 	
 	def parseAndBind(sourceMap as Dictionary<of String, String>, refs as List<of String>,
-					fileToBind as String) as List<of dynamic>
+					fileToBind as String) as TypeSystem.ParsedCobraDocument
 		"""
-		Simulates the various phases of the Cobra compiler.
-		
-		The phases are not instantiated directly as there is no way to provide
-		raw source code to the compiler as Strings.
+		Runs select phases of the Cobra compiler.
 		
 		The sourceMap is a dictionary whose values are source file contents keyed
 		by filename.
-		
-		Returns a mixed list of Cobra modules and SourceExceptions.
-		It's up to the caller to determine the type of objects in the list.
-		
-		TODO: Split out the psuedo-phases into functions
 		"""
 		
 		test validFiles
 			# Valid files produce fully bound ASTs without any errors.
 			
-			refs = List<of String>()
 			cm = CompilerManager.instance
 			testData = .readTestData("no_errors")
 			astCount = 0
 
 			for filePath, code in testData
 				# process each file individually
-				sourceMap = Dictionary<of String, String>()
-				sourceMap[filePath] = code
-				results = cm.parseAndBind(sourceMap, refs, filePath)
-				assert results.count > 0
+				doc = cm.parseAndBind({filePath: code}, ["System.Core"], filePath)
+				assert doc.errors.count == 0
+				
+				# validate the AST
+				ast = doc.getAst<of CobraModule>
+				astCount += 1
+				
+				assert ast.didBindImp
+				key = CobraLanguageBinding.AddOnKeys.globalNameSpace
+				assert ast.topNameSpace.addOnValues.containsKey(key)
 
-				for r in results
-					assert not r inherits SourceException
-					assert r inherits Module
+				name =  FileInfo(filePath).name
+				branch name
+					on "Point.cobra"
+						pointClass = ast.topNameSpace.memberForName("Point") to Class
+						assert pointClass.memberForName("toString")
+						assert pointClass.memberForName("getHashCode")
+						assert pointClass.name == "Point"
+						assert pointClass.typeForReceiver is pointClass
+						assert pointClass.testMethods.count == 1
+						p = pointClass.memberForName("x")
+						assert p.getType == Property
+						assert p.typeForReceiver inherits IntType
+						m = pointClass.memberForName("movedBy")
+						assert m.getType == Method
+						assert m.typeForReceiver is pointClass
 
-					if r inherits CobraModule
-						# validate the AST
-						astCount += 1
-						ast as CobraModule = r
-						assert ast.didBindImp
-						key = CobraLanguageBinding.AddOnKeys.globalNameSpace
-						assert ast.topNameSpace.addOnValues.containsKey(key)
+					on "Shapes.cobra"
+						assert ast.topNameSpace.memberForName("Shape")
+						assert ast.topNameSpace.memberForName("Rectangle")
+						assert ast.topNameSpace.memberForName("Circle")
+						assert ast.topNameSpace.memberForName("Program")
 
-						name =  FileInfo(filePath).name
-						branch name
-							on "Point.cobra"
-								pointClass = ast.topNameSpace.memberForName("Point") to Class
-								assert pointClass.memberForName("toString")
-								assert pointClass.memberForName("getHashCode")
-								assert pointClass.name == "Point"
-								assert pointClass.typeForReceiver is pointClass
-								assert pointClass.testMethods.count == 1
-								p = pointClass.memberForName("x")
-								assert p.getType == Property
-								assert p.typeForReceiver inherits IntType
-								m = pointClass.memberForName("movedBy")
-								assert m.getType == Method
-								assert m.typeForReceiver is pointClass
+					on "FractalBenchmark.cobra"
+						prog = ast.topNameSpace.memberForName("Program") to Class
+						assert prog.memberForName("bailOut")
+						assert prog.memberForName("maxIterations")
+						assert prog.memberForName("mandelbrot")
+						assert prog.memberForName("calc")
+						assert prog.memberForName("main")
+						
+					on "ForCompletionTesting.cobra"
+						# this gets tested by the CobraCompletionTextEditorExtension class
+						pass
+						
+					on "ForCobraModuleVisitorTesting1.cobra" _
+					or "ForCobraModuleVisitorTesting2.cobra"
+						# these get tested by the CobraModuleVisitor class
+						pass
 
-							on "Shapes.cobra"
-								assert ast.topNameSpace.memberForName("Shape")
-								assert ast.topNameSpace.memberForName("Rectangle")
-								assert ast.topNameSpace.memberForName("Circle")
-								assert ast.topNameSpace.memberForName("Program")
-
-							on "FractalBenchmark.cobra"
-								prog = ast.topNameSpace.memberForName("Program") to Class
-								assert prog.memberForName("bailOut")
-								assert prog.memberForName("maxIterations")
-								assert prog.memberForName("mandelbrot")
-								assert prog.memberForName("calc")
-								assert prog.memberForName("main")
-								
-							on "ForCompletionTesting.cobra"
-								# this gets tested by the CobraCompletionTextEditorExtension class
-								pass
-								
-							on "ForCobraModuleVisitorTesting1.cobra" _
-							or "ForCobraModuleVisitorTesting2.cobra"
-								# these get tested by the CobraModuleVisitor class
-								pass
-
-							else
-								# unhandled file, a case should be added for it
-								print "******* You need to add a test case for [name]!"
-								assert false
+					else
+						# unhandled file, a case should be added for it
+						print "******* You need to add a test case for [name]!"
+						assert false
 
 			assert testData.count == astCount
 				
 		test parseErrors
 			# Files with parse errors do not provide an AST.
 			
-			refs = List<of String>()
 			cm = CompilerManager.instance
 			testData = .readTestData("parser_errors")
 			errorCount = 0
 
 			for filePath, code in testData
 				# process each file individually
-				sourceMap = Dictionary<of String, String>()
-				sourceMap[filePath] = code
-				results = cm.parseAndBind(sourceMap, refs, filePath)
-				assert results.count > 0
+				doc = cm.parseAndBind({filePath: code}, ["System.Core"], filePath)
+				assert doc.ast == nil
+				name =  FileInfo(filePath).name
+				assert doc.errors.count == 1
+				err = doc.errors[0]
+				errorCount += 1
+				branch name
+					on "ExpectingEol.cobra"
+						assert err.region.beginLine == 3
+						assert err.region.beginColumn == 0
+						assert err.message == 'Expecting EOL, but got "var" instead.'
 
-				for r in results
-					if r inherits Module, continue # ignore modules for libraries
-					
-					assert r inherits ParserException
+					on "ExpectingExpression.cobra"
+						assert err.region.beginLine == 5
+						assert err.region.beginColumn == 11
+						assert err.message == "Expecting an expression."
 
-					ex as ParserException = r
-					errorCount += 1
-					
-					name =  FileInfo(filePath).name
-					branch name
-						on "ExpectingEol.cobra"
-							assert ex.lineNum == 3
-							assert ex.colNum == 1
-							assert ex.message == 'Expecting EOL, but got "var" instead.'
+					on "ExpectingIndent.cobra"
+						assert err.region.beginLine == 3
+						assert err.region.beginColumn == 14
+						assert err.message == 'Expecting INDENT, but got "DEDENT" instead.'
+						
+					on "MissingMethodBody.cobra"
+						assert err.region.beginLine == 2
+						assert err.region.beginColumn == 15
+						assert err.message == 'Missing method body for "someMethod".'
+						
+					on "UnexpectedIndent.cobra"
+						assert err.region.beginLine == 2
+						assert err.region.beginColumn == 0
+						assert err.message == 'Unexpected indent.'
+						
+					on "MixedTabsAndSpaces.cobra"
+						assert err.region.beginLine == 2
+						assert err.region.beginColumn == 0
+						assert err.message == ns'Cannot mix tabs and spaces in indentation. [TAB][SPACE][SPACE][SPACE][SPACE]...'
 
-						on "ExpectingExpression.cobra"
-							assert ex.lineNum == 5
-							assert ex.colNum == 12
-							assert ex.message == "Expecting an expression."
-
-						on "ExpectingIndent.cobra"
-							assert ex.lineNum == 3
-							assert ex.colNum == 15
-							assert ex.message == 'Expecting INDENT, but got "DEDENT" instead.'
-							
-						on "MissingMethodBody.cobra"
-							assert ex.lineNum == 2
-							assert ex.colNum == 16
-							assert ex.message == 'Missing method body for "someMethod".'
-							
-						on "UnexpectedIndent.cobra"
-							assert ex.lineNum == 2
-							assert ex.colNum == 1
-							assert ex.message == 'Unexpected indent.'
-							
-						on "MixedTabsAndSpaces.cobra"
-							assert ex.lineNum == 2
-							assert ex.colNum == 1
-							assert ex.message == ns'Cannot mix tabs and spaces in indentation. [TAB][SPACE][SPACE][SPACE][SPACE]...'
-
-						else
-							# unhandled file, a case should be added for it
-							print "******* You need to add a test case for [name]!"
-							assert false
+					else
+						# unhandled file, a case should be added for it
+						print "******* You need to add a test case for [name]!"
+						assert false
 
 			assert testData.count == errorCount
 
 		test bindErrors
 			# Files with binding errors still provide an AST.
 			
-			refs = List<of String>()
 			cm = CompilerManager.instance
 			testData = .readTestData("binding_errors")
-			astCount = 0
-			errorCount = 0
+			astCount = errorCount = 0
 
 			for filePath, code in testData
 				# process each file individually
-				sourceMap = Dictionary<of String, String>()
-				sourceMap[filePath] = code
-				results = cm.parseAndBind(sourceMap, refs, filePath)
-				assert results.count > 0
-
-				for r in results
-					if r inherits CobraModule or r inherits SourceException
-					
-						name = FileInfo(r.fileName).name
-					
-						if r inherits SourceException
-							errorCount += 1
-							
-							branch name
-								on "CannotFindType.cobra"
-									assert r.lineNum == 3
-									assert r.colNum == 0 # binding errors don't provide a column number
-									assert r.message == 'Cannot find "Fake".'
-									
-								on "NilError.cobra"
-									assert r.lineNum == 5
-									assert r.colNum == 0
-									assert r.message == 'Cannot return String? because "method" is declared to return a String.'
-									
-								on "TypeMismatch.cobra"
-									assert r.lineNum == 4
-									assert r.colNum == 0
-									assert r.message == 'Incompatible types. Cannot assign value of type int on the right to String on the left.'
-									
-								else
-									# unhandled file, a case should be added for it
-									print "******* You need to add a test case for [name]!"
-									assert false
+				doc = cm.parseAndBind({filePath: code}, ["System.Core"], filePath)
+				ast = doc.getAst<of CobraModule>
+				astCount += 1
+				name = FileInfo(ast.fileName).name
+				assert doc.errors.count == 1
+				err = doc.errors[0]
+				errorCount += 1
+				branch name
+					on "CannotFindType.cobra"
+						assert err.region.beginLine == 3
+						assert err.region.beginColumn == 0 # binding errors don't provide a column number
+						assert err.message == 'Cannot find "Fake".'
 						
-						else if r inherits CobraModule
-							astCount += 1
-							
-							branch name
-								on "CannotFindType.cobra"
-									c = r.topNameSpace.memberForName("CannotFindType") to Class
-									assert c.memberForName("method")
-									
-								on "NilError.cobra"
-									c = r.topNameSpace.memberForName("NilError") to Class
-									assert c.memberForName("a")
-									assert c.memberForName("method")
-									
-								on "TypeMismatch.cobra"
-									c = r.topNameSpace.memberForName("TypeMismatch") to Class
-									assert c.memberForName("method")
-									
-								else
-									# unhandled file, a case should be added for it
-									print "******* You need to add a test case for [name]!"
-									assert false
+						c = ast.topNameSpace.memberForName("CannotFindType") to Class
+						assert c.memberForName("method")
+						
+					on "NilError.cobra"
+						assert err.region.beginLine == 5
+						assert err.region.beginColumn == 0
+						assert err.message == 'Cannot return String? because "method" is declared to return a String.'
+						
+						c = ast.topNameSpace.memberForName("NilError") to Class
+						assert c.memberForName("a")
+						assert c.memberForName("method")
+						
+					on "TypeMismatch.cobra"
+						assert err.region.beginLine == 4
+						assert err.region.beginColumn == 0
+						assert err.message == 'Incompatible types. Cannot assign value of type int on the right to String on the left.'
+
+						c = ast.topNameSpace.memberForName("TypeMismatch") to Class
+						assert c.memberForName("method")
+					else
+						# unhandled file, a case should be added for it
+						print "******* You need to add a test case for [name]!"
+						assert false
 					
-			assert testData.count == astCount
-			assert astCount == errorCount
+			assert testData.count == astCount == errorCount
 
 		body
-			results = List<of dynamic>()
-			
 			if sourceMap.count == 0
 				# nothing to do
-				return results
+				return TypeSystem.ParsedCobraDocument(fileToBind, "")
+				
+			params = CompileParams()
+			for fileName, sourceCode in sourceMap
+				params.files.add(FileSpec(fileName, sourceCode))
 			
 			lock _theConch
 				compiler = __createCompiler
+				
 				compiler.options['reference'] = refs
+				for phaseType in _phaseTypes
+					params.phases.add(phaseType(compiler))
+				params.phases.add(.CustomBindImplementationPhase(compiler, fileToBind))
 				
-				# BindRunTimeLibraryPhase
-				compiler.addRunTimeRef(compiler.options)
+				try
+					compiler.compile(params)
+				catch StopCompilation
+					# source files with errors will throw these
+					# but we just ignore them
+					pass
+				catch ex as Exception
+					print "The compiler crashed trying to compile [fileToBind]"
+					trace ex
 				
-				# ReadLibrariesPhase
-				compiler.readSystemTypes
-				compiler.readAssemblyTypes(compiler.options)
+				doc = TypeSystem.ParsedCobraDocument(fileToBind, sourceMap[fileToBind])
 				
-				# ParsePhase
-				parser = __createParser(compiler)
-				
-				# parse the source files to generate our preliminary AST
-				for fileName, sourceCode in sourceMap
-					try
-						m = parser.parseSource(fileName, sourceCode)
-						compiler.modules.add(m)
-						
-					catch ex as SourceException
-						for e in compiler.errors
-							results.add(e)
-				
-				
-				if compiler.errors.count == 0
-					# BindUsePhase
-					i = 0
-					while i < compiler.modules.count  # new modules can be added, say by the UseDirective
-						compiler.curModule = compiler.modules[i]
-						try
-							compiler.curModule.bindUse
-							for err in compiler.errors
-								results.add(err)
-						catch ex as SourceException
-							results.add(ex)
-							compiler.recordError(ex)
-						i += 1
-				
-				if compiler.errors.count == 0
-					# BindInheritancePhase
-					for basicType in compiler.basicTypes
-						basicType.bindInh
-					compiler.objectType.bindInh
-					compiler.stringType.bindInh
-					compiler.dynamicType.bindInh
-					compiler.passThroughType.bindInh
-					compiler.voidType.bindInh
-					for mod in compiler.modules.clone
-						compiler.curModule = mod
-						try
-							mod.bindInh
-							for err in compiler.errors
-								results.add(err)
-						catch ex as SourceException
-							results.add(ex)
-							compiler.recordError(ex)
-
-				if compiler.errors.count == 0
-					# BindInterfacePhase
-					compiler.fixMemberSigs
-					for basicType in compiler.basicTypes
-						basicType.bindInt
-					compiler.objectType.bindInt
-					compiler.stringType.bindInt
-					compiler.dynamicType.bindInt
-					compiler.passThroughType.bindInt
-					compiler.voidType.bindInt
-					for mod in compiler.modules.clone
-						compiler.curModule = mod
-						try
-							mod.bindInt
-							for err in compiler.errors
-								results.add(err)
-						catch ex as SourceException
-							results.add(ex)
-							compiler.recordError(ex)
-				
-				if compiler.errors.count == 0
-					# ComputeMatchingBaseMembersPhase
-					for mod in compiler.modules
-						compiler.curModule = mod
-						try
-							mod.computeMatchingBaseMembers
-							for err in compiler.errors
-								results.add(err)
-						catch ex as SourceException
-							results.add(ex)
-							compiler.recordError(ex)
-				
-				if compiler.errors.count == 0
-					# BindImplementationPhase
-					
-					boundAst as CobraModule? = nil
-					
-					for mod in compiler.modules.clone
-						if mod.fileName == fileToBind
-							boundAst = mod to CobraModule
-							compiler.curModule = boundAst
-							try
-								boundAst.bindImp
-								for err in compiler.errors
-									results.add(err)
-							catch ex as SourceException
-								results.add(ex)
-								compiler.recordError(ex)
-							catch
-								print "[fileToBind] triggers a compiler bug"
-					
-					# this will be used in CobraModuleVisitor when creating the symbol table
-					key = CobraLanguageBinding.AddOnKeys.globalNameSpace
-					boundAst.topNameSpace.addOnValues[key] = compiler.globalNS
+				for err in compiler.errors
+					doc.add(err)
 
 				for module in compiler.modules
-					results.add(module)
+					if module.fileName == fileToBind
+						doc.add(module to CobraModule)
 				
-			return results
+			return doc
 
 
 	shared

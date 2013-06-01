@@ -19,15 +19,13 @@ class ParsedCobraDocument inherits DefaultParsedDocument
 			"            body\n" +
 			"                print 'derp'\n" +
 			""
+		# default has no region/symbol data
 		doc = ParsedCobraDocument(fileName, source)
 		assert doc.regionMap == nil
 		assert doc.symbolTable == nil
+		# when created from the compiler, we get meaningful data
 		cm = MonoDevelop.CobraBinding.CompilerManager.instance
-		results = cm.parseAndBind({fileName: source}, ["System.Core"], fileName)
-		for entry in results
-			if entry inherits CobraModule
-				doc.add(entry)
-				break
+		doc = cm.parseAndBind({fileName: source}, ["System.Core"], fileName)
 		assert doc.regionMap.count == doc.symbolTable.count == 5
 
 	var _content as String
@@ -43,9 +41,6 @@ class ParsedCobraDocument inherits DefaultParsedDocument
 	get regionMap from var
 
 	get symbolTable from var
-
-	def add(err as ParserException)
-		.add(Error(ErrorType.Error, err.message, err.lineNum, err.colNum - 1))
 		
 	def add(err as SourceException)
 		col = err.colNum

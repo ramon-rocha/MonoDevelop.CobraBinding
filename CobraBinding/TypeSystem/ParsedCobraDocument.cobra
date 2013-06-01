@@ -51,3 +51,13 @@ class ParsedCobraDocument inherits DefaultParsedDocument
 			if value == nil
 				throw ArgumentNullException()
 			_symbolTable = value
+
+	def add(err as ParserException)
+		.add(Error(ErrorType.Error, err.message, err.lineNum, err.colNum - 1))
+		
+	def add(err as SourceException)
+		col = err.colNum
+		# most of the time, we don't get a valid column number for these.
+		# but just in case...
+		if col > 0, col -= 1
+		.add(Error(ErrorType.Error, err.message, err.lineNum, col))

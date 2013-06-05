@@ -34,7 +34,7 @@ class CobraModuleVisitor inherits Cobra.Core.Visitor
 		assert wholeFileRegion.beginColumn == 1
 		assert wholeFileRegion.endLine == 229
 		assert wholeFileRegion.endColumn == Int32.maxValue
-		assert visitor.symbolTable[wholeFileRegion].count == 439 # includes all decls from implicit use directives
+		assert visitor.symbolTable[wholeFileRegion].count >= 432 # includes all decls from implicit use directives
 		
 		c = ast.topNameSpace.memberForName("HowToUseLists") to Class
 		classRegion = visitor.regionMap[c]
@@ -92,7 +92,7 @@ class CobraModuleVisitor inherits Cobra.Core.Visitor
 		assert wholeFileRegion.beginColumn == 1
 		assert wholeFileRegion.endLine == 34
 		assert wholeFileRegion.endColumn == Int32.maxValue
-		assert visitor.symbolTable[wholeFileRegion].count >= 530 # includes decls from System.Diagnostics
+		assert visitor.symbolTable[wholeFileRegion].count >= 525 # includes decls from System.Diagnostics
 		
 		ns = ast.topNameSpace.memberForName("Foo") to NameSpace
 		nsRegion = visitor.regionMap[ns]

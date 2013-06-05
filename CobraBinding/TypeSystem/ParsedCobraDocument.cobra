@@ -1,5 +1,7 @@
 use Cobra.Compiler
 
+use Mono.TextEditor
+
 use MonoDevelop.Ide.TypeSystem
 
 use ICSharpCode.NRefactory.TypeSystem
@@ -9,25 +11,14 @@ namespace MonoDevelop.CobraBinding.TypeSystem
 class ParsedCobraDocument inherits DefaultParsedDocument
 
 	test
-		fileName = "test.cobra"
-		source = "\n" +
-			"namespace Example\n" +
-			"    class TestClass\n" +
-			"        def main\n" +
-			"            test\n" +
-			"                assert true\n" +
-			"            body\n" +
-			"                print 'derp'\n" +
-			""
 		# default has no region/symbol data
-		doc = ParsedCobraDocument(fileName, source)
+		doc = ParsedCobraDocument("test.cobra", "pass")
 		assert doc.regionMap == nil
 		assert doc.symbolTable == nil
 		nodeMap = doc.createNodeMap
 		assert nodeMap == nil
 		# when created from the compiler, we get meaningful data
-		cm = MonoDevelop.CobraBinding.CompilerManager.instance
-		doc = cm.parseAndBind({fileName: source}, ["System.Core"], fileName)
+		doc = .createTestData
 		assert doc.regionMap.count == doc.symbolTable.count == 5
 		nodeMap = doc.createNodeMap
 		assert nodeMap <> nil
@@ -85,32 +76,137 @@ class ParsedCobraDocument inherits DefaultParsedDocument
 		Returns a list of document regions that contain the given document location.
 		"""
 		require
-			.foldings <> nil
-		ensure # we'll never return more regions than what was given
-			result.count <= (for fold in .foldings get fold.region).count
+			_regionMap <> nil
+		ensure # we'll never return more regions than what we have
+			result.count <= _regionMap.values.count
 		test
-			rs = List<of DomRegion>()
-			rs.add(DomRegion(1, 1, 10, 120))
-			rs.add(DomRegion(1, 1, 5, 120))
-			rs.add(DomRegion(6, 1, 10, 120))
-			rs.add(DomRegion(11, 1, 15, 120))
-			rs.add(DomRegion(12,1, 14, 120))
-			fakeDoc = ParsedCobraDocument('fake.cobra', 'pass')
-			for r in rs, fakeDoc.add(FoldingRegion(r))
-			assert fakeDoc.getContainingRegions(1, 1).count == 2
-			assert fakeDoc.getContainingRegions(2, 1).count == 2
-			assert fakeDoc.getContainingRegions(5, 80).count == 2
-			assert fakeDoc.getContainingRegions(6, 10).count == 2
-			assert fakeDoc.getContainingRegions(11, 1).count == 1
-			assert fakeDoc.getContainingRegions(13, 1).count == 2
-			assert fakeDoc.getContainingRegions(15, 20).count == 1
-			assert fakeDoc.getContainingRegions(16, 1).count == 0
+			doc = .createTestData
+			assert doc.getContainingRegions(1, 1).count == 1
+			assert doc.getContainingRegions(2, 1).count == 1
+			assert doc.getContainingRegions(2, 20).count == 2
+			assert doc.getContainingRegions(3, 1).count == 2
+			assert doc.getContainingRegions(3, 8).count == 3
+			assert doc.getContainingRegions(4, 10).count == 3
+			assert doc.getContainingRegions(5, 1).count == 4
+			assert doc.getContainingRegions(6, 1).count == 5
+			assert doc.getContainingRegions(7, 1).count == 4 # region not extended yet
+			assert doc.getContainingRegions(8, 20).count == 4
+			assert doc.getContainingRegions(9, 1).count == 4
+			assert doc.getContainingRegions(10, 1).count == 0 # region not extended yet
+			assert doc.getContainingRegions(11, 1).count == 0 # line doesn't exist
 		body
 			containingRegions = List<of DomRegion>()
-			for f in .foldings
-				r = f.region
+			for r in _regionMap.values
 				if r.isInside(line, col)
 					containingRegions.add(r)
 
 			return containingRegions
 			
+	def extendRegions(txtDoc as TextDocument)
+		"""
+		Extends the code regions in the given dictionaries to include blank lines.
+		"""
+		require
+			_regionMap <> nil
+			_symbolTable <> nil
+			.ast <> nil
+		test
+			doc = .createTestData
+			txtDoc = TextDocument.createImmutableDocument(doc.content, true) to !
+			doc.extendRegions(txtDoc)
+			assert doc.getContainingRegions(1, 1).count == 1
+			assert doc.getContainingRegions(2, 1).count == 1
+			assert doc.getContainingRegions(2, 20).count == 2
+			assert doc.getContainingRegions(3, 1).count == 2
+			assert doc.getContainingRegions(3, 8).count == 3
+			assert doc.getContainingRegions(4, 10).count == 3
+			assert doc.getContainingRegions(5, 1).count == 4
+			assert doc.getContainingRegions(6, 1).count == 5
+			assert doc.getContainingRegions(7, 1).count == 5 # different
+			assert doc.getContainingRegions(8, 20).count == 4
+			assert doc.getContainingRegions(9, 1).count == 4
+			assert doc.getContainingRegions(10, 1).count == 4 # different
+			assert doc.getContainingRegions(11, 1).count == 0 # line doesn't exist
+		body
+			extendedRegionMap = Dictionary<of ISyntaxNode, DomRegion>()
+			topNameSpace = .getAst<of CobraModule>.topNameSpace
+			
+			for node, region in _regionMap
+				
+				extendedRegion = _extendRegion(region, txtDoc)
+				
+				if node is topNameSpace
+					# special case to make sure the top-level namespace
+					# for the module encompasses all other regions
+					extendedRegion = DomRegion(region.fileName,
+					extendedRegion.beginLine, extendedRegion.beginColumn,
+					extendedRegion.endLine, Int32.maxValue)
+				
+				extendedRegionMap[node] = extendedRegion
+				
+				idMap as Dictionary<of String, INamedNode>? = nil
+				if _symbolTable.tryGetValue(region, out idMap)
+					_symbolTable.remove(region)
+					_symbolTable[extendedRegion] = idMap to !
+					
+			for node, extendedRegion in extendedRegionMap
+				_regionMap[node] = extendedRegion
+
+
+	def _extendRegion(region as DomRegion, txtDoc as TextDocument) as DomRegion
+		"""
+		Returns a copy of the given region but extends the last line
+		to include all blank lines that immediately follow it.
+		
+		The ending point will be the 0th column of the first non-blank
+		line.
+		"""
+		require
+			region.beginLine > 0
+		ensure
+			result.beginLine == region.beginLine
+			result.endLine >= region.endLine
+		body
+			beginText = txtDoc.getLineText(region.beginLine) ? ""
+			minIndentLevel = Parser.getIndentLevel(beginText)
+			fromLine = region.endLine + 1
+			untilLine = txtDoc.lineCount
+			
+			for line in fromLine:untilLine
+				text = txtDoc.getLineText(line)
+				if text <> nil _
+				and text.trim.length <> 0 _
+				and Parser.getIndentLevel(text to !) <= minIndentLevel
+					break
+			
+			if line == txtDoc.lineCount
+				# special case for end of document
+				col = Int32.maxValue - 1
+			else
+				col = 0
+			
+			extendedRegion = DomRegion(region.fileName, _
+			region.beginLine, region.beginColumn, _
+			line, col)
+			
+			return extendedRegion
+
+	shared
+		def createTestData as ParsedCobraDocument
+			"""
+			This function is only for supporting test methods.
+			"""
+			fileName = "test.cobra"
+			source = "\n" +
+				"namespace Example\n" +
+				"    class TestClass\n" +
+				"        def main\n" +
+				"            test\n" +
+				"                assert true\n" +
+				"\n" +
+				"            body\n" +
+				"                print 'derp'\n" +
+				""
+			cm = MonoDevelop.CobraBinding.CompilerManager.instance
+			doc = cm.parseAndBind({fileName: source}, ["System.Core"], fileName)
+			return doc

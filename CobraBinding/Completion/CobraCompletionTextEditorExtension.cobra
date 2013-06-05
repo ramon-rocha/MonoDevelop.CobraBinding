@@ -248,14 +248,13 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 			#TODO handle parameter completion
 			return nil
 		
+		# extend code regions to include blank lines
+		parsedDoc.extendRegions(txtDoc to !)
+		
 		# get metadata from the parsed document to help
 		# us with creating completion results
 		ast = parsedDoc.getAst<of CobraModule>
-		regionMap = parsedDoc.regionMap to !
 		symbolTable = parsedDoc.symbolTable to !
-		
-		# extend code regions to include blank lines
-		_extendRegions(ast.topNameSpace, txtDoc to !, regionMap, symbolTable)
 		
 		# generate a reverse map (regions to nodes)
 		nodeMap = parsedDoc.createNodeMap to !
@@ -573,76 +572,6 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 						containingBox = node
 				i += 1
 			return containingBox
-		
-	def _extendRegions(topNameSpace as NameSpace, txtDoc as TextDocument,
-						regionMap as Dictionary<of ISyntaxNode, DomRegion>,
-						symbolTable as Dictionary<of DomRegion, Dictionary<of String, INamedNode>?>)
-		"""
-		Extends the code regions in the given dictionaries to include blank lines.
-		"""
-		require topNameSpace in regionMap.keys
-		
-		extendedRegionMap = Dictionary<of ISyntaxNode, DomRegion>()
-		
-		for node, region in regionMap
-			
-			extendedRegion = _extendRegion(region, txtDoc)
-			
-			if node is topNameSpace
-				# special case to make sure the top-level namespace
-				# for the module encompasses all other regions
-				extendedRegion = DomRegion(region.fileName,
-				extendedRegion.beginLine, extendedRegion.beginColumn,
-				extendedRegion.endLine, Int32.maxValue)
-			
-			extendedRegionMap[node] = extendedRegion
-			
-			idMap as Dictionary<of String, INamedNode>? = nil
-			if symbolTable.tryGetValue(region, out idMap)
-				symbolTable.remove(region)
-				symbolTable[extendedRegion] = idMap
-				
-		for node, extendedRegion in extendedRegionMap
-			regionMap[node] = extendedRegion
-
-
-	def _extendRegion(region as DomRegion, txtDoc as TextDocument) as DomRegion
-		"""
-		Returns a copy of the given region but extends the last line
-		to include all blank lines that immediately follow it.
-		
-		The ending point will be the 0th column of the first non-blank
-		line.
-		"""
-		require
-			region.beginLine > 0
-		ensure
-			result.beginLine == region.beginLine
-			result.endLine >= region.endLine
-		body
-			beginText = txtDoc.getLineText(region.beginLine) ? ""
-			minIndentLevel = .ParserAlias.getIndentLevel(beginText)
-			fromLine = region.endLine + 1
-			untilLine = txtDoc.lineCount
-			
-			for line in fromLine:untilLine
-				text = txtDoc.getLineText(line)
-				if text <> nil _
-				and text.trim.length <> 0 _
-				and .ParserAlias.getIndentLevel(text to !) <= minIndentLevel
-					break
-			
-			if line == txtDoc.lineCount
-				# special case for end of document
-				col = Int32.maxValue - 1
-			else
-				col = 0
-			
-			extendedRegion = DomRegion(region.fileName, _
-			region.beginLine, region.beginColumn, _
-			line, col)
-			
-			return extendedRegion
 	
 	
 	def _isInsideString(context as CodeCompletionContext, txtDoc as TextDocument) as bool

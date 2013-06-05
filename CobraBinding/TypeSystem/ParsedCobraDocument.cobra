@@ -23,10 +23,14 @@ class ParsedCobraDocument inherits DefaultParsedDocument
 		doc = ParsedCobraDocument(fileName, source)
 		assert doc.regionMap == nil
 		assert doc.symbolTable == nil
+		nodeMap = doc.createNodeMap
+		assert nodeMap == nil
 		# when created from the compiler, we get meaningful data
 		cm = MonoDevelop.CobraBinding.CompilerManager.instance
 		doc = cm.parseAndBind({fileName: source}, ["System.Core"], fileName)
 		assert doc.regionMap.count == doc.symbolTable.count == 5
+		nodeMap = doc.createNodeMap
+		assert nodeMap <> nil
 
 	var _content as String
 	var _regionMap as Dictionary<of ISyntaxNode, DomRegion>?
@@ -59,3 +63,19 @@ class ParsedCobraDocument inherits DefaultParsedDocument
 		visitor.visit(mod)
 		_regionMap = visitor.regionMap
 		_symbolTable = visitor.symbolTable
+		
+	def createNodeMap as Dictionary<of DomRegion, ISyntaxNode>?
+		"""
+		Returns a map of DomRegions to ISyntaxNodes given a map of ISyntaxNodes to DomRegions.
+		"""
+		ensure
+			_regionMap implies result
+			_regionMap implies all for node in _regionMap.keys get node in result.values
+			_regionMap implies all for region in _regionMap.values get region in result.keys
+		body
+			if _regionMap == nil, return nil
+			nodeMap = Dictionary<of DomRegion, ISyntaxNode>()
+			for node, region in _regionMap
+				nodeMap[region] = node
+			
+			return nodeMap

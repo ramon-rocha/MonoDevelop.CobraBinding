@@ -260,7 +260,7 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 		_extendRegions(ast.topNameSpace, txtDoc to !, regionMap, symbolTable)
 		
 		# generate a reverse map (regions to nodes)
-		nodeMap = _createNodeMap(regionMap)
+		nodeMap = parsedDoc.createNodeMap to !
 		node as ISyntaxNode? = nil
 		
 		line = context.triggerLine
@@ -530,22 +530,6 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 					return true
 				
 			return false
-	
-	
-	def _createNodeMap(regionMap as Dictionary<of ISyntaxNode, DomRegion>) as Dictionary<of DomRegion, ISyntaxNode>
-		"""
-		Returns a map of DomRegions to ISyntaxNodes given a map of ISyntaxNodes to DomRegions.
-		"""
-		ensure
-			all for node in regionMap.keys get node in result.values
-			all for region in regionMap.values get region in result.keys
-		body
-			nodeMap = Dictionary<of DomRegion, ISyntaxNode>()
-			for node, region in regionMap
-				nodeMap[region] = node
-				
-			return nodeMap
-	
 
 	def getContainingRegions(line as int, col as int, regions as DomRegion*) as List<of DomRegion>
 		"""
@@ -591,24 +575,22 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 			all for region in regions get nodeMap.containsKey(region)
 		test
 			ast = .createTestData
-			visitor = CobraModuleVisitor()
-			visitor.visit(ast)
-			
-			ext = CobraCompletionTextEditorExtension()
-			nodeMap = ext._createNodeMap(visitor.regionMap)
-			
+			fakeDoc = ParsedCobraDocument('fake.cobra', 'pass')
+			fakeDoc.add(ast)
+			nodeMap = fakeDoc.createNodeMap to !
 			regions = List<of DomRegion>()
-			for r in visitor.regionMap.values
+			for r in fakeDoc.regionMap.values
 				regions.add(r)
 			
+			ext = CobraCompletionTextEditorExtension()
 			b = ext._getContainingBox(regions, nodeMap)
 			assert b.name == "Program"
 			
-			regions.remove(visitor.regionMap[b])
+			regions.remove(fakeDoc.regionMap[b])
 			b = ext._getContainingBox(regions, nodeMap)
 			assert b.name.startsWith("Ninth")
 			
-			regions.remove(visitor.regionMap[b])
+			regions.remove(fakeDoc.regionMap[b])
 			b = ext._getContainingBox(regions, nodeMap)
 			assert b.name.startsWith("Eighth")
 		body

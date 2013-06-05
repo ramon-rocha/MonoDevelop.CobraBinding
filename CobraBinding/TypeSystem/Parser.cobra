@@ -35,8 +35,7 @@ class Parser inherits TypeSystemParser implements IFoldingParser
 			# brand new file created outside the context of a Cobra project
 			return DefaultParsedDocument(fileName)
 		
-		source = content.readToEnd
-		if source == nil, source = ""
+		source = content.readToEnd ? ""
 		
 		/# Ignore type system parse requests for files that aren't open.  This is for
 		performance reasons.  If we were serializing and saving type system information,
@@ -46,7 +45,7 @@ class Parser inherits TypeSystemParser implements IFoldingParser
 		if workbench.getDocument(fileName) == nil, return .parse(fileName, source)
 		
 		sourceMap = Dictionary<of String, String>()
-		sourceMap[fileName] = source to !
+		sourceMap[fileName] = source
 		
 		# workaround an issue with some types from .NET 4 on Mono such as HashSet<of T>
 		refs = ["System.Core"]
@@ -60,17 +59,14 @@ class Parser inherits TypeSystemParser implements IFoldingParser
 			# to generate a full AST, we need all the Cobra source files in this project
 			for projFile in proj.files
 				
-				path = projFile.filePath.toString
+				if projFile.buildAction <> BuildAction.compile, continue
 				
-				if path <> fileName
-					if path.endsWith(CobraLanguageBinding.sourceFileExtension)
-						if projFile.buildAction == BuildAction.compile
-							
-							reader = StreamReader(path)
-							otherSource = reader.readToEnd
-							if otherSource == nil, otherSource = ""
-							sourceMap[path] = otherSource to !
-		
+				path = projFile.filePath.toString
+				if path == fileName _
+				or not path.endsWith(CobraLanguageBinding.sourceFileExtension), continue
+				
+				sourceMap[path] = StreamReader(path).readToEnd ? ""
+
 		parsedDoc = CompilerManager.instance.parseAndBind(sourceMap, refs, fileName to !)
 		_addFolds(parsedDoc)
 		return parsedDoc

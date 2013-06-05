@@ -17,7 +17,8 @@ class Parser inherits TypeSystemParser implements IFoldingParser
 	information to the type system service to make the file contents available 
 	for type lookup (code completion, resolving etc.).
 	
-	This parser also provides folds and underlines syntax errors.
+	This parser also provides folds, underlines syntax errors, and has
+	miscellaneous utility functions for parsing code.
 	"""
 	
 	const TYPICAL_LINE_COUNT = 512 # 4 kB
@@ -424,3 +425,177 @@ class Parser inherits TypeSystemParser implements IFoldingParser
 							return true
 				
 				return false
+		
+		# matches a valid identifier or the string "[]"
+		var rexIdentifier = RegularExpressions.Regex( _
+			r'[_a-zA-z][_a-zA-z0-9]*|\[\]', _
+			RegularExpressions.RegexOptions.Compiled _
+		)
+	
+		def getIdsFromText(text as String) as List<of String>
+			"""
+			Given a line of text, returns a list of trailing identifiers.
+
+			For example, given "foo = SomeSharedClass.someProp.", then this
+			method would return ['SomeSharedClass', 'someProp'].
+			"""
+			test basics
+				sampleText = "foo = "
+				ids = .getIdsFromText(sampleText)
+				assert ids.count == 0
+				
+				sampleText = "foo = SomeSharedClass.someProp."
+				ids = .getIdsFromText(sampleText)
+				assert ids.count == 2
+				assert ids[0] == "SomeSharedClass"
+				assert ids[1] == "someProp"
+				
+				sampleText = "foo = .someProp."
+				ids = .getIdsFromText(sampleText)
+				assert ids.count == 1
+				assert ids[0] == "someProp"
+			test openParenthesis
+				sampleText = "foo = .someMethod("
+				ids = .getIdsFromText(sampleText)
+				assert ids.count == 0
+				
+				sampleText = "foo = .someMethod(aParam"
+				ids = .getIdsFromText(sampleText)
+				assert ids.count == 1
+				assert ids[0] == "aParam"
+				
+				sampleText = "foo = .someMethod(aParam, anotherParam"
+				ids = .getIdsFromText(sampleText)
+				assert ids.count == 1
+				assert ids[0] == "anotherParam"
+				
+				sampleText = "foo = .someMethod(aParam.someOtherMethod(anotherParam"
+				ids = .getIdsFromText(sampleText)
+				assert ids.count == 1
+				assert ids[0] == "anotherParam"
+			test closedParenthesis
+				sampleText = "foo = .someMethod(aParam)."
+				ids = .getIdsFromText(sampleText)
+				assert ids.count == 1
+				assert ids[0] == "someMethod"
+				
+				sampleText = "foo = .someMethod(aParam).toString"
+				ids = .getIdsFromText(sampleText)
+				assert ids.count == 2
+				assert ids[0] == "someMethod"
+				assert ids[1] == "toString"
+				
+				sampleText = "foo = .someMethod(aParam).toString.replace(stringVar"
+				ids = .getIdsFromText(sampleText)
+				assert ids.count == 1
+				assert ids[0] == "stringVar"
+				
+				sampleText = "foo = .someMethod(aParam).toString.replace(stringVar, anotherStringVar)"
+				ids = .getIdsFromText(sampleText)
+				assert ids.count == 3
+				assert ids[0] == "someMethod"
+				assert ids[1] == "toString"
+				assert ids[2] == "replace"
+			test openBracket
+				sampleText = ns'foo = someArray['
+				ids = .getIdsFromText(sampleText)
+				assert ids.count == 0
+				
+				sampleText = ns'foo = someArray[index'
+				ids = .getIdsFromText(sampleText)
+				assert ids.count == 1
+				assert ids[0] == "index"
+				
+				sampleText = ns'foo = "hello [bar'
+				ids = .getIdsFromText(sampleText)
+				assert ids.count == 1
+				assert ids[0] == "bar"
+			test closedBracket
+				sampleText = ns'foo = someArray[index].'
+				ids = .getIdsFromText(sampleText)
+				assert ids.count == 2
+				assert ids[0] == "someArray"
+				assert ids[1] == ns'[]'
+				
+				sampleText = ns'foo = someArray[index].someProp'
+				ids = .getIdsFromText(sampleText)
+				assert ids.count == 3
+				assert ids[0] == "someArray"
+				assert ids[1] == ns'[]'
+				assert ids[2] == "someProp"
+				
+				sampleText = ns'if lineText[col].isLetter or lineText[col] == c"_" or lineText[col]'
+				ids = .getIdsFromText(sampleText)
+				assert ids.count == 2
+				assert ids[0] == "lineText"
+				assert ids[1] == ns'[]'
+			test parenthesisAndBracks
+				sampleText = ns'foo = someArray[index].someMethod(aParam).aProp[bar'
+				ids = .getIdsFromText(sampleText)
+				assert ids.count == 1
+				assert ids[0] == "bar"
+				
+				sampleText = ns'foo = someArray[index].someMethod(aParam).aProp[bar].'
+				ids = .getIdsFromText(sampleText)
+				assert ids.count == 5
+				assert ids[0] == "someArray"
+				assert ids[1] == ns'[]'
+				assert ids[2] == "someMethod"
+				assert ids[3] == "aProp"
+				assert ids[4] == ns'[]'
+			body
+				text = text.trim
+				if text.endsWith('(') or text.endsWith(ns'[')
+					# we are in the context of unmatched pair of parenthesis or brackets
+					# ignore all preceeding text
+					return List<of String>()
+				
+				startIndex = 0
+				openIndex = text.indexOf(c'(', startIndex)
+				while openIndex > 0 and openIndex < text.length
+					closeIndex = text.indexOf(c')', openIndex + 1)
+					if closeIndex >= 0
+						# we have a matching pair of parenthesis, remove them and the text they surround
+						removeCount = closeIndex - openIndex + 1
+						text = text.remove(openIndex, removeCount)
+						startIndex = openIndex
+					else if openIndex < text.length - 1
+						# we have an unmatched opening parenthesis with some trailing text, remove the preceeding text
+						text = text.substring(openIndex + 1)
+						startIndex = 0
+					openIndex = text.indexOf(c'(', startIndex)
+				
+				startIndex = 0
+				openIndex = text.indexOf(c'[', startIndex)
+				while openIndex > 0 and openIndex < text.length
+					closeIndex = text.indexOf(c']', openIndex + 1)
+					if closeIndex >= 0
+						# we have a matching pair of brackets, replace them and their contents with ".[]."
+						# that way, it will resolve to the indexer member of the parent correctly
+						removeCount = closeIndex - openIndex + 1
+						textToReplace = text.substring(openIndex, removeCount)
+						if textToReplace == ns'[]'
+							# this can happen if we use the same index variable multiple times in a line
+							# don't do a replacement in this case otherwise we'll enter an infinite loop
+							startIndex = closeIndex + 1
+						else
+							text = text.replace(textToReplace, ns'.[].')
+							startIndex = openIndex + 4
+					else if openIndex < text.length - 1
+						# we have an unmatched opening bracket with some trailing text, remove the preceeding text
+						text = text.substring(openIndex + 1)
+						startIndex = 0
+					openIndex = text.indexOf(c'[', startIndex)
+				
+				# split the text by whitespace
+				pieces = text.split
+				lastPiece = pieces[pieces.length - 1]
+				ids = List<of String>()
+				
+				match = .rexIdentifier.match(lastPiece)
+				while match.success
+					if match.value.length > 0
+						ids.add(match.value)
+					match = match.nextMatch to !
+
+				return ids

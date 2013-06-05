@@ -1,5 +1,3 @@
-use System.Text.RegularExpressions
-
 use Cobra.Compiler
 
 use MonoDevelop.CobraBinding.TypeSystem
@@ -295,7 +293,7 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 			if col < 0
 				col = 0
 		
-		containingRegions = .getContainingRegions(line, col, regionMap.values)
+		containingRegions = parsedDoc.getContainingRegions(line, col)
 		
 		# the text before the completion chararacter should not include the completion character or the trigger word
 		if context.triggerLineOffset > 0 and lineText.length > 0
@@ -399,7 +397,7 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 		"""
 		Parses the given line of text and returns the corresponding node from the AST.
 		"""
-		ids = _getIdsFromText(text)
+		ids = ParserAlias.getIdsFromText(text)
 		if ids.count == 0
 			print "couldn't parse identifers from text [text]\n"
 			return nil
@@ -531,39 +529,7 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 				
 			return false
 
-	def getContainingRegions(line as int, col as int, regions as DomRegion*) as List<of DomRegion>
-		"""
-		Returns a list of document regions from the given region stream that contain the 
-		given document location.
-		"""
-		ensure # we'll never return more regions than what was given
-			result.count <= List<of DomRegion>(regions).count
-		test
-			rs = List<of DomRegion>()
-			rs.add(DomRegion(1, 1, 10, 120))
-			rs.add(DomRegion(1, 1, 5, 120))
-			rs.add(DomRegion(6, 1, 10, 120))
-			rs.add(DomRegion(11, 1, 15, 120))
-			rs.add(DomRegion(12,1, 14, 120))
 
-			complExt = CobraCompletionTextEditorExtension()
-			assert complExt.getContainingRegions(1, 1, rs).count == 2
-			assert complExt.getContainingRegions(2, 1, rs).count == 2
-			assert complExt.getContainingRegions(5, 80, rs).count == 2
-			assert complExt.getContainingRegions(6, 10, rs).count == 2
-			assert complExt.getContainingRegions(11, 1, rs).count == 1
-			assert complExt.getContainingRegions(13, 1, rs).count == 2
-			assert complExt.getContainingRegions(15, 20, rs).count == 1
-			assert complExt.getContainingRegions(16, 1, rs).count == 0
-		body
-			containingRegions = List<of DomRegion>()
-			for r in regions
-				if r.isInside(line, col)
-					containingRegions.add(r)
-
-			return containingRegions
-		
-	
 	def _getContainingBox(regions as IList<of DomRegion>, nodeMap as Dictionary<of DomRegion, ISyntaxNode>) as Box?
 		"""
 		Iterates through the given regions and returns the innermost containing Box.
@@ -759,187 +725,6 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 				return inString
 	
 	
-	shared
-		# matches a valid identifier or the string "[]"
-		var rexIdentifier = Regex( _
-			r'[_a-zA-z][_a-zA-z0-9]*|\[\]', _
-			RegexOptions.Compiled _
-		)
-
-	def _getIdsFromText(text as String) as List<of String>
-		"""
-		Given a line of text, returns a list of trailing identifiers.
-
-		For example, given "foo = SomeSharedClass.someProp.", then this
-		method would return ['SomeSharedClass', 'someProp'].
-		"""
-		test basics
-			ext = CobraCompletionTextEditorExtension()
-			sampleText = "foo = "
-			ids = ext._getIdsFromText(sampleText)
-			assert ids.count == 0
-			
-			sampleText = "foo = SomeSharedClass.someProp."
-			ids = ext._getIdsFromText(sampleText)
-			assert ids.count == 2
-			assert ids[0] == "SomeSharedClass"
-			assert ids[1] == "someProp"
-			
-			sampleText = "foo = .someProp."
-			ids = ext._getIdsFromText(sampleText)
-			assert ids.count == 1
-			assert ids[0] == "someProp"
-		test openParenthesis
-			ext = CobraCompletionTextEditorExtension()
-			sampleText = "foo = .someMethod("
-			ids = ext._getIdsFromText(sampleText)
-			assert ids.count == 0
-			
-			sampleText = "foo = .someMethod(aParam"
-			ids = ext._getIdsFromText(sampleText)
-			assert ids.count == 1
-			assert ids[0] == "aParam"
-			
-			sampleText = "foo = .someMethod(aParam, anotherParam"
-			ids = ext._getIdsFromText(sampleText)
-			assert ids.count == 1
-			assert ids[0] == "anotherParam"
-			
-			sampleText = "foo = .someMethod(aParam.someOtherMethod(anotherParam"
-			ids = ext._getIdsFromText(sampleText)
-			assert ids.count == 1
-			assert ids[0] == "anotherParam"
-		test closedParenthesis
-			ext = CobraCompletionTextEditorExtension()
-			sampleText = "foo = .someMethod(aParam)."
-			ids = ext._getIdsFromText(sampleText)
-			assert ids.count == 1
-			assert ids[0] == "someMethod"
-			
-			sampleText = "foo = .someMethod(aParam).toString"
-			ids = ext._getIdsFromText(sampleText)
-			assert ids.count == 2
-			assert ids[0] == "someMethod"
-			assert ids[1] == "toString"
-			
-			sampleText = "foo = .someMethod(aParam).toString.replace(stringVar"
-			ids = ext._getIdsFromText(sampleText)
-			assert ids.count == 1
-			assert ids[0] == "stringVar"
-			
-			sampleText = "foo = .someMethod(aParam).toString.replace(stringVar, anotherStringVar)"
-			ids = ext._getIdsFromText(sampleText)
-			assert ids.count == 3
-			assert ids[0] == "someMethod"
-			assert ids[1] == "toString"
-			assert ids[2] == "replace"
-		test openBracket
-			ext = CobraCompletionTextEditorExtension()
-			sampleText = ns'foo = someArray['
-			ids = ext._getIdsFromText(sampleText)
-			assert ids.count == 0
-			
-			sampleText = ns'foo = someArray[index'
-			ids = ext._getIdsFromText(sampleText)
-			assert ids.count == 1
-			assert ids[0] == "index"
-			
-			sampleText = ns'foo = "hello [bar'
-			ids = ext._getIdsFromText(sampleText)
-			assert ids.count == 1
-			assert ids[0] == "bar"
-		test closedBracket
-			ext = CobraCompletionTextEditorExtension()
-			sampleText = ns'foo = someArray[index].'
-			ids = ext._getIdsFromText(sampleText)
-			assert ids.count == 2
-			assert ids[0] == "someArray"
-			assert ids[1] == ns'[]'
-			
-			sampleText = ns'foo = someArray[index].someProp'
-			ids = ext._getIdsFromText(sampleText)
-			assert ids.count == 3
-			assert ids[0] == "someArray"
-			assert ids[1] == ns'[]'
-			assert ids[2] == "someProp"
-			
-			sampleText = ns'if lineText[col].isLetter or lineText[col] == c"_" or lineText[col]'
-			ids = ext._getIdsFromText(sampleText)
-			assert ids.count == 2
-			assert ids[0] == "lineText"
-			assert ids[1] == ns'[]'
-		test parenthesisAndBracks
-			ext = CobraCompletionTextEditorExtension()
-			sampleText = ns'foo = someArray[index].someMethod(aParam).aProp[bar'
-			ids = ext._getIdsFromText(sampleText)
-			assert ids.count == 1
-			assert ids[0] == "bar"
-			
-			sampleText = ns'foo = someArray[index].someMethod(aParam).aProp[bar].'
-			ids = ext._getIdsFromText(sampleText)
-			assert ids.count == 5
-			assert ids[0] == "someArray"
-			assert ids[1] == ns'[]'
-			assert ids[2] == "someMethod"
-			assert ids[3] == "aProp"
-			assert ids[4] == ns'[]'
-		body
-			text = text.trim
-			if text.endsWith('(') or text.endsWith(ns'[')
-				# we are in the context of unmatched pair of parenthesis or brackets
-				# ignore all preceeding text
-				return List<of String>()
-			
-			startIndex = 0
-			openIndex = text.indexOf(c'(', startIndex)
-			while openIndex > 0 and openIndex < text.length
-				closeIndex = text.indexOf(c')', openIndex + 1)
-				if closeIndex >= 0
-					# we have a matching pair of parenthesis, remove them and the text they surround
-					removeCount = closeIndex - openIndex + 1
-					text = text.remove(openIndex, removeCount)
-					startIndex = openIndex
-				else if openIndex < text.length - 1
-					# we have an unmatched opening parenthesis with some trailing text, remove the preceeding text
-					text = text.substring(openIndex + 1)
-					startIndex = 0
-				openIndex = text.indexOf(c'(', startIndex)
-			
-			startIndex = 0
-			openIndex = text.indexOf(c'[', startIndex)
-			while openIndex > 0 and openIndex < text.length
-				closeIndex = text.indexOf(c']', openIndex + 1)
-				if closeIndex >= 0
-					# we have a matching pair of brackets, replace them and their contents with ".[]."
-					# that way, it will resolve to the indexer member of the parent correctly
-					removeCount = closeIndex - openIndex + 1
-					textToReplace = text.substring(openIndex, removeCount)
-					if textToReplace == ns'[]'
-						# this can happen if we use the same index variable multiple times in a line
-						# don't do a replacement in this case otherwise we'll enter an infinite loop
-						startIndex = closeIndex + 1
-					else
-						text = text.replace(textToReplace, ns'.[].')
-						startIndex = openIndex + 4
-				else if openIndex < text.length - 1
-					# we have an unmatched opening bracket with some trailing text, remove the preceeding text
-					text = text.substring(openIndex + 1)
-					startIndex = 0
-				openIndex = text.indexOf(c'[', startIndex)
-			
-			# split the text by whitespace
-			pieces = text.split
-			lastPiece = pieces[pieces.length - 1]
-			ids = List<of String>()
-			
-			match = CobraCompletionTextEditorExtension.rexIdentifier.match(lastPiece)
-			while match.success
-				if match.value.length > 0
-					ids.add(match.value)
-				match = match.nextMatch to !
-
-			return ids
-
 	def _getNodeFromIds(ids as List<of String>,
 						containingRegions as List<of DomRegion>,
 						symbolTable as Dictionary<of DomRegion, Dictionary<of String, INamedNode>>) as ISyntaxNode

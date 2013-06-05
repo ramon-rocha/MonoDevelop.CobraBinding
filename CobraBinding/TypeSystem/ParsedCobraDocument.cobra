@@ -79,3 +79,38 @@ class ParsedCobraDocument inherits DefaultParsedDocument
 				nodeMap[region] = node
 			
 			return nodeMap
+			
+	def getContainingRegions(line as int, col as int) as List<of DomRegion>
+		"""
+		Returns a list of document regions that contain the given document location.
+		"""
+		require
+			.foldings <> nil
+		ensure # we'll never return more regions than what was given
+			result.count <= (for fold in .foldings get fold.region).count
+		test
+			rs = List<of DomRegion>()
+			rs.add(DomRegion(1, 1, 10, 120))
+			rs.add(DomRegion(1, 1, 5, 120))
+			rs.add(DomRegion(6, 1, 10, 120))
+			rs.add(DomRegion(11, 1, 15, 120))
+			rs.add(DomRegion(12,1, 14, 120))
+			fakeDoc = ParsedCobraDocument('fake.cobra', 'pass')
+			for r in rs, fakeDoc.add(FoldingRegion(r))
+			assert fakeDoc.getContainingRegions(1, 1).count == 2
+			assert fakeDoc.getContainingRegions(2, 1).count == 2
+			assert fakeDoc.getContainingRegions(5, 80).count == 2
+			assert fakeDoc.getContainingRegions(6, 10).count == 2
+			assert fakeDoc.getContainingRegions(11, 1).count == 1
+			assert fakeDoc.getContainingRegions(13, 1).count == 2
+			assert fakeDoc.getContainingRegions(15, 20).count == 1
+			assert fakeDoc.getContainingRegions(16, 1).count == 0
+		body
+			containingRegions = List<of DomRegion>()
+			for f in .foldings
+				r = f.region
+				if r.isInside(line, col)
+					containingRegions.add(r)
+
+			return containingRegions
+			

@@ -190,6 +190,107 @@ class ParsedCobraDocument inherits DefaultParsedDocument
 			line, col)
 			
 			return extendedRegion
+			
+	def resolveTextToNode(text as String, containingRegions as List<of DomRegion>) as ISyntaxNode?
+		"""
+		Parses the given line of text and returns the corresponding node from the AST.
+		# TODO: Accept a document location instead
+		"""
+		ids = Parser.getIdsFromText(text)
+		if ids.count == 0
+			print "couldn't parse identifers from text [text]\n"
+			return nil
+		
+		try
+			return _getNodeFromIds(ids, containingRegions)
+			
+		catch ArgumentException
+			# not a valid identifier
+			print "couldn't resolve [ids] to a node\n"
+			return nil
+
+
+	def _getNodeFromIds(ids as List<of String>, containingRegions as List<of DomRegion>) as ISyntaxNode
+		"""
+		Given a list of identifiers, returns the syntax node in the AST
+		corresponding to the last valid idenfiier.
+
+		Throws an ArgumentException if no node is found.
+		"""
+		require
+			_symbolTable <> nil
+			ids.count > 0
+			containingRegions.count > 0
+		test
+			doc = .createTestData
+			regions = List<of DomRegion>()
+			for r in doc._regionMap.values
+				regions.add(r)
+			
+			node = doc._getNodeFromIds(["Object"], regions)
+			assert (node to Box).memberForName("toString") <> nil
+			
+			node = doc._getNodeFromIds(["String", "copy"], regions)
+			assert (node to Method).resultType.name == "String?"
+			
+			node = doc._getNodeFromIds(["Example", "TestClass", "main"], regions)
+			assert (node to Method).statements[0] inherits PrintStmt
+		body
+			idMap as Dictionary<of String, INamedNode>? = nil
+			for region in containingRegions
+				if not _symbolTable.tryGetValue(region, out idMap)
+					continue
+				for id, node in idMap
+					if id == ids[0]
+						remainingIds = ids[1:ids.count]
+						return _getNodeFromIds(remainingIds, node to ISyntaxNode)
+			throw ArgumentException()
+	
+	
+	def _getNodeFromIds(ids as List<of String>, parent as ISyntaxNode) as ISyntaxNode
+		"""
+		Given a list of identifiers, returns the syntax node in the AST
+		corresponding to the last valid idenfiier.
+
+		Throws an ArgumentException if no node is found.
+		"""
+		if ids.count == 0
+			return parent
+		
+		if parent implements INamedNode
+		
+			typ = parent.typeForReceiver
+			if typ inherits NilableType
+				typ = typ.nonNil
+				
+			if typ inherits PrimitiveType
+				typ = typ.box
+			else if typ inherits Cobra.Compiler.ArrayType
+				typ = typ.box
+			
+			if typ implements IContainer
+						
+				if typ inherits NameSpace
+					for useDirective in typ.useDirectives
+						if useDirective.boundNameSpace <> nil
+							nsMember = useDirective.boundNameSpace.memberForName(ids[0])
+							if nsMember <> nil
+								try
+									return _getNodeFromIds(ids[1:ids.count], nsMember to ISyntaxNode)
+								catch
+									throw ArgumentException()
+		
+				m = typ.memberForName(ids[0])
+				if m <> nil
+					try
+						return _getNodeFromIds(ids[1:ids.count], m to ISyntaxNode)
+					catch
+						throw ArgumentException()
+			else
+				print "[parent.typeForReceiver.name] does not implement IContainer"
+				print "Add a case for [parent.typeForReceiver.toString]\n"
+		
+		throw ArgumentException()
 
 	shared
 		def createTestData as ParsedCobraDocument

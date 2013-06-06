@@ -254,9 +254,6 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 		# get metadata from the parsed document to help
 		# us with creating completion results
 		ast = parsedDoc.getAst<of CobraModule>
-		symbolTable = parsedDoc.symbolTable to !
-		
-		# generate a reverse map (regions to nodes)
 		nodeMap = parsedDoc.createNodeMap to !
 		node as ISyntaxNode? = nil
 		
@@ -332,7 +329,7 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 					return nil
 			else
 				# return fields and methods for the corresponding node
-				node = _resolveTextToNode(preceedingText, containingRegions, symbolTable)
+				node = parsedDoc.resolveTextToNode(preceedingText, containingRegions)
 				if node == nil, return nil
 				
 				if node inherits NameSpace
@@ -389,27 +386,8 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 			completionData.addRange(_getTopNameSpaceCompletionData(ast))
 		
 		return completionData
-
-
-	def _resolveTextToNode(text as String, containingRegions as List<of DomRegion>,
-		symbolTable as Dictionary<of DomRegion, Dictionary<of String, INamedNode>>) as ISyntaxNode?
-		"""
-		Parses the given line of text and returns the corresponding node from the AST.
-		"""
-		ids = ParserAlias.getIdsFromText(text)
-		if ids.count == 0
-			print "couldn't parse identifers from text [text]\n"
-			return nil
 		
-		try
-			return _getNodeFromIds(ids, containingRegions, symbolTable)
-			
-		catch ArgumentException
-			# not a valid identifier
-			print "couldn't resolve [ids] to a node\n"
-			return nil
-			
-			
+		
 	def _getTypeForMemberCompletion(node as ISyntaxNode) as Cobra.Compiler.IType?
 		"""
 		Given a node, returns the type whose members should be used to generate the
@@ -652,112 +630,7 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 				return false
 			else
 				return inString
-	
-	
-	def _getNodeFromIds(ids as List<of String>,
-						containingRegions as List<of DomRegion>,
-						symbolTable as Dictionary<of DomRegion, Dictionary<of String, INamedNode>>) as ISyntaxNode
-		"""
-		Given a list of identifiers, returns the syntax node in the AST
-		corresponding to the last valid idenfiier.
 
-		Throws an ArgumentException if no node is found.
-		"""
-		require
-			ids.count > 0
-			containingRegions.count > 0
-
-		test singleIdentifier
-			# setup
-			ids = ['Object']
-			regions = [DomRegion(1,1)]
-			bogusNode = Class('Object', List<of Cobra.Compiler.IType>())
-			symbolTable = Dictionary<of DomRegion, Dictionary<of String, INamedNode>>()
-			symbolTable[regions[0]] = Dictionary<of String, INamedNode>()
-			symbolTable[regions[0]]['Object'] = bogusNode
-
-			# the test
-			completionExtension = CobraCompletionTextEditorExtension()
-			assert completionExtension._getNodeFromIds(ids, regions, symbolTable) is bogusNode
-			
-		test multipleIdentifiers
-			#TODO
-			# setup
-			# the test
-			pass
-
-		body
-			#TODO: still feels ugly...
-			correspondingNode as ISyntaxNode? = nil
-			idMap as Dictionary<of String, INamedNode>? = nil
-
-			for region in containingRegions
-				
-				found = false
-
-				if symbolTable.tryGetValue(region, out idMap)
-				
-					for id, node in idMap
-					
-						if id == ids[0]
-							correspondingNode = node to ISyntaxNode
-							found = true
-							break
-							
-					if found, break
-				if found, break
-			
-			if found
-				# we found a node with this name, limit the rest of our search to this node
-				return _getNodeFromIds(ids[1:ids.count], correspondingNode to !)
-			
-			throw ArgumentException()
-			
-	def _getNodeFromIds(ids as List<of String>, parent as ISyntaxNode) as ISyntaxNode
-		"""
-		Given a list of identifiers, returns the syntax node in the AST
-		corresponding to the last valid idenfiier.
-
-		Throws an ArgumentException if no node is found.
-		"""
-		if ids.count == 0
-			return parent
-		
-		if parent implements INamedNode
-		
-			typ = parent.typeForReceiver
-			if typ inherits NilableType
-				typ = typ.nonNil
-				
-			if typ inherits PrimitiveType
-				typ = typ.box
-			else if typ inherits Cobra.Compiler.ArrayType
-				typ = typ.box
-			
-			if typ implements IContainer
-						
-				if typ inherits NameSpace
-					for useDirective in typ.useDirectives
-						if useDirective.boundNameSpace <> nil
-							nsMember = useDirective.boundNameSpace.memberForName(ids[0])
-							if nsMember <> nil
-								try
-									return _getNodeFromIds(ids[1:ids.count], nsMember to ISyntaxNode)
-								catch
-									throw ArgumentException()
-		
-				m = typ.memberForName(ids[0])
-				if m <> nil
-					try
-						return _getNodeFromIds(ids[1:ids.count], m to ISyntaxNode)
-					catch
-						throw ArgumentException()
-			else
-				print "[parent.typeForReceiver.name] does not implement IContainer"
-				print "Add a case for [parent.typeForReceiver.toString]\n"
-		
-		throw ArgumentException()
-	
 
 	def _getCompletionData(region as DomRegion, preceedingText as String, currText as String,
 							nodeMap as Dictionary<of DomRegion, ISyntaxNode>, ast as CobraModule) as ICompletionDataList

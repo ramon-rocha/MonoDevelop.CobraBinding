@@ -21,6 +21,8 @@ It currently supports the following features:
 
 * Limited Code Completion
 
+* Mouseover Tooltips
+
 
 Compiling and Installing
 ========================
@@ -316,7 +318,7 @@ development...
 
 * Implement a Code Formatter for smarter indentation
 
-* Implement an Ambience class for tool tips and document outline support
+* Implement an Ambience class for document outline support
 
 * Fix bugs with code completion
 

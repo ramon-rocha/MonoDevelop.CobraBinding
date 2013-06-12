@@ -161,6 +161,10 @@ class CompilerManager
 					or "ForCobraModuleVisitorTesting2.cobra"
 						# these get tested by the CobraModuleVisitor class
 						pass
+					
+					on "ForTooltipTesting.cobra"
+						# this gets tested by the TooltipProvider class
+						pass
 
 					else
 						# unhandled file, a case should be added for it

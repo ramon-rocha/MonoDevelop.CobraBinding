@@ -1,0 +1,37 @@
+
+class Foo
+
+	def bar(p1 as int, p2 as int) as String
+		sum = p1 + p2
+		return sum.toString
+		
+	def baz
+		print 'BAZ!'
+		
+sig Soop(x as String) as number
+		
+namespace Bar
+
+interface Chook
+	
+	def bork as int
+
+class Feeb inherits Foo implements Chook
+	
+	var _s as Soop?
+	
+	def bork as int
+		if _s <> nil
+			return _s("Hello") to int
+		rnd = Random()
+		return rnd.next
+		
+namespace Nonsense.Bar
+
+	mixin Lookie
+		var a as int
+		var b as int
+		
+	class Pod adds Lookie
+		pass
+		

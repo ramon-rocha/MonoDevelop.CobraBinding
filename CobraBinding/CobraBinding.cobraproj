@@ -137,5 +137,6 @@
       <Private>False</Private>
       <Package>monodevelop</Package>
     </Reference>
+    <Reference Include="Mono.Cairo" />
   </ItemGroup>
 </Project>

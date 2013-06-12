@@ -1,0 +1,205 @@
+use Cobra.Compiler
+
+use MonoDevelop.CobraBinding.TypeSystem
+
+use Mono.TextEditor
+use MonoDevelop.Ide
+
+namespace MonoDevelop.CobraBinding.Tooltips
+
+extend IType
+
+	def createTooltipMarkup as String
+		test
+			#TODO
+			pass
+		body
+			typ = this
+			if typ inherits WrappedType
+				return "[typ.theWrappedType.createTooltipMarkup][typ.suffix]"
+			
+			if typ inherits Box
+				# fix markup for generics
+				return typ.qualifiedName.replace(
+					"<", "&lt;").replace(
+					">", "&gt;").replace(
+					",", ", "
+				)
+			
+			if typ.parentNameSpace <> nil
+				return "[typ.parentNameSpace.fullName].[typ.name]"
+			
+			return typ.name
+
+		
+extend INamedNode
+	
+	def createTooltipMarkup as String
+		"""
+		Returns markup suitable for use in a tooltip.  It will have a format
+		similar to one of the following examples:
+		
+		namespace Foo.Bar.Baz
+		
+		class Foo
+		
+		def foo(bar as int) as String
+		
+		foo as Bar?
+		"""
+		/#
+		colorScheme = IdeApp.preferences.colorScheme
+		colorStyle = Highlighting.SyntaxModeService.getColorStyle(colorScheme)
+		
+		chunkStyle = colorStyle.keywordConstants
+		color = colorStyle.getForeground(chunkStyle) to HslColor
+		colorString = HelperMethods.getColorString(color to Gdk.Color)
+		
+		return '[.name] <span foreground="[colorString]">as</span> [.getType.name]'
+		#/
+		
+		node = this
+		typ as IType? = nil
+		
+		if node inherits NameSpace
+			return "namespace [node.fullName]"
+		
+		else if node inherits AbstractLocalVar
+			# this could be a method parameter or local variable
+			typ = node.type
+			return "[node.name] as [typ.createTooltipMarkup]"
+		
+		else if node implements Cobra.Compiler.IMember
+			# this is a box/namespace member
+			typ = node.resultType
+			
+			if node inherits Method _
+			or node inherits MemberOverload _
+			or node inherits MethodSig
+				paramMarkup = _createParamMarkup
+				kw = TooltipProvider.declKeyword[node.getType]
+				if paramMarkup.length > 0
+					return "[kw] [node.name]([paramMarkup]) as [typ.createTooltipMarkup]"
+				else
+					return "[kw] [node.name] as [typ.createTooltipMarkup]"
+			
+			else if node inherits Property
+				if node.getPart <> nil and node.setPart <> nil
+					# read-write property
+					kw = "pro"
+				else if node.getPart <> nil
+					# read-only property
+					kw = "get"
+				else
+					# write-only property
+					kw = "set"
+				return "[kw] [node.name] as [typ.createTooltipMarkup]"
+			
+			else if node inherits Box
+				kw = TooltipProvider.declKeyword[node.getType]
+				name = node.qualifiedName.replace("<", "&lt;").replace(">", "&gt;")
+				return "[kw] [name]"
+			
+			else if node inherits EnumDecl
+				return "enum [typ.parentNameSpace.fullName].[typ.name]"
+			
+			else
+				kw = TooltipProvider.declKeyword[node.getType]
+				return "[kw] [node.name] as [typ.createTooltipMarkup]"
+			
+		return "Unhandled type for [node.name]: [typ.createTooltipMarkup]"
+		
+	def _createParamMarkup as String
+		"""
+		Returns the markup to be used for the parameters of a method
+		"""
+		require
+			this inherits MemberOverload _
+			or this inherits Method _
+			or this inherits MethodSig
+		body
+			node = this
+			if node inherits MemberOverload
+				params = node.params
+			else if node inherits Method
+				params = node.params
+			else if node inherits MethodSig
+				params = node.params
+			sb = StringBuilder()
+			for p in params
+				if sb.length > 0, sb.append(', ')
+				sb.append(p.createTooltipMarkup)
+			return sb.toString
+		
+
+class TooltipProvider inherits Mono.TextEditor.TooltipProvider
+
+	shared
+		var declKeyword as Dictionary<of Type, String> = {
+			NameSpace: "namespace ",
+			Class: "class",
+			Interface: "interface",
+			Struct: "struct",
+			EnumDecl: "enum ",
+			Mixin: "mixin",
+			Extension: "extension",
+			BoxVar: "var",
+			BoxConst: "const",
+			BoxEvent: "event",
+			Method: "def",
+			MemberOverload: "def",
+			MethodSig: "sig",
+		}
+	
+	def getItem(editor as TextEditor?, offset as int)  as TooltipItem? is override
+		"""
+		Returns a tooltip to display for the identifier at the given offset or
+		nil if no corresponding node can be found.
+		"""
+		if editor == nil
+			return nil
+		
+		txtDoc = editor.document
+		if txtDoc == nil
+			return nil
+		
+		doc = IdeApp.workbench.getDocument(txtDoc.fileName)
+		if doc == nil _
+		or doc.parsedDocument == nil _
+		or not doc.parsedDocument inherits ParsedCobraDocument
+			return nil
+		parsedDoc = doc.parsedDocument to ParsedCobraDocument
+		
+		if parsedDoc.isInsideComment(offset, txtDoc to !)
+			return nil
+		
+		# get the text exactly up to the cursor
+		docLine = txtDoc.getLineByOffset(offset)
+		lineText = txtDoc.getTextBetween(docLine.offset, offset) ? ""
+		if MonoDevelop.CobraBinding.TypeSystem.Parser.isInsideString(lineText, false)
+			return nil
+		
+		node = parsedDoc.resolveOffsetToNode(offset, txtDoc to !)
+		if node == nil
+			return nil
+		else if not node implements INamedNode
+			return nil
+		
+		return TooltipItem(node to INamedNode, offset, 1)
+		
+	def createTooltipWindow(editor as TextEditor?, offset as int,
+				modifierState as Gdk.ModifierType, item as TooltipItem?) as Gtk.Window? is protected, override
+		"""
+		Creates the window to display the given tooltip data (item).
+		"""
+		or require
+			item implies item.item inherits INamedNode
+		body
+			if item == nil or item.item == nil
+				return nil
+			
+			window = PopupWindow.TooltipWindow()
+			node = item.item to INamedNode
+			window.markup = node.createTooltipMarkup
+			return window
+	

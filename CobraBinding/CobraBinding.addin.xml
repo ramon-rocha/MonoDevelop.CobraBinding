@@ -69,6 +69,11 @@
 		<Templates resource="CobraSyntaxMode.xml" />
 	</Extension>
 	
+	<Extension path = "/MonoDevelop/SourceEditor2/TooltipProviders">
+		<Class mimeTypes="text/x-plain" class="MonoDevelop.CobraBinding.Tooltips.TooltipProvider" /> <!-- TODO: proper mimetypes -->
+		<Class mimeTypes="text/x-cobra" class="MonoDevelop.CobraBinding.Tooltips.TooltipProvider" />
+	</Extension>
+		
 	<Extension path = "/MonoDevelop/TypeSystem/Parser">
 		<Parser mimeType = "text/x-plain" class="MonoDevelop.CobraBinding.TypeSystem.Parser" /> <!-- TODO: proper mimetypes -->
 		<Parser mimeType = "text/x-cobra" class="MonoDevelop.CobraBinding.TypeSystem.Parser" />

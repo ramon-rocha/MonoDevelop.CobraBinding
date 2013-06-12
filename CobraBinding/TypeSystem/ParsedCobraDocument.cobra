@@ -190,11 +190,30 @@ class ParsedCobraDocument inherits DefaultParsedDocument
 			line, col)
 			
 			return extendedRegion
-			
+
+	def resolveOffsetToNode(offset as int, txtDoc as TextDocument) as ISyntaxNode?
+		"""
+		Parses the given line of text and returns the corresponding node from the AST.
+		"""
+		docLine = txtDoc.getLineByOffset(offset)
+		sb = StringBuilder(txtDoc.getTextBetween(docLine.offset, offset))
+		i = offset
+		while i < docLine.endOffset
+			c = txtDoc.getCharAt(i)
+			if c.isLetter or c.isNumber or c == c'_'
+				sb.append(c)
+			else
+				break
+			i += 1
+		text = sb.toString.trim
+		
+		location = txtDoc.offsetToLocation(offset)
+		return .resolveTextToNode(text, .getContainingRegions(location.line, location.column))
+	
+	
 	def resolveTextToNode(text as String, containingRegions as List<of DomRegion>) as ISyntaxNode?
 		"""
 		Parses the given line of text and returns the corresponding node from the AST.
-		# TODO: Accept a document location instead
 		"""
 		ids = Parser.getIdsFromText(text)
 		if ids.count == 0
@@ -291,7 +310,29 @@ class ParsedCobraDocument inherits DefaultParsedDocument
 				print "Add a case for [parent.typeForReceiver.toString]\n"
 		
 		throw ArgumentException()
-
+		
+	def isInsideComment(offset as int, txtDoc as TextDocument) as bool
+		"""
+		Returns true if the given location is inside a comment region.
+		"""
+		location = txtDoc.offsetToLocation(offset)
+		line = location.line
+		lineText = txtDoc.getLineText(line) ? ""
+		
+		if .isInsideComment(line, location.column, lineText)
+			return true
+		
+		# handle corner case with empty doc strings
+		prevLineText = txtDoc.getLineText(line - 1) ? ""
+		nextLineText = txtDoc.getLineText(line + 1) ? ""
+		if prevLineText.endsWith('"""') and nextLineText.endsWith('"""')
+			return true
+		else if prevLineText.endsWith("'''") and nextLineText.endsWith("'''")
+			return true
+		
+		return false
+	
+	
 	def isInsideComment(line as int, col as int, lineText as String) as bool
 		"""
 		Returns true if the given location is inside a comment region.
@@ -347,6 +388,52 @@ class ParsedCobraDocument inherits DefaultParsedDocument
 					return true
 				
 			return false
+			
+	def getContainingBox(regions as IList<of DomRegion>, nodeMap as Dictionary<of DomRegion, ISyntaxNode>) as Box?
+		"""
+		Iterates through the given regions and returns the innermost containing Box.
+		
+		Returns nil if none of the corresponding nodes inherit from Box.
+		"""
+		require
+			regions.count > 0
+			all for region in regions get nodeMap.containsKey(region)
+		test
+			ast = MonoDevelop.CobraBinding.Completion.CobraCompletionTextEditorExtension.createTestData
+			fakeDoc = ParsedCobraDocument('fake.cobra', 'pass')
+			fakeDoc.add(ast)
+			nodeMap = fakeDoc.createNodeMap to !
+			regions = List<of DomRegion>()
+			for r in fakeDoc.regionMap.values
+				regions.add(r)
+			
+			b = fakeDoc.getContainingBox(regions, nodeMap)
+			assert b.name == "Program"
+			
+			regions.remove(fakeDoc.regionMap[b])
+			b = fakeDoc.getContainingBox(regions, nodeMap)
+			assert b.name.startsWith("Ninth")
+			
+			regions.remove(fakeDoc.regionMap[b])
+			b = fakeDoc.getContainingBox(regions, nodeMap)
+			assert b.name.startsWith("Eighth")
+		body
+			containingBox as Box? = nil
+			innermostBeginLine = 0
+			
+			i = 0
+			while i < regions.count
+				region = regions[i]
+				if region.beginLine > innermostBeginLine
+					node = nodeMap[region]
+					if node inherits Box
+						innermostBeginLine = region.beginLine
+						containingBox = node
+				i += 1
+			return containingBox
+	
+	
+
 
 
 	shared

@@ -599,3 +599,102 @@ class Parser inherits TypeSystemParser implements IFoldingParser
 					match = match.nextMatch to !
 
 				return ids
+		
+		
+		def isInsideUnfinishedString(text as String) as bool
+			"""
+			Returns true if 'text' ends inside a string literal such as
+			
+			print "Hello, wo
+			
+			or
+			
+			print "The value is [someVar
+			"""
+			test basics
+				assert .isInsideUnfinishedString("s = 'Hello, wo")
+				assert .isInsideUnfinishedString('s = "Hello, wo')
+				
+				assert not .isInsideUnfinishedString("s = 'Hello, world!'")
+				assert not .isInsideUnfinishedString('s = "Hello, world!"')
+				assert not .isInsideUnfinishedString("print s")
+			test expressionBrackets
+				assert .isInsideUnfinishedString(ns's = "a [b] c')
+				assert .isInsideUnfinishedString(ns's = "a [b')
+				assert .isInsideUnfinishedString(ns's = ns"a [b')
+				
+				assert not .isInsideUnfinishedString(ns's = "a [b] c"')
+				assert not .isInsideUnfinishedString(ns's = "a [b]"')
+				assert not .isInsideUnfinishedString(ns's = ns"a [b]"')
+			body
+				return .isInsideString(text, true)
+		
+		def isInsideString(text as String, exprBracketsReturn as bool) as bool
+			"""
+			Returns true if 'text' ends inside a string literal such as
+			
+			print "Hello, wo
+			
+			If we are inside [expression brackets], then the value of the
+			'exprBracketsReturn' parameter will be returned.
+			"""
+			test
+				assert .isInsideString(ns's = "a [b] c', true)
+				assert .isInsideString(ns's = "a [b] c', false)
+				
+				assert .isInsideString(ns's = "a [b', true)
+				assert not .isInsideString(ns's = "a [b', false)
+				
+				assert .isInsideString(ns's = ns"a [b', true)
+				assert .isInsideString(ns's = ns"a [b', false)
+				
+				assert not .isInsideString(ns's = "a [b] c"', true)
+				assert not .isInsideString(ns's = "a [b] c"', false)
+				
+				assert not .isInsideString(ns's = "a [b]"', true)
+				assert not .isInsideString(ns's = "a [b]"', false)
+				
+				assert not .isInsideString(ns's = ns"a [b]"', true)
+				assert not .isInsideString(ns's = ns"a [b]"', false)
+			body
+				tag as char? = nil
+				quotes = @[c"'", c'"']
+				inString = false
+				inNonSubString = false
+				inSubExpr = false
+				
+				i = 0
+				while i < text.length
+					character = text[i]
+					
+					if tag == nil
+						if character in quotes
+							# string opening tag
+							tag = character
+							inString = true
+						else if character == c'n' and i + 2 < text.length
+							if text[i+1] == c's' and text[i+2] in quotes
+								# non-substituted string opening tag
+								tag = text[i+2]
+								inString = true
+								inNonSubString = true
+								i += 2
+					else
+						if character == tag
+							# string closing tag
+							inString = false
+							inNonSubString = false
+							tag = nil
+						else if not inNonSubString
+							if character == c'['
+								inSubExpr = true
+							else if inSubExpr and character == c']'
+								inSubExpr = false
+					i += 1
+						
+				if inNonSubString
+					return true
+				else if inSubExpr
+					return exprBracketsReturn
+				else
+					return inString

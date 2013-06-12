@@ -107,7 +107,7 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 		or parsedDoc.symbolTable == nil
 			return false
 
-		if _isInsideComment(context to !, parsedDoc to !, txtDoc to !)
+		if parsedDoc.isInsideComment(context.triggerOffset, txtDoc to !)
 			return false
 		
 		if _isInsideString(context to !, txtDoc to !)
@@ -310,7 +310,7 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 		
 		if completionChar == c'_' and not prevChar.isLetterOrDigit
 			# protected/private member completion in the context of the current class
-			node = _getContainingBox(containingRegions, nodeMap)
+			node = parsedDoc.getContainingBox(containingRegions, nodeMap)
 			if node inherits Box
 				return BoxMembersList(node)
 			else
@@ -321,7 +321,7 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 			# member completion
 			if not prevChar.isLetterOrDigit and prevChar <> c')' and prevChar <> c']'
 				# return fields and methods in the context of the current class
-				node = _getContainingBox(containingRegions, nodeMap)
+				node = parsedDoc.getContainingBox(containingRegions, nodeMap)
 				if node inherits Box
 					return BoxMembersList(node)
 				else
@@ -422,76 +422,6 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 		
 		return nil
 	
-	def _isInsideComment(context as CodeCompletionContext, parsedDoc as ParsedCobraDocument,
-						txtDoc as TextDocument) as bool
-		"""
-		Returns true if the context describes a location inside a comment region.
-		"""
-		line = context.triggerLine
-		col = context.triggerLineOffset
-		if line < 1, line = 1
-		if col < 0, col = 0
-		
-		lineText = txtDoc.getLineText(line) ? ""
-		
-		if parsedDoc.isInsideComment(line, col, lineText)
-			return true
-		
-		# handle corner case with empty doc strings
-		prevLineText = txtDoc.getLineText(line - 1) ? ""
-		nextLineText = txtDoc.getLineText(line + 1) ? ""
-		if prevLineText.endsWith('"""') and nextLineText.endsWith('"""')
-			return true
-		else if prevLineText.endsWith("'''") and nextLineText.endsWith("'''")
-			return true
-		
-		return false
-	
-	
-	def _getContainingBox(regions as IList<of DomRegion>, nodeMap as Dictionary<of DomRegion, ISyntaxNode>) as Box?
-		"""
-		Iterates through the given regions and returns the innermost containing Box.
-		
-		Returns nil if none of the corresponding nodes inherit from Box.
-		"""
-		require
-			regions.count > 0
-			all for region in regions get nodeMap.containsKey(region)
-		test
-			ast = .createTestData
-			fakeDoc = ParsedCobraDocument('fake.cobra', 'pass')
-			fakeDoc.add(ast)
-			nodeMap = fakeDoc.createNodeMap to !
-			regions = List<of DomRegion>()
-			for r in fakeDoc.regionMap.values
-				regions.add(r)
-			
-			ext = CobraCompletionTextEditorExtension()
-			b = ext._getContainingBox(regions, nodeMap)
-			assert b.name == "Program"
-			
-			regions.remove(fakeDoc.regionMap[b])
-			b = ext._getContainingBox(regions, nodeMap)
-			assert b.name.startsWith("Ninth")
-			
-			regions.remove(fakeDoc.regionMap[b])
-			b = ext._getContainingBox(regions, nodeMap)
-			assert b.name.startsWith("Eighth")
-		body
-			containingBox as Box? = nil
-			innermostBeginLine = 0
-			
-			i = 0
-			while i < regions.count
-				region = regions[i]
-				if region.beginLine > innermostBeginLine
-					node = nodeMap[region]
-					if node inherits Box
-						innermostBeginLine = region.beginLine
-						containingBox = node
-				i += 1
-			return containingBox
-	
 	
 	def _isInsideString(context as CodeCompletionContext, txtDoc as TextDocument) as bool
 		"""
@@ -507,70 +437,7 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 		lineText = txtDoc.getLineText(line) ? ""
 		if col > lineText.length, col = lineText.length
 		
-		return _isInsideString(lineText.substring(0, col))
-	
-	
-	def _isInsideString(text as String) as bool
-		"""
-		Returns true if we should not provide code completion in the given
-		context because we are inside a string literal and not inside
-		[expression brackets].
-		"""
-		test basics
-			ext = CobraCompletionTextEditorExtension()
-			assert ext._isInsideString("s = 'Hello, wo")
-			assert ext._isInsideString('s = "Hello, wo')
-			
-			assert not ext._isInsideString("s = 'Hello, world!'")
-			assert not ext._isInsideString('s = "Hello, world!"')
-			assert not ext._isInsideString("print s")
-		test expressionBrackets
-			ext = CobraCompletionTextEditorExtension()
-			assert ext._isInsideString(ns's = "a [b] c')
-			assert not ext._isInsideString(ns's = "a [b')
-			assert ext._isInsideString(ns's = ns"a [b')
-		body
-			tag as char? = nil
-			quotes = @[c"'", c'"']
-			inString = false
-			inNonSubString = false
-			inSubExpr = false
-			
-			i = 0
-			while i < text.length
-				character = text[i]
-				
-				if tag == nil
-					if character in quotes
-						# string opening tag
-						tag = character
-						inString = true
-					else if character == c'n' and i + 2 < text.length
-						if text[i+1] == c's' and text[i+2] in quotes
-							# non-substituted string opening tag
-							tag = text[i+2]
-							inString = true
-							inNonSubString = true
-							i += 2
-				else
-					if character == tag
-						# string closing tag
-						inString = false
-						inNonSubString = false
-						tag = nil
-					else if not inNonSubString
-						if character == c'['
-							inSubExpr = true
-						else if inSubExpr and character == c']'
-							inSubExpr = false
-				i += 1
-					
-			if inNonSubString
-				return true
-			else if inSubExpr
-				return false
-			else
-				return inString
+		return ParserAlias.isInsideString(lineText.substring(0, col), false)
 
 
 	def _getCompletionData(region as DomRegion, preceedingText as String, currText as String,
@@ -634,6 +501,6 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 
 		class ParserAlias inherits MonoDevelop.CobraBinding.TypeSystem.Parser
 			"""
-			This is just to avoid a name conflict.
+			This is just to avoid a name conflict with Cobra.Compiler.Parser
 			"""
 			pass

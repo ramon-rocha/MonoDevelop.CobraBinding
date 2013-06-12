@@ -19,12 +19,33 @@ extend IType
 				return "[typ.theWrappedType.createTooltipMarkup][typ.suffix]"
 			
 			if typ inherits Box
+				if not typ.isGeneric
+					return typ.qualifiedName.replace(
+						"<", "&lt;").replace(
+						">", "&gt;").replace(
+						",", ", "
+					)
+				
 				# fix markup for generics
-				return typ.qualifiedName.replace(
+				toReplace = StringBuilder("<of")
+				replaceWith = StringBuilder()
+				for gp in typ.genericParams
+					if replaceWith.length > 0
+						toReplace.append(",")
+						replaceWith.append(", [gp.name]")
+					else
+						replaceWith.append("<of [gp.name]")
+				toReplace.append(">")
+				replaceWith.append(">")
+				
+				r1 = toReplace.toString
+				r2 = replaceWith.toString
+				name = typ.qualifiedName.replace(r1, r2)
+				name = name.replace(
 					"<", "&lt;").replace(
-					">", "&gt;").replace(
-					",", ", "
+					">", "&gt;"
 				)
+				return name
 			
 			if typ.parentNameSpace <> nil
 				return "[typ.parentNameSpace.fullName].[typ.name]"
@@ -97,8 +118,8 @@ extend INamedNode
 			
 			else if node inherits Box
 				kw = TooltipProvider.declKeyword[node.getType]
-				name = node.qualifiedName.replace("<", "&lt;").replace(">", "&gt;")
-				return "[kw] [name]"
+				typ = node to IType
+				return "[kw] [typ.createTooltipMarkup]"
 			
 			else if node inherits EnumDecl
 				return "enum [typ.parentNameSpace.fullName].[typ.name]"
@@ -150,6 +171,9 @@ class TooltipProvider inherits Mono.TextEditor.TooltipProvider
 			MemberOverload: "def",
 			MethodSig: "sig",
 		}
+		
+		def createTooltipMarkup(node as INamedNode) as String
+			return node.createTooltipMarkup
 	
 	def getItem(editor as TextEditor?, offset as int)  as TooltipItem? is override
 		"""
@@ -200,6 +224,6 @@ class TooltipProvider inherits Mono.TextEditor.TooltipProvider
 			
 			window = PopupWindow.TooltipWindow()
 			node = item.item to INamedNode
-			window.markup = node.createTooltipMarkup
+			window.markup = .createTooltipMarkup(node)
 			return window
 	

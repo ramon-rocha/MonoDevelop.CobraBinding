@@ -55,13 +55,13 @@ class NamedNodeData inherits CompletionData
 		assert not lData.hasOverloads
 		assert lData.displayText == "LinkedList<of"
 		assert lData.completionText == "LinkedList<of "
-		assert lData.signature == "System.Collections.Generic.LinkedList<of T>"
+		assert lData.signature == "class System.Collections.Generic.LinkedList&lt;of T&gt;"
 		
 		dData = NamedNodeData(dictionaryType)
 		assert not dData.hasOverloads
 		assert dData.displayText == "Dictionary<of"
 		assert dData.completionText == "Dictionary<of "
-		assert dData.signature == "System.Collections.Generic.Dictionary<of TKey, TValue>"
+		assert dData.signature == "class System.Collections.Generic.Dictionary&lt;of TKey, TValue&gt;"
 	
 	test isGenericHasOverloads
 		ast = CobraCompletionTextEditorExtension.createTestData
@@ -79,7 +79,7 @@ class NamedNodeData inherits CompletionData
 		aData = NamedNodeData(actionType)
 		assert aData.displayText == "Action<of"
 		assert aData.completionText == "Action<of "
-		assert aData.signature == "System.Action<of T>"
+		assert aData.signature == "class System.Action&lt;of T&gt;"
 		assert aData.hasOverloads
 		overloadCount = 0
 		for o in aData.overloadedData
@@ -89,7 +89,7 @@ class NamedNodeData inherits CompletionData
 		pData = NamedNodeData(pairType)
 		assert pData.displayText == "Pair<of"
 		assert pData.completionText == "Pair<of "
-		assert pData.signature == "Cobra.Core.Pair<of T>"
+		assert pData.signature == "class Cobra.Core.Pair&lt;of T&gt;"
 		assert pData.hasOverloads
 		overloadCount = 0
 		for o in pData.overloadedData
@@ -136,6 +136,7 @@ class NamedNodeData inherits CompletionData
 				return name.substring(0, tagPos) + "<of "
 		
 		return name
+	
 		
 	def createTooltipInformation(smartWrap as bool) as TooltipInformation is override
 		"""
@@ -144,18 +145,15 @@ class NamedNodeData inherits CompletionData
 		if _tooltipInfo <> nil, return _tooltipInfo
 		
 		info = TooltipInformation()
-		
-		sigMarkup = .signature
-		sigMarkup = sigMarkup.replace("<", "&lt;")
-		sigMarkup = sigMarkup.replace(">", "&gt;")
-		info.signatureMarkup = sigMarkup
+		info.signatureMarkup = .signature
 		
 		sumMarkup = .description
 		info.summaryMarkup = sumMarkup
 		
 		_tooltipInfo = info
 		return _tooltipInfo to !
-		
+	
+	
 	get signature as String
 		"""
 		Appears as the signatureMarkup in the tooltip for this completion entry.
@@ -165,56 +163,20 @@ class NamedNodeData inherits CompletionData
 		desc = "?"
 		
 		try
-			if _node inherits Box
-				if _node.isGeneric
-					desc = _createGenericSignature(_node)
-				else
-					desc = _node.qualifiedName
-				
-			else if _node inherits AbstractMethod
-				if _node inherits Method
-					desc = _createMethodSignature(_node)
-				else
-					desc = _node.resultType.name
-				
-			else if _node inherits Property
-				desc = _node.resultType.name
-			
-			else if _node inherits BoxEvent
-				desc = _node.resultType.name
-			
-			else if _node inherits BoxField
-				desc = _node.type.name
-			
-			else if _node inherits AbstractLocalVar
-				desc = _node.type.name
-			
-			else if _node inherits NameSpace
-				desc = _node.fullName
-			
-			else if _node inherits EnumDecl
-				desc = "[_node.parentNameSpace.fullName].[_node.name]"
-			
-			else if _node inherits EnumMember
+			if _node inherits EnumMember
 				if _node.value == nil
 					# no need to include tooltip because the user has already typed the EnumDecl name
 					desc = ""
 				else
 					desc = "[_node.resultType.name] (value = [_node.value])"
 			else
-				desc = _node.getType.assemblyQualifiedName ? ""
+				desc = .TooltipProviderAlias.createTooltipMarkup(_node)
 		catch ex as Exception
 			desc = "Doh! Something went wrong trying to generate the signatureMarkup..."
 			trace ex.toString
 		
-		# remove tab characters otherwise it messes up the formatting in the tooltip
-		desc = desc.replace("\t", "")
-		
-		#TODO: fix line breaks in the doc string
 		return desc
-		
-	get summary as String
-		return .description
+	
 	
 	get description as String is override
 		"""
@@ -230,47 +192,7 @@ class NamedNodeData inherits CompletionData
 			desc = ""
 		
 		return desc
-		
-	def _createMethodSignature(m as Method) as String
-		"""
-		Returns a string with the parameter names and types (if any) in the method's tooltip.
-		"""
-		if m.params.count > 0
-			sb = StringBuilder()
-			for p in m.params
-				if sb.length == 0
-					sb.append("(")
-				else
-					sb.append(", ")
-				sb.append("[p.name] as [p.type.name]")
-			if sb.length > 0, sb.append(") as ")
-			sb.append(m.resultType.name)
-			return sb.toString
-		else
-			return m.resultType.name
-			
-	def _createGenericSignature(b as Box) as String
-		"""
-		Given a box declaration for a generic type, will return a string suitable for use in a tooltip.
-		"""
-		require b.isGeneric
-		
-		if b.genericParams.count == 1
-			toReplace = "<of>"
-			replaceWith = "<of [b.genericParams[0].name]>"
-		else
-			toReplace = "<of"
-			replaceWith = ""
-			for gp in b.genericParams
-				if replaceWith.length > 0
-					toReplace += ","
-					replaceWith += ", [gp.name]"
-				else
-					replaceWith = "<of [gp.name]"
-			toReplace += ">"
-			replaceWith += ">"
-			
-		return b.qualifiedName.replace(toReplace, replaceWith)
+	
 		
 	get hasOverloads as bool is override
 		if _node inherits MemberOverload
@@ -283,7 +205,8 @@ class NamedNodeData inherits CompletionData
 				return _hasGenericOverloads
 				
 		return false
-		
+	
+	
 	def _hasGenericOverloads as bool
 		"""
 		Returns true if the parent NameSpace of _node has other Box declarations inside it 
@@ -314,6 +237,7 @@ class NamedNodeData inherits CompletionData
 							return true
 			return false
 	
+	
 	get overloadedData as IEnumerable<of ICompletionData>? is override
 		if _node inherits Method
 			if _node.overloadGroup <> nil
@@ -339,4 +263,7 @@ class NamedNodeData inherits CompletionData
 				overloads.add(NamedNodeData(m))
 			return overloads
 		return nil
-		
+	
+	
+	class TooltipProviderAlias inherits MonoDevelop.CobraBinding.Tooltips.TooltipProvider is private
+		pass

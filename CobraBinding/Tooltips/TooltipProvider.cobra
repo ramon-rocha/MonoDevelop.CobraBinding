@@ -149,6 +149,13 @@ extend INamedNode
 				typ = node.type
 				return "[node.name] as [typ.createTooltipMarkup]"
 			
+			else if node inherits EnumMember
+				if node.value == nil
+					# no need to include tooltip because the user has already typed the EnumDecl name
+					return ""
+				else
+					return "[node.resultType.name] (value = [node.value])"
+			
 			else if node implements Cobra.Compiler.IMember
 				# this is a box/namespace member
 				typ = node.resultType
@@ -243,16 +250,8 @@ class TooltipProvider inherits Mono.TextEditor.TooltipProvider
 			info = CodeCompletion.TooltipInformation()
 			
 			# a node may not have a type if we couldn't bind the types in the AST
-			signature = "?"
 			try
-				if node inherits EnumMember
-					if node.value == nil
-						# no need to include tooltip because the user has already typed the EnumDecl name
-						signature = ""
-					else
-						signature = "[node.resultType.name] (value = [node.value])"
-				else
-					signature = node.createTooltipMarkup
+				signature = node.createTooltipMarkup
 			catch ex as Exception
 				signature = "Doh! Something went wrong trying to generate the signatureMarkup..."
 				trace ex.toString
@@ -274,7 +273,7 @@ class TooltipProvider inherits Mono.TextEditor.TooltipProvider
 				summary = summary.replace("\t", "")
 				#TODO: fix line breaks in the doc string
 				return summary
-			catch ex as Exception
+			catch
 				# This node doesn't have a doc string
 				return ""
 		

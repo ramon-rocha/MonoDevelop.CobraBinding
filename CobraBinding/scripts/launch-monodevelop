@@ -1,0 +1,3 @@
+#!/bin/sh
+
+mono --gc=sgen /usr/local/lib/monodevelop/bin/MonoDevelop.exe --no-redirect

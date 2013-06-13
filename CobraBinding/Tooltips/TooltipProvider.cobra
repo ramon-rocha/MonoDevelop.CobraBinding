@@ -275,8 +275,8 @@ class TooltipProvider inherits Mono.TextEditor.TooltipProvider
 				#TODO: fix line breaks in the doc string
 				return summary
 			catch ex as Exception
-				trace ex.toString
-				return "Doh! Something went wrong trying to generate the summaryMarkup..."
+				# This node doesn't have a doc string
+				return ""
 		
 	
 	def getItem(editor as TextEditor?, offset as int)  as TooltipItem? is override

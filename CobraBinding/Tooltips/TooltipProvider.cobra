@@ -234,6 +234,50 @@ class TooltipProvider inherits Mono.TextEditor.TooltipProvider
 		
 		def createTooltipMarkup(node as INamedNode) as String
 			return node.createTooltipMarkup
+		
+		def createCodeCompletionTooltip(node as INamedNode) as CodeCompletion.TooltipInformation
+			"""
+			Create and return a tooltip that will display alongside the completion data
+			entry for the given node.
+			"""
+			info = CodeCompletion.TooltipInformation()
+			
+			# a node may not have a type if we couldn't bind the types in the AST
+			signature = "?"
+			try
+				if node inherits EnumMember
+					if node.value == nil
+						# no need to include tooltip because the user has already typed the EnumDecl name
+						signature = ""
+					else
+						signature = "[node.resultType.name] (value = [node.value])"
+				else
+					signature = node.createTooltipMarkup
+			catch ex as Exception
+				signature = "Doh! Something went wrong trying to generate the signatureMarkup..."
+				trace ex.toString
+			info.signatureMarkup = signature
+			info.summaryMarkup = .createCodeCompletionSummaryMarkup(node)
+			return info
+		
+		
+		def createCodeCompletionSummaryMarkup(node as dynamic) as String
+			"""
+			Returns markup suitable for use in a tooltip that describes the given
+			'node'.
+			
+			TODO: Can we avoid dynamic typing here?
+			"""
+			try
+				summary = node.docString ? ""
+				# remove tab characters otherwise it messes up the formatting in the tooltip
+				summary = summary.replace("\t", "")
+				#TODO: fix line breaks in the doc string
+				return summary
+			catch ex as Exception
+				trace ex.toString
+				return "Doh! Something went wrong trying to generate the summaryMarkup..."
+		
 	
 	def getItem(editor as TextEditor?, offset as int)  as TooltipItem? is override
 		"""

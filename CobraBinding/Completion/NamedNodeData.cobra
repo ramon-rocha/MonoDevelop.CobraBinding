@@ -55,13 +55,15 @@ class NamedNodeData inherits CompletionData
 		assert not lData.hasOverloads
 		assert lData.displayText == "LinkedList<of"
 		assert lData.completionText == "LinkedList<of "
-		assert lData.signature == "class System.Collections.Generic.LinkedList&lt;of T&gt;"
+		sigMarkup = lData.createTooltipInformation(false).signatureMarkup
+		assert sigMarkup == "class System.Collections.Generic.LinkedList&lt;of T&gt;"
 		
 		dData = NamedNodeData(dictionaryType)
 		assert not dData.hasOverloads
 		assert dData.displayText == "Dictionary<of"
 		assert dData.completionText == "Dictionary<of "
-		assert dData.signature == "class System.Collections.Generic.Dictionary&lt;of TKey, TValue&gt;"
+		sigMarkup = dData.createTooltipInformation(false).signatureMarkup
+		assert sigMarkup == "class System.Collections.Generic.Dictionary&lt;of TKey, TValue&gt;"
 	
 	test isGenericHasOverloads
 		ast = CobraCompletionTextEditorExtension.createTestData
@@ -79,7 +81,8 @@ class NamedNodeData inherits CompletionData
 		aData = NamedNodeData(actionType)
 		assert aData.displayText == "Action<of"
 		assert aData.completionText == "Action<of "
-		assert aData.signature == "class System.Action&lt;of T&gt;"
+		sigMarkup = aData.createTooltipInformation(false).signatureMarkup
+		assert sigMarkup == "class System.Action&lt;of T&gt;"
 		assert aData.hasOverloads
 		overloadCount = 0
 		for o in aData.overloadedData
@@ -89,7 +92,8 @@ class NamedNodeData inherits CompletionData
 		pData = NamedNodeData(pairType)
 		assert pData.displayText == "Pair<of"
 		assert pData.completionText == "Pair<of "
-		assert pData.signature == "class Cobra.Core.Pair&lt;of T&gt;"
+		sigMarkup = pData.createTooltipInformation(false).signatureMarkup
+		assert sigMarkup == "class Cobra.Core.Pair&lt;of T&gt;"
 		assert pData.hasOverloads
 		overloadCount = 0
 		for o in pData.overloadedData
@@ -143,55 +147,15 @@ class NamedNodeData inherits CompletionData
 		Create the tooltip that displays next to the highlighted completion entry.
 		"""
 		if _tooltipInfo <> nil, return _tooltipInfo
-		
-		info = TooltipInformation()
-		info.signatureMarkup = .signature
-		
-		sumMarkup = .description
-		info.summaryMarkup = sumMarkup
-		
-		_tooltipInfo = info
+		_tooltipInfo = .TooltipProviderAlias.createCodeCompletionTooltip(_node)
 		return _tooltipInfo to !
-	
-	
-	get signature as String
-		"""
-		Appears as the signatureMarkup in the tooltip for this completion entry.
-		"""
-		
-		# a node may not have a type if we couldn't bind the types in the AST
-		desc = "?"
-		
-		try
-			if _node inherits EnumMember
-				if _node.value == nil
-					# no need to include tooltip because the user has already typed the EnumDecl name
-					desc = ""
-				else
-					desc = "[_node.resultType.name] (value = [_node.value])"
-			else
-				desc = .TooltipProviderAlias.createTooltipMarkup(_node)
-		catch ex as Exception
-			desc = "Doh! Something went wrong trying to generate the signatureMarkup..."
-			trace ex.toString
-		
-		return desc
 	
 	
 	get description as String is override
 		"""
 		Appears as the summaryMarkup in the tooltip for this completion entry.
 		"""
-		n = _node to dynamic
-		try
-			desc = n.docString ? ""
-			# remove tab characters otherwise it messes up the formatting in the tooltip
-			desc = desc.replace("\t", "")
-			#TODO: fix line breaks in the doc string
-		catch
-			desc = ""
-		
-		return desc
+		return .TooltipProviderAlias.createCodeCompletionSummaryMarkup(_node)
 	
 		
 	get hasOverloads as bool is override

@@ -94,182 +94,179 @@ class CobraLanguageBinding implements IDotNetLanguageBinding
 		
 		Returns a BuildResult instance that contains compilation errors if any occurred.
 		"""
-		test
-			pass
-		body
-			argsBuilder = StringBuilder("-compile")
+		argsBuilder = StringBuilder("-compile")
 
-			# references (add each one only once)
-			refs = HashSet<of String>()
-			pkgs = HashSet<of String>()
-			referencedSysCore = false
-			slash = Path.directorySeparatorChar
+		# references (add each one only once)
+		refs = HashSet<of String>()
+		pkgs = HashSet<of String>()
+		referencedSysCore = false
+		slash = Path.directorySeparatorChar
 
-			libPaths = List<of String>()
-			sysAsmService = MonoDevelop.Core.Runtime.systemAssemblyService
-			runTime as Assemblies.TargetRuntime = sysAsmService.defaultRuntime to !
-			if configuration.parentItem <> nil
-				proj = configuration.parentItem to !
-				runTime = proj.targetRuntime to !
+		libPaths = List<of String>()
+		sysAsmService = MonoDevelop.Core.Runtime.systemAssemblyService
+		runTime as Assemblies.TargetRuntime = sysAsmService.defaultRuntime to !
+		if configuration.parentItem <> nil
+			proj = configuration.parentItem to !
+			runTime = proj.targetRuntime to !
 
-			for projRef in items.getAll<of ProjectReference>
-				branch projRef.referenceType
-					on ReferenceType.Package
-					
-						pkg = projRef.package
-					
-						if _isWindows
-							/#
-							The '-pkg' option isn't available on Windows. We need
-							to explicitly specify all the referenced assemblies and
-							their dependencies.
-							#/
-							for fileName in projRef.getReferencedFileNames(configSelector)
-								if refs.add(fileName)
-									argsBuilder.append(' -ref:"[fileName]"')
-									if not referencedSysCore
-										referencedSysCore = fileName.endsWith("[slash]System.Core.dll")
-										
-							if pkg.gacRoot and not libPaths.contains(pkg.gacRoot)
-								libPaths.add(pkg.gacRoot)
-								
-							if pkg.requires
-								for requiredPkg in pkg.requires.split(' ')
-									rpkg = runTime.assemblyContext.getPackage(requiredPkg)
-									if not rpkg, continue
-									for asm in rpkg.assemblies
-										if refs.add(asm.location)
-											argsBuilder.append(' -ref:"[asm.location]"')
-											if not referencedSysCore
-												referencedSysCore = asm.location.endsWith("[slash]System.Core.dll")
-						else
-							# when not on Windows, we can use the -pkg option directly
-							if pkgs.add(pkg.name)
-								argsBuilder.append(' -pkg:"[pkg.name]"')
-					else
-						# this is either a direct assembly reference or a project reference
+		for projRef in items.getAll<of ProjectReference>
+			branch projRef.referenceType
+				on ReferenceType.Package
+				
+					pkg = projRef.package
+				
+					if _isWindows
+						/#
+						The '-pkg' option isn't available on Windows. We need
+						to explicitly specify all the referenced assemblies and
+						their dependencies.
+						#/
 						for fileName in projRef.getReferencedFileNames(configSelector)
 							if refs.add(fileName)
 								argsBuilder.append(' -ref:"[fileName]"')
 								if not referencedSysCore
 									referencedSysCore = fileName.endsWith("[slash]System.Core.dll")
-			
-			if not referencedSysCore
-				/#
-				Workaround an issue where some System.Core types from .NET 4.0 cannot
-				be resolved without an explicit reference.  So, if we haven't already
-				added an explicit reference, add one now.
-				
-				This issue seems to only exist on Mono. We shouldn't check to see if
-				we should only include this workaround on non-Windows systems because
-				you can also use the Mono runtime on Windows.
-				#/
-				refs.add("System.Core")
-				argsBuilder.append(" -ref:System.Core")
-			
-			if libPaths.count > 0
-				for libPath in libPaths
-					argsBuilder.append(' -lib:"[libPath]"')
-
-			# what kind of assembly will we generate?
-			argsBuilder.append(_targetArgs[configuration.compileTarget])
-			
-			# are we targetting a specific platform?
-			if configuration.platform <> nil and configuration.platform.length > 0
-				argsBuilder.append(" -clr-platform:[configuration.platform]")
-
-
-			# a project always exists in memory, but not on disk for single files
-			if not File.exists(configuration.parentItem.fileName.toString)
-				/#
-				This is a fake project. We get this when a user directly opens a
-				source file without creating a project/solution. We'll use the
-				location of the single source file as the working directory.
-				#/
-				standAloneFile = items[0] to IFileItem
-				configuration.parentItem.baseDirectory = standAloneFile.fileName.parentDirectory
-
-			# what will we call the generated assembly?
-			asmName = configuration.compiledOutputName
-			argsBuilder.append(' -out:"[asmName.fullPath]"')
-
-			# which files should we compile and which ones should we embed as resources?
-			toCompile = StringBuilder()
-			nativeArgsBuilder = StringBuilder()
-			
-			for projFile in items.getAll<of ProjectFile>
-				
-				# workaround an issue where directories are sometimes included with project files
-				if Directory.exists(projFile.name), continue
-				
-				branch projFile.buildAction
-					on BuildAction.compile
-						toCompile.append(' "[projFile.name]"')
-					on BuildAction.embeddedResource
-						#TODO: Figure out how to specify the resource name on Windows
-						if _isWindows
-							nativeArgsBuilder.append('-res:\\"[projFile.name]\\" ')
-						else
-							nativeArgsBuilder.append('-res:\\"[projFile.name],[projFile.resourceId]\\" ')
-			
-			compilerParams = configuration.compilationParameters to CobraCompilerParameters
-			nativeArgs = nativeArgsBuilder.toString.trimEnd
-			
-			if nativeArgs.length
-				if compilerParams.nativeCompilerArgs.length
-					# native compiler args have already been specified, combine them
-					compilerParams.nativeCompilerArgs += " [nativeArgs]"
+									
+						if pkg.gacRoot and not libPaths.contains(pkg.gacRoot)
+							libPaths.add(pkg.gacRoot)
+							
+						if pkg.requires
+							for requiredPkg in pkg.requires.split(' ')
+								rpkg = runTime.assemblyContext.getPackage(requiredPkg)
+								if not rpkg, continue
+								for asm in rpkg.assemblies
+									if refs.add(asm.location)
+										argsBuilder.append(' -ref:"[asm.location]"')
+										if not referencedSysCore
+											referencedSysCore = asm.location.endsWith("[slash]System.Core.dll")
+					else
+						# when not on Windows, we can use the -pkg option directly
+						if pkgs.add(pkg.name)
+							argsBuilder.append(' -pkg:"[pkg.name]"')
 				else
-					argsBuilder.append(' -native-compiler-args:"[nativeArgs]"')
+					# this is either a direct assembly reference or a project reference
+					for fileName in projRef.getReferencedFileNames(configSelector)
+						if refs.add(fileName)
+							argsBuilder.append(' -ref:"[fileName]"')
+							if not referencedSysCore
+								referencedSysCore = fileName.endsWith("[slash]System.Core.dll")
+		
+		if not referencedSysCore
+			/#
+			Workaround an issue where some System.Core types from .NET 4.0 cannot
+			be resolved without an explicit reference.  So, if we haven't already
+			added an explicit reference, add one now.
 			
-			if not compilerParams.embedRunTime
-				argsBuilder.append(" -copy-core")
-			
-			# add the user specified compiler parameters for this configuration
-			argsBuilder.append(compilerParams.createCmdLineArgs)
-			
-			# add the list of files to compile
-			argsBuilder.append(toCompile.toString)
+			This issue seems to only exist on Mono. We shouldn't check to see if
+			we should only include this workaround on non-Windows systems because
+			you can also use the Mono runtime on Windows.
+			#/
+			refs.add("System.Core")
+			argsBuilder.append(" -ref:System.Core")
+		
+		if libPaths.count > 0
+			for libPath in libPaths
+				argsBuilder.append(' -lib:"[libPath]"')
 
-			if CobraCore.isRunningOnMono
-				cobraCmd = CobraCommand.find
+		# what kind of assembly will we generate?
+		argsBuilder.append(_targetArgs[configuration.compileTarget])
+		
+		# are we targetting a specific platform?
+		if configuration.platform <> nil and configuration.platform.length > 0
+			argsBuilder.append(" -clr-platform:[configuration.platform]")
+
+
+		# a project always exists in memory, but not on disk for single files
+		if not File.exists(configuration.parentItem.fileName.toString)
+			/#
+			This is a fake project. We get this when a user directly opens a
+			source file without creating a project/solution. We'll use the
+			location of the single source file as the working directory.
+			#/
+			standAloneFile = items[0] to IFileItem
+			configuration.parentItem.baseDirectory = standAloneFile.fileName.parentDirectory
+
+		# what will we call the generated assembly?
+		asmName = configuration.compiledOutputName
+		argsBuilder.append(' -out:"[asmName.fullPath]"')
+
+		# which files should we compile and which ones should we embed as resources?
+		toCompile = StringBuilder()
+		nativeArgsBuilder = StringBuilder()
+		
+		for projFile in items.getAll<of ProjectFile>
+			
+			# workaround an issue where directories are sometimes included with project files
+			if Directory.exists(projFile.name), continue
+			
+			branch projFile.buildAction
+				on BuildAction.compile
+					toCompile.append(' "[projFile.name]"')
+				on BuildAction.embeddedResource
+					#TODO: Figure out how to specify the resource name on Windows
+					if _isWindows
+						nativeArgsBuilder.append('-res:\\"[projFile.name]\\" ')
+					else
+						nativeArgsBuilder.append('-res:\\"[projFile.name],[projFile.resourceId]\\" ')
+		
+		compilerParams = configuration.compilationParameters to CobraCompilerParameters
+		nativeArgs = nativeArgsBuilder.toString.trimEnd
+		
+		if nativeArgs.length
+			if compilerParams.nativeCompilerArgs.length
+				# native compiler args have already been specified, combine them
+				compilerParams.nativeCompilerArgs += " [nativeArgs]"
 			else
-				cobraCmd = CobraCommand.findExe
-			
-			if cobraCmd == nil
-				errMsg = "Could not find cobra.exe. " + _
-					"Try adding its location to your PATH environment variable."
-				monitor.reportError(errMsg, nil)
-				failedResult = BuildResult()
-				failedResult.addError(errMsg)
-				return failedResult
+				argsBuilder.append(' -native-compiler-args:"[nativeArgs]"')
+		
+		if not compilerParams.embedRunTime
+			argsBuilder.append(" -copy-core")
+		
+		# add the user specified compiler parameters for this configuration
+		argsBuilder.append(compilerParams.createCmdLineArgs)
+		
+		# add the list of files to compile
+		argsBuilder.append(toCompile.toString)
 
-			# use the project directory as the working directory
-			workingDir = configuration.parentItem.baseDirectory.toString
+		if CobraCore.isRunningOnMono
+			cobraCmd = CobraCommand.find
+		else
+			cobraCmd = CobraCommand.findExe
+		
+		if cobraCmd == nil
+			errMsg = "Could not find cobra.exe. " + _
+				"Try adding its location to your PATH environment variable."
+			monitor.reportError(errMsg, nil)
+			failedResult = BuildResult()
+			failedResult.addError(errMsg)
+			return failedResult
 
-			# compile the code
-			proc = _spawnCobraCompilerProcess(cobraCmd.path, argsBuilder.toString, workingDir)
+		# use the project directory as the working directory
+		workingDir = configuration.parentItem.baseDirectory.toString
 
-			monitor.log.writeLine("Working directory: " + workingDir)
-			# TODO: This creates one giant long string that requires horiztonal scrolling,
-			# it should wrap or logically group the arguments instead
-			monitor.log.writeLine(cobraCmd.path + " " + proc.startInfo.arguments)
+		# compile the code
+		proc = _spawnCobraCompilerProcess(cobraCmd.path, argsBuilder.toString, workingDir)
 
-			# parse the compiler output
-			lines = List<of String>()
+		monitor.log.writeLine("Working directory: " + workingDir)
+		# TODO: This creates one giant long string that requires horiztonal scrolling,
+		# it should wrap or logically group the arguments instead
+		monitor.log.writeLine(cobraCmd.path + " " + proc.startInfo.arguments)
 
-			stdErr = proc.standardError.readToEnd
-			if stdErr.length, monitor.reportError(stdErr, nil)
-			lines.addRange(stdErr.split('\n'))
+		# parse the compiler output
+		lines = List<of String>()
 
-			stdOut = proc.standardOutput.readToEnd
-			if stdOut.length, monitor.log.writeLine(stdOut)
-			lines.addRange(stdOut.split('\n'))
-			
-			buildResult = _parseCompilerOutput(lines)
-			buildResult.compilerOutput = stdOut
+		stdErr = proc.standardError.readToEnd
+		if stdErr.length, monitor.reportError(stdErr, nil)
+		lines.addRange(stdErr.split('\n'))
 
-			return buildResult
+		stdOut = proc.standardOutput.readToEnd
+		if stdOut.length, monitor.log.writeLine(stdOut)
+		lines.addRange(stdOut.split('\n'))
+		
+		buildResult = _parseCompilerOutput(lines)
+		buildResult.compilerOutput = stdOut
+
+		return buildResult
 	
 	def _spawnCobraCompilerProcess(cobraExe as String, cobraArgs as String, workingDir as String) as Process
 		"""
@@ -433,14 +430,8 @@ class CobraLanguageBinding implements IDotNetLanguageBinding
 			return CobraCompilerParameters()
 		
 	def createProjectParameters(projectOptions as XmlElement?) as ProjectParameters
-		test
-			pass
-		body
-			return ProjectParameters()
+		return ProjectParameters()
 	
 	#TODO
 	def getCodeDomProvider as CodeDomProvider?
-		test
-			pass
-		body
-			return nil
+		return nil

@@ -203,6 +203,9 @@ class DataFactory
 			return NamedNodeData(node)
 		
 		def createEnumMembersList(e as EnumDecl) as CobraCompletionList
+			"""
+			Returns a list of completion entries for the members of the given enum declaration.
+			"""
 			data = CobraCompletionList()
 			for d in e.declsInOrder
 				data.add(NamedNodeData(d))
@@ -210,13 +213,13 @@ class DataFactory
 		
 		def createBoxMembersList(box as Box) as BoxMembersList
 			"""
-			Include all members of the given Box.
+			Returns a completion data list which include all members of the given Box.
 			"""
 			return BoxMembersList(box)
 			
 		def createBoxInstanceMembersList(box as Box) as BoxMembersList
 			"""
-			Only includes public non-shared members.
+			Returns a completion data list that only includes public non-shared members.
 			"""
 			filter as BoxMembersList.Filter = do(m as IBoxMember)
 				return not m.isShared and "public" in m.isNames
@@ -224,7 +227,7 @@ class DataFactory
 			
 		def createBoxSharedMembersList(box as Box) as BoxMembersList
 			"""
-			Only includes public shared members.
+			Returns a completion data list that only includes public shared members.
 			"""
 			filter as BoxMembersList.Filter = do(m as IBoxMember)
 				if "public" in m.isNames
@@ -240,9 +243,17 @@ class DataFactory
 			return BoxMembersList(box, filter)
 			
 		def createMethodVarsList(method as AbstractMethod) as MethodVarsList
+			"""
+			Returns a completion data list whose entries are made from the local
+			variables and parameters declared in the given method.
+			"""
 			return MethodVarsList(method)
 		
 		def createNameSpaceDeclsList(nameSpace as NameSpace) as NameSpaceDeclsList
+			"""
+			Returns a completion data list whose entries are all the declarations
+			made in the given namespace.
+			"""
 			if nameSpace.isUnified or nameSpace.unifiedNameSpace == nil
 				return NameSpaceDeclsList(nameSpace)
 			else
@@ -277,7 +288,16 @@ class DataFactory
 			
 		def createSubNameSpaceList(ns as NameSpace) as CobraCompletionList
 			"""
-			Only return namespace decls from the given namespace.
+			Returns a completion data list whose entries are all the
+			sub-namespaces declared in the given parent namespace.
+			This is useful for showing appropriate completion entries
+			when writing a 'use' directive such as 'use Foo.Bar'
+			
+			Example:
+				if 'ns' corresponds to the NameSpace node for the
+				'System.Collections' namespace, then the returned list
+				would contain the entries for only the Concurrent,
+				Generic, ObjectModel, and Specialized NameSpace nodes.
 			"""
 			subNameSpaces = CobraCompletionList()
 			for d in ns.declsInOrder
@@ -287,7 +307,8 @@ class DataFactory
 			
 		def uniqueCompletionEntries(dataList as CobraCompletionList) as CobraCompletionList
 			"""
-			Return unique completion data entries from the given list.
+			Returns a new completion data list containing only the unique
+			completion data entries from the given list.
 			"""
 			test
 				initialList = CobraCompletionList()

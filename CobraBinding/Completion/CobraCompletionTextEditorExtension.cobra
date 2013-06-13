@@ -18,6 +18,9 @@ use ICSharpCode.NRefactory.TypeSystem
 namespace MonoDevelop.CobraBinding.Completion
 
 class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
+	"""
+	Provides support for code completion when editing Cobra source files.
+	"""
 
 	shared
 		/#

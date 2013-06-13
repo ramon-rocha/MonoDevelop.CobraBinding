@@ -11,6 +11,10 @@ use MonoDevelop.CobraBinding.Project
 namespace MonoDevelop.CobraBinding
 
 class CobraLanguageBinding implements IDotNetLanguageBinding
+	"""
+	This class provides core functionality for compiling Cobra source code
+	and projects to generate an assembly file.
+	"""
 
 	test
 		binding = CobraLanguageBinding()
@@ -31,7 +35,12 @@ class CobraLanguageBinding implements IDotNetLanguageBinding
 		var sourceFileExtension = ".cobra"
 		
 	class AddOnKeys
-	
+		"""
+		Cobra syntax nodes have a general purpose dictionary for storing
+		arbitrary values on them.  This class contains the keys the various
+		classes in this project use to store and retrieve information to
+		and from this dictionary.
+		"""
 		cue init is private
 			base.init
 	
@@ -79,6 +88,12 @@ class CobraLanguageBinding implements IDotNetLanguageBinding
 		
 	def compile(items as ProjectItemCollection, configuration as DotNetProjectConfiguration,
 				configSelector as ConfigurationSelector, monitor as IProgressMonitor) as BuildResult
+		"""
+		Attempts to compile the given project items using the provided project
+		configuration to produce as assembly file.
+		
+		Returns a BuildResult instance that contains compilation errors if any occurred.
+		"""
 		test
 			pass
 		body

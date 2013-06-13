@@ -202,6 +202,10 @@ class CobraCompilerParameters inherits ConfigurationParameters
 		return argsBuilder.toString
 
 	def _createPerfQualCmdLineArgs as String
+		"""
+		Generates the Cobra compiler command-line arguments for the selected
+		'Performance and Quality' options.
+		"""
 		ensure
 			(_performanceQualityOption == PerfQualOption.Default) implies result.length == 0
 			(_performanceQualityOption == PerfQualOption.Turbo) implies result == " -turbo"
@@ -232,6 +236,10 @@ class CobraCompilerParameters inherits ConfigurationParameters
 			return sb.toString
 
 	def _createDevDeployCmdLineArgs as String
+		"""
+		Generates the Cobra compiler command-line arguments for the selected
+		'Development and Deployment' options.
+		"""
 		ensure
 			result.contains("-ert:[.embedRunTime]")
 			result.contains("debug:[.debug]")
@@ -282,6 +290,10 @@ class CobraCompilerParameters inherits ConfigurationParameters
 			return sb.toString
 
 	def _createBackEndCmdLineArgs as String
+		"""
+		Generates the Cobra compiler command-line arguments for the selected
+		'Back-End Native Compiler' options.
+		"""
 		ensure
 			(_backEndCompiler <> "none") implies result.contains(" -back-end:[_backEndCompiler]")
 			(_backEndCompiler == "none") implies not result.contains("-back-end:")

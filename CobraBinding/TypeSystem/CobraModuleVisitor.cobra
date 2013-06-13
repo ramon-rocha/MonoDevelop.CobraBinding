@@ -148,7 +148,11 @@ class CobraModuleVisitor inherits Cobra.Core.Visitor
 		_symbolTable = Dictionary<of DomRegion, Dictionary<of String, INamedNode>>()
 
 	def _addRegion(node as ISyntaxNode)
-	
+		"""
+		Creates a DomRegion from the given node.  This region is used as a
+		key in the _symbolTable dictionary.  The corresponding value will
+		also be a dictionary mapping identifiers to nodes.
+		"""
 		beginToken = node.token
 		beginLine = beginToken.lineNum
 		beginCol = beginToken.colNum
@@ -189,7 +193,10 @@ class CobraModuleVisitor inherits Cobra.Core.Visitor
 
 	def __addIdentifiers(node as INamedNode, region as DomRegion)
 		"""
-		Should only be called by _addRegion
+		Adds identifiers from the given node to the _symbolTable dictionary
+		using `region` as a key.
+		
+		Should only be called by _addRegion.
 		"""
 		require not _symbolTable.containsKey(region)
 		

@@ -83,12 +83,19 @@ class Parser inherits TypeSystemParser implements IFoldingParser
 		return parsedDoc
 		
 	def _addFolds(doc as ParsedCobraDocument)
+		"""
+		Adds folding regions to the given document.
+		"""
 		reader = StringReader(doc.content)
 		folds = List<of FoldingRegion>()
 		_addFolds(_getLineInformation(reader), folds)
 		doc.add(folds)
 	
 	def _getLineInformation(reader as StringReader) as List<of LineInformation>
+		"""
+		Create a list of LineInformation objects that make it easier to
+		create folding regions.
+		"""
 		lines = List<of String>(.TYPICAL_LINE_COUNT)
 		
 		line = reader.readLine

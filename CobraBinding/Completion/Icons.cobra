@@ -6,6 +6,9 @@ use MonoDevelop.Ide
 namespace MonoDevelop.CobraBinding.Completion
 
 class Icons
+	"""
+	This class stores information about which icons to use for entries in completion data lists.
+	"""
 
 	# these are for indexing into the lists contained in the values of the _icons dictionary
 	const _defaultIcon = 0

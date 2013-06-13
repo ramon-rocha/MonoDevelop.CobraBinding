@@ -58,6 +58,10 @@ class BoxMembersList inherits CobraCompletionList
 		
 		
 	def _addMembers(members as IBoxMember*, filter as Filter?)
+		"""
+		Adds an entry to the completion data list for each member in
+		the stream `members` that matches the criteria defined by `filter`.
+		"""
 		
 		/# Pretend we've already seen 'cue.init' and the indexer '[]'
 		so they are not included in the final list #/

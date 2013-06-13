@@ -10,6 +10,12 @@ namespace MonoDevelop.CobraBinding.Tooltips
 extend IType
 
 	def createTooltipMarkup as String
+		"""
+		Returns markup suitable for use in a tooltip.
+		
+		Generally, it will be the fully qualified name of this IType instance
+		such as 'System.String' or 'System.Collections.Generic.List<of int>'.
+		"""
 		typ = this
 		if typ inherits WrappedType
 			return "[typ.theWrappedType.createTooltipMarkup][typ.suffix]"
@@ -186,6 +192,7 @@ extend INamedNode
 	def _createParamMarkup as String
 		"""
 		Returns the markup to be used for the parameters of a method
+		such as 'x as int, y as int, z as int'
 		"""
 		require
 			this inherits MemberOverload _

@@ -32,10 +32,13 @@ class ParsedCobraDocument inherits DefaultParsedDocument
 		_content = content
 
 	get content from var
+		"""The raw Cobra source code"""
 
 	get regionMap from var
+		"""Maps nodes to regions in the parsed document"""
 
 	get symbolTable from var
+		"""Maps regions to maps of identifier/node pairs"""
 	
 	def add(errors as SourceException*)
 		for err in errors
@@ -58,6 +61,8 @@ class ParsedCobraDocument inherits DefaultParsedDocument
 	def createNodeMap as Dictionary<of DomRegion, ISyntaxNode>?
 		"""
 		Returns a map of DomRegions to ISyntaxNodes given a map of ISyntaxNodes to DomRegions.
+		
+		Essentially, this is a reverse map of the .regionMap dictionary.
 		"""
 		ensure
 			_regionMap implies result
@@ -105,6 +110,8 @@ class ParsedCobraDocument inherits DefaultParsedDocument
 	def extendRegions(txtDoc as TextDocument)
 		"""
 		Extends the code regions in the given dictionaries to include blank lines.
+		
+		Folding regions are not affected.
 		"""
 		require
 			_regionMap <> nil

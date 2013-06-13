@@ -239,6 +239,10 @@ class NamedNodeData inherits CompletionData
 	
 	
 	get overloadedData as IEnumerable<of ICompletionData>? is override
+		"""
+		Returns an enumerable object for all possible completion data entries
+		for this overloadable entry.
+		"""
 		if _node inherits Method
 			if _node.overloadGroup <> nil
 				overloads = CobraCompletionList()
@@ -266,4 +270,7 @@ class NamedNodeData inherits CompletionData
 	
 	
 	class TooltipProviderAlias inherits MonoDevelop.CobraBinding.Tooltips.TooltipProvider is private
+		"""
+		Prevents name collision with Mono.TextEditor.TooltipProvider
+		"""
 		pass

@@ -99,8 +99,6 @@ class CobraLanguageBinding implements IDotNetLanguageBinding
 		# references (add each one only once)
 		refs = HashSet<of String>()
 		pkgs = HashSet<of String>()
-		referencedSysCore = false
-		slash = Path.directorySeparatorChar
 
 		libPaths = List<of String>()
 		sysAsmService = MonoDevelop.Core.Runtime.systemAssemblyService
@@ -124,8 +122,6 @@ class CobraLanguageBinding implements IDotNetLanguageBinding
 						for fileName in projRef.getReferencedFileNames(configSelector)
 							if refs.add(fileName)
 								argsBuilder.append(' -ref:"[fileName]"')
-								if not referencedSysCore
-									referencedSysCore = fileName.endsWith("[slash]System.Core.dll")
 									
 						if pkg.gacRoot and not libPaths.contains(pkg.gacRoot)
 							libPaths.add(pkg.gacRoot)
@@ -137,8 +133,6 @@ class CobraLanguageBinding implements IDotNetLanguageBinding
 								for asm in rpkg.assemblies
 									if refs.add(asm.location)
 										argsBuilder.append(' -ref:"[asm.location]"')
-										if not referencedSysCore
-											referencedSysCore = asm.location.endsWith("[slash]System.Core.dll")
 					else
 						# when not on Windows, we can use the -pkg option directly
 						if pkgs.add(pkg.name)
@@ -148,21 +142,6 @@ class CobraLanguageBinding implements IDotNetLanguageBinding
 					for fileName in projRef.getReferencedFileNames(configSelector)
 						if refs.add(fileName)
 							argsBuilder.append(' -ref:"[fileName]"')
-							if not referencedSysCore
-								referencedSysCore = fileName.endsWith("[slash]System.Core.dll")
-		
-		if not referencedSysCore
-			/#
-			Workaround an issue where some System.Core types from .NET 4.0 cannot
-			be resolved without an explicit reference.  So, if we haven't already
-			added an explicit reference, add one now.
-			
-			This issue seems to only exist on Mono. We shouldn't check to see if
-			we should only include this workaround on non-Windows systems because
-			you can also use the Mono runtime on Windows.
-			#/
-			refs.add("System.Core")
-			argsBuilder.append(" -ref:System.Core")
 		
 		if libPaths.count > 0
 			for libPath in libPaths

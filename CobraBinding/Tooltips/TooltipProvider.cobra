@@ -340,9 +340,6 @@ class TooltipProvider inherits Mono.TextEditor.TooltipProvider
 
 			for filePath, code in testData
 				if filePath.endsWith("ForTooltipTesting.cobra")
-					return cm.parseAndBind(
-						{filePath: code},
-						["System.Core"],
-						filePath)
+					return cm.parseAndBind({filePath: code}, filePath)
 			
 			throw FallThroughException()

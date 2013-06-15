@@ -47,9 +47,7 @@ class Parser inherits TypeSystemParser implements IFoldingParser
 		
 		sourceMap = Dictionary<of String, String>()
 		sourceMap[fileName] = source
-		
-		# workaround an issue with some types from .NET 4 on Mono such as HashSet<of T>
-		refs = ["System.Core"]
+		refs = List<of String>()
 
 		if project <> nil
 			proj = project to DotNetProject #TODO to CobraProject

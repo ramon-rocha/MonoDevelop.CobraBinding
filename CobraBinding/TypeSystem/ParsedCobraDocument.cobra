@@ -470,5 +470,5 @@ class ParsedCobraDocument inherits DefaultParsedDocument
 				"                print 'derp'\n" +
 				""
 			cm = MonoDevelop.CobraBinding.CompilerManager.instance
-			doc = cm.parseAndBind({fileName: source}, ["System.Core"], fileName)
+			doc = cm.parseAndBind({fileName: source}, fileName)
 			return doc

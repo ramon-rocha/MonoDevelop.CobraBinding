@@ -206,9 +206,7 @@ class CobraLanguageBinding implements IDotNetLanguageBinding
 		
 		# add the list of files to compile
 		argsBuilder.append(toCompile.toString)
-		
-		compilerArgs = argsBuilder.toString
-		
+
 		if CobraCore.isRunningOnMono
 			cobraCmd = CobraCommand.find
 		else
@@ -221,6 +219,8 @@ class CobraLanguageBinding implements IDotNetLanguageBinding
 			failedResult = BuildResult()
 			failedResult.addError(errMsg)
 			return failedResult
+		
+		compilerArgs = argsBuilder.toString
 		
 		# use the project directory as the working directory
 		workingDir = configuration.parentItem.baseDirectory.toString
@@ -236,11 +236,11 @@ class CobraLanguageBinding implements IDotNetLanguageBinding
 		# parse the compiler output
 		lines = List<of String>()
 		
-		stdErr = output.b
+		stdErr = output.errorOutput
 		if stdErr.length, monitor.reportError(stdErr, nil)
 		lines.addRange(stdErr.split('\n'))
 		
-		stdOut = output.a
+		stdOut = output.standardOutput
 		if stdOut.length, monitor.log.writeLine(stdOut)
 		lines.addRange(stdOut.split('\n'))
 		
@@ -249,11 +249,10 @@ class CobraLanguageBinding implements IDotNetLanguageBinding
 		
 		return buildResult
 	
-	def _spawnCobraCompilerProcess(cobraExe as String, cobraArgs as String, workingDir as String) as Pair<of String>
+	def _spawnCobraCompilerProcess(cobraExe as String, cobraArgs as String, workingDir as String) as ProcessOutput
 		"""
-		Executes the Cobra compiler.  Returns a pair of strings the first of which
-		is the contents of the standard output and the second of which is the error
-		output.
+		Executes the Cobra compiler and returns an object containing the data
+		from the standard and error output streams.
 		"""
 		require
 			cobraExe.length > 0
@@ -264,43 +263,22 @@ class CobraLanguageBinding implements IDotNetLanguageBinding
 			expect Exception
 				binding._spawnCobraCompilerProcess("", "", "")
 			cobraExe = CobraCore.findCobraExe to !
-			p = binding._spawnCobraCompilerProcess(cobraExe, "-version", ".")
-			stdOut = p.a
-			assert stdOut.startsWith("Cobra ")
+			output = binding._spawnCobraCompilerProcess(cobraExe, "-version", ".")
+			assert output.combinedOutput.startsWith("Cobra ")
 			
-			p = binding._spawnCobraCompilerProcess(cobraExe, "", ".")
-			stdOut = p.a
+			output = binding._spawnCobraCompilerProcess(cobraExe, "", ".")
+			stdOut = output.standardOutput
 			assert stdOut.contains("The Cobra Programming Language")
 			assert stdOut.contains("Usage:")
 			assert stdOut.contains("cobra -h")
 		body
 			proc = System.Diagnostics.Process()
-			# useShellExecute needs to be false so we can redirect output and hide the screen on Windows
-			proc.startInfo.useShellExecute = false
-			proc.startInfo.redirectStandardOutput = true
-			proc.startInfo.redirectStandardError = true
-			proc.startInfo.windowStyle = ProcessWindowStyle.Hidden
-			proc.startInfo.createNoWindow = true
 			
 			proc.startInfo.fileName = cobraExe
 			proc.startInfo.arguments = cobraArgs
 			proc.startInfo.workingDirectory = workingDir
 			
-			sb = StringBuilder()
-			handler as DataReceivedEventHandler = do(process as Object?, line as DataReceivedEventArgs?)
-				if line.data == nil, return
-				sb.appendLine(line.data)
-			
-			listen proc.outputDataReceived, handler
-			
-			proc.start
-			proc.beginOutputReadLine
-			stdErr = proc.standardError.readToEnd ? ""
-			proc.waitForExit
-			stdOut = sb.toString
-			
-			return Pair<of String>(stdOut, stdErr)
-			
+			return proc.runAndCaptureOutput
 	
 	/#
 	regex testing: http://regexhero.net/tester/

@@ -206,7 +206,9 @@ class CobraLanguageBinding implements IDotNetLanguageBinding
 		
 		# add the list of files to compile
 		argsBuilder.append(toCompile.toString)
-
+		
+		compilerArgs = argsBuilder.toString
+		
 		if CobraCore.isRunningOnMono
 			cobraCmd = CobraCommand.find
 		else
@@ -219,38 +221,39 @@ class CobraLanguageBinding implements IDotNetLanguageBinding
 			failedResult = BuildResult()
 			failedResult.addError(errMsg)
 			return failedResult
-
+		
 		# use the project directory as the working directory
 		workingDir = configuration.parentItem.baseDirectory.toString
-
+		
 		# compile the code
-		proc = _spawnCobraCompilerProcess(cobraCmd.path, argsBuilder.toString, workingDir)
-
+		output = _spawnCobraCompilerProcess(cobraCmd.path, compilerArgs, workingDir)
+		
 		monitor.log.writeLine("Working directory: " + workingDir)
 		# TODO: This creates one giant long string that requires horiztonal scrolling,
 		# it should wrap or logically group the arguments instead
-		monitor.log.writeLine(cobraCmd.path + " " + proc.startInfo.arguments)
-
+		monitor.log.writeLine(cobraCmd.path + " " + compilerArgs)
+		
 		# parse the compiler output
 		lines = List<of String>()
-
-		stdErr = proc.standardError.readToEnd
+		
+		stdErr = output.b
 		if stdErr.length, monitor.reportError(stdErr, nil)
 		lines.addRange(stdErr.split('\n'))
-
-		stdOut = proc.standardOutput.readToEnd
+		
+		stdOut = output.a
 		if stdOut.length, monitor.log.writeLine(stdOut)
 		lines.addRange(stdOut.split('\n'))
 		
 		buildResult = _parseCompilerOutput(lines)
 		buildResult.compilerOutput = stdOut
-
+		
 		return buildResult
 	
-	def _spawnCobraCompilerProcess(cobraExe as String, cobraArgs as String, workingDir as String) as Process
+	def _spawnCobraCompilerProcess(cobraExe as String, cobraArgs as String, workingDir as String) as Pair<of String>
 		"""
-		Executes the Cobra compiler.  Returns a Process object whose standard output and standard
-		error streams can be read for later parsing.
+		Executes the Cobra compiler.  Returns a pair of strings the first of which
+		is the contents of the standard output and the second of which is the error
+		output.
 		"""
 		require
 			cobraExe.length > 0
@@ -262,10 +265,11 @@ class CobraLanguageBinding implements IDotNetLanguageBinding
 				binding._spawnCobraCompilerProcess("", "", "")
 			cobraExe = CobraCore.findCobraExe to !
 			p = binding._spawnCobraCompilerProcess(cobraExe, "-version", ".")
-			assert p.standardOutput.readToEnd.startsWith("Cobra ")
+			stdOut = p.a
+			assert stdOut.startsWith("Cobra ")
 			
 			p = binding._spawnCobraCompilerProcess(cobraExe, "", ".")
-			stdOut = p.standardOutput.readToEnd
+			stdOut = p.a
 			assert stdOut.contains("The Cobra Programming Language")
 			assert stdOut.contains("Usage:")
 			assert stdOut.contains("cobra -h")
@@ -282,10 +286,21 @@ class CobraLanguageBinding implements IDotNetLanguageBinding
 			proc.startInfo.arguments = cobraArgs
 			proc.startInfo.workingDirectory = workingDir
 			
-			proc.start
-			proc.waitForExit
+			sb = StringBuilder()
+			handler as DataReceivedEventHandler = do(process as Object?, line as DataReceivedEventArgs?)
+				if line.data == nil, return
+				sb.appendLine(line.data)
 			
-			return proc
+			listen proc.outputDataReceived, handler
+			
+			proc.start
+			proc.beginOutputReadLine
+			stdErr = proc.standardError.readToEnd ? ""
+			proc.waitForExit
+			stdOut = sb.toString
+			
+			return Pair<of String>(stdOut, stdErr)
+			
 	
 	/#
 	regex testing: http://regexhero.net/tester/

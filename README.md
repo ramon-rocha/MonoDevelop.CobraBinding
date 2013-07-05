@@ -47,7 +47,7 @@ Minimum Requirements
 
 * MonoDevelop 4.0 (Linux) or Xamarin Studio 4.0.2 (Windows/Mac)
 
-* Cobra svn:3006 (post 0.9.4)
+* Cobra svn:3014 (post 0.9.4)
 
 Additional Requirements for Windows 64-bit
 --------------------------------------------

@@ -243,7 +243,7 @@ class CompilerManager
 				branch name
 					on "CannotFindType.cobra"
 						assert err.region.beginLine == 3
-						assert err.region.beginColumn == 0 # binding errors don't provide a column number
+						assert err.region.beginColumn == 8
 						assert err.message == 'Cannot find "Fake".'
 						
 						c = ast.topNameSpace.memberForName("CannotFindType") to Class
@@ -251,7 +251,7 @@ class CompilerManager
 						
 					on "NilError.cobra"
 						assert err.region.beginLine == 5
-						assert err.region.beginColumn == 0
+						assert err.region.beginColumn == 2
 						assert err.message == 'Cannot return String? because "method" is declared to return a String.'
 						
 						c = ast.topNameSpace.memberForName("NilError") to Class
@@ -260,7 +260,7 @@ class CompilerManager
 						
 					on "TypeMismatch.cobra"
 						assert err.region.beginLine == 4
-						assert err.region.beginColumn == 0
+						assert err.region.beginColumn == 14
 						assert err.message == 'Incompatible types. Cannot assign value of type int on the right to String on the left.'
 
 						c = ast.topNameSpace.memberForName("TypeMismatch") to Class

@@ -161,6 +161,12 @@ class CobraModuleVisitor inherits Cobra.Core.Visitor
 		endLine = endToken.lineNum
 		endCol = Int32.maxValue - 1
 		
+		if beginLine == endLine
+			# we don't care about one-line regions...I think
+			# Example: "get foo from var"
+			# This will also ignore empty classes (i.e. classes with no declarations)
+			return
+		
 		if node is __ast.topNameSpace
 			# If the top-level namespace contains only a single class of the
 			# same size, we'll have a hash collision.  So, make sure the top
@@ -168,16 +174,6 @@ class CobraModuleVisitor inherits Cobra.Core.Visitor
 			endCol += 1
 		
 		region = DomRegion(_fileName, beginLine, beginCol, endLine, endCol)
-		if _symbolTable.containsKey(region)
-			# do not violate contract in __addIdentifiers
-			# TODO: we need to make sure the correct node
-			# has been saved in the _regionMap and the
-			# correct entries are in the _symbolTable
-			print "duplicate region [region]"
-			print "existing = [_symbolTable[region].keys]"
-			print "duplicate = [node]"
-			return
-		
 		_regionMap[node] = region
 
 		if node implements INamedNode
@@ -198,9 +194,14 @@ class CobraModuleVisitor inherits Cobra.Core.Visitor
 		
 		Should only be called by _addRegion.
 		"""
-		require not _symbolTable.containsKey(region)
-		
-		_symbolTable[region] = Dictionary<of String, INamedNode>()
+		if not _symbolTable.containsKey(region)
+			_symbolTable[region] = Dictionary<of String, INamedNode>()
+		else
+			# this usually means there is an unhandled case for .endToken in the compiler
+			print "Encountered duplicate region: [region.beginLine], [region.endLine]"
+			print "\tWe already have: [_symbolTable[region].keys]"
+			print "\tBut we were given: [node.name]"
+			print
 		
 		idMap = _symbolTable[region]
 		

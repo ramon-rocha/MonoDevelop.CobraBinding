@@ -225,7 +225,35 @@ class ParsedCobraDocument inherits DefaultParsedDocument
 		if text.length == 0, return nil
 		
 		location = txtDoc.offsetToLocation(offset)
-		return .resolveTextToNode(text, .getContainingRegions(location.line, location.column))
+		
+		containingRegions = .getContainingRegions(location.line, location.column)
+		node = .resolveTextToNode(text, containingRegions)
+		
+		debug = false
+		if debug and node == nil
+			print "Couldn't resolve location ([location.line],[location.column]) to a node"
+			print "All regions:"
+			for i, r in _regionMap.values.numbered
+				print "\tregion [i] = [r.beginLine], [r.endLine]"
+			print "Containing regions:"
+			for i, r in containingRegions.numbered
+				print "\tregion [i] = [r.beginLine], [r.endLine]"
+				idMap as Dictionary<of String, INamedNode>? = nil
+				_symbolTable.tryGetValue(r, out idMap)
+				if idMap <> nil
+					print "\tcorresponding idMap"
+					if idMap.count > 20
+						names = List<of String>(idMap.keys)
+						for i in 20
+							print "\t\t[names[i]] --> [idMap[names[i]].minimalString]"
+						print "\t\tPlus [20 - names.count] more identifiers"
+						continue
+					for name, n in idMap
+						print "\t\t[name] --> [n.minimalString]"
+				else
+					print "\tno corresponding idMap"
+		
+		return node
 	
 	
 	def resolveTextToNode(text as String, containingRegions as List<of DomRegion>) as ISyntaxNode?
@@ -234,24 +262,16 @@ class ParsedCobraDocument inherits DefaultParsedDocument
 		"""
 		ids = Parser.getIdsFromText(text)
 		if ids.count == 0
-			print "couldn't parse identifers from text [text]\n"
+			print "couldn't parse identifers from text [text]"
 			return nil
 		
-		try
-			return _getNodeFromIds(ids, containingRegions)
-			
-		catch ArgumentException
-			# not a valid identifier
-			print "couldn't resolve [ids] to a node\n"
-			return nil
+		return _getNodeFromIds(ids, containingRegions)
 
 
-	def _getNodeFromIds(ids as List<of String>, containingRegions as List<of DomRegion>) as ISyntaxNode
+	def _getNodeFromIds(ids as List<of String>, containingRegions as List<of DomRegion>) as ISyntaxNode?
 		"""
-		Given a list of identifiers, returns the syntax node in the AST
+		Given a list of identifiers, returns the syntax node in the AST, if any,
 		corresponding to the last valid idenfiier.
-
-		Throws an ArgumentException if no node is found.
 		"""
 		require
 			_symbolTable <> nil
@@ -262,6 +282,9 @@ class ParsedCobraDocument inherits DefaultParsedDocument
 			regions = List<of DomRegion>()
 			for r in doc._regionMap.values
 				regions.add(r)
+			
+			node = doc._getNodeFromIds(["bogus"], regions)
+			assert node == nil
 			
 			node = doc._getNodeFromIds(["Object"], regions)
 			assert (node to Box).memberForName("toString") <> nil
@@ -276,19 +299,22 @@ class ParsedCobraDocument inherits DefaultParsedDocument
 			for region in containingRegions
 				if not _symbolTable.tryGetValue(region, out idMap)
 					continue
-				for id, node in idMap
+				for id, parentNode in idMap
 					if id == ids[0]
 						remainingIds = ids[1:ids.count]
-						return _getNodeFromIds(remainingIds, node to ISyntaxNode)
-			throw ArgumentException()
+						node = _getNodeFromIds(remainingIds, parentNode to ISyntaxNode)
+						if node <> nil, return node
+			
+			# node was not found
+			debug = false
+			if debug, print "Couldn't find node from [ids]"
+			return nil
 	
 	
-	def _getNodeFromIds(ids as List<of String>, parent as ISyntaxNode) as ISyntaxNode
+	def _getNodeFromIds(ids as List<of String>, parent as ISyntaxNode) as ISyntaxNode?
 		"""
-		Given a list of identifiers, returns the syntax node in the AST
+		Given a list of identifiers, returns the syntax node in the AST, if any,
 		corresponding to the last valid idenfiier.
-
-		Throws an ArgumentException if no node is found.
 		"""
 		if ids.count == 0
 			return parent
@@ -318,15 +344,13 @@ class ParsedCobraDocument inherits DefaultParsedDocument
 		
 				m = typ.memberForName(ids[0])
 				if m <> nil
-					try
-						return _getNodeFromIds(ids[1:ids.count], m to ISyntaxNode)
-					catch
-						throw ArgumentException()
+					return _getNodeFromIds(ids[1:ids.count], m to ISyntaxNode)
 			else
 				print "[parent.typeForReceiver.name] does not implement IContainer"
 				print "Add a case for [parent.typeForReceiver.toString]\n"
 		
-		throw ArgumentException()
+		# no node found
+		return nil
 		
 	def isInsideComment(offset as int, txtDoc as TextDocument) as bool
 		"""
@@ -427,13 +451,15 @@ class ParsedCobraDocument inherits DefaultParsedDocument
 			b = fakeDoc.getContainingBox(regions, nodeMap)
 			assert b.name == "Program"
 			
+			# remove the region for the "Program" node
 			regions.remove(fakeDoc.regionMap[b])
 			b = fakeDoc.getContainingBox(regions, nodeMap)
-			assert b.name.startsWith("Ninth")
+			# empty classes won't have regions so the next innermost box is "Fourth"
+			assert b.name.startsWith("Fourth")
 			
 			regions.remove(fakeDoc.regionMap[b])
 			b = fakeDoc.getContainingBox(regions, nodeMap)
-			assert b.name.startsWith("Eighth")
+			assert b.name.startsWith("Third")
 		body
 			containingBox as Box? = nil
 			innermostBeginLine = 0

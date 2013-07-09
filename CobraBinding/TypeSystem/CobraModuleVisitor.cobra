@@ -194,15 +194,7 @@ class CobraModuleVisitor inherits Cobra.Core.Visitor
 		
 		Should only be called by _addRegion.
 		"""
-		if not _symbolTable.containsKey(region)
-			_symbolTable[region] = Dictionary<of String, INamedNode>()
-		else
-			# this usually means there is an unhandled case for .endToken in the compiler
-			print "Encountered duplicate region: [region.beginLine], [region.endLine]"
-			print "\tWe already have: [_symbolTable[region].keys]"
-			print "\tBut we were given: [node.name]"
-			print
-		
+		_symbolTable[region] = Dictionary<of String, INamedNode>()
 		idMap = _symbolTable[region]
 		
 		if node inherits NameSpace

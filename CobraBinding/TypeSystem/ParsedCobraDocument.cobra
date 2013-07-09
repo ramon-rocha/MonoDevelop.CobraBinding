@@ -227,33 +227,7 @@ class ParsedCobraDocument inherits DefaultParsedDocument
 		location = txtDoc.offsetToLocation(offset)
 		
 		containingRegions = .getContainingRegions(location.line, location.column)
-		node = .resolveTextToNode(text, containingRegions)
-		
-		debug = false
-		if debug and node == nil
-			print "Couldn't resolve location ([location.line],[location.column]) to a node"
-			print "All regions:"
-			for i, r in _regionMap.values.numbered
-				print "\tregion [i] = [r.beginLine], [r.endLine]"
-			print "Containing regions:"
-			for i, r in containingRegions.numbered
-				print "\tregion [i] = [r.beginLine], [r.endLine]"
-				idMap as Dictionary<of String, INamedNode>? = nil
-				_symbolTable.tryGetValue(r, out idMap)
-				if idMap <> nil
-					print "\tcorresponding idMap"
-					if idMap.count > 20
-						names = List<of String>(idMap.keys)
-						for i in 20
-							print "\t\t[names[i]] --> [idMap[names[i]].minimalString]"
-						print "\t\tPlus [20 - names.count] more identifiers"
-						continue
-					for name, n in idMap
-						print "\t\t[name] --> [n.minimalString]"
-				else
-					print "\tno corresponding idMap"
-		
-		return node
+		return .resolveTextToNode(text, containingRegions)
 	
 	
 	def resolveTextToNode(text as String, containingRegions as List<of DomRegion>) as ISyntaxNode?
@@ -262,7 +236,7 @@ class ParsedCobraDocument inherits DefaultParsedDocument
 		"""
 		ids = Parser.getIdsFromText(text)
 		if ids.count == 0
-			print "couldn't parse identifers from text [text]"
+			# couldn't parse identifers from text
 			return nil
 		
 		return _getNodeFromIds(ids, containingRegions)
@@ -306,8 +280,6 @@ class ParsedCobraDocument inherits DefaultParsedDocument
 						if node <> nil, return node
 			
 			# node was not found
-			debug = false
-			if debug, print "Couldn't find node from [ids]"
 			return nil
 	
 	

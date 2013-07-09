@@ -371,7 +371,6 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 						
 					if members <> nil, completionData.addRange(members)
 				
-				print "should be displaying members for [node]\n"
 				return DataFactory.uniqueCompletionEntries(completionData)
 		
 		# return completion data based on containing regions

@@ -213,20 +213,12 @@ class ParsedCobraDocument inherits DefaultParsedDocument
 		test
 			doc = .createTestData
 			txtDoc = TextDocument.createImmutableDocument(doc.content, true) to !
-			if CobraCore.isRunningOnWindows
-				assert doc.resolveOffsetToWord(0, txtDoc) == nil # CR
-				assert doc.resolveOffsetToWord(1, txtDoc) == nil # LF
-				assert doc.resolveOffsetToWord(5, txtDoc) == "namespace"
-				assert doc.resolveOffsetToWord(10, txtDoc) == "namespace"
-				assert doc.resolveOffsetToWord(15, txtDoc) == "Example"
-				assert doc.resolveOffsetToWord(txtDoc.textLength - 1, txtDoc) == nil
-			else
-				assert doc.resolveOffsetToWord(0, txtDoc) == nil
-				assert doc.resolveOffsetToWord(1, txtDoc) == "namespace"
-				assert doc.resolveOffsetToWord(5, txtDoc) == "namespace"
-				assert doc.resolveOffsetToWord(10, txtDoc) == nil
-				assert doc.resolveOffsetToWord(15, txtDoc) == "Example"
-				assert doc.resolveOffsetToWord(txtDoc.textLength - 1, txtDoc) == nil
+			assert doc.resolveOffsetToWord(0, txtDoc) == nil
+			assert doc.resolveOffsetToWord(1, txtDoc) == "namespace"
+			assert doc.resolveOffsetToWord(5, txtDoc) == "namespace"
+			assert doc.resolveOffsetToWord(10, txtDoc) == nil
+			assert doc.resolveOffsetToWord(15, txtDoc) == "Example"
+			assert doc.resolveOffsetToWord(txtDoc.textLength - 1, txtDoc) == nil
 		body
 			length = txtDoc.textLength
 			if offset < 0 or offset >= length

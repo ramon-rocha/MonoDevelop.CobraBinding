@@ -315,16 +315,15 @@ class CobraModuleVisitor inherits Cobra.Core.Visitor
 			return rootNS
 		
 	def visit(b as Box)
-	
-		if b inherits MethodSig
-			# this is a Box but its member declarations
-			# map to the same region as the parent which
-			# causes issues later
-			return
-	
 		_addRegion(b)
 		.dispatch(b.declsInOrder)
 		.dispatch(b.testMethods)
+
+	def visit(m as MethodSig)
+		# this is a Box but its member declarations
+		# map to the same region as the parent which
+		# causes issues later, so we just ignore it
+		return
 
 	def visit(m as AbstractMethod)
 		_addRegion(m)

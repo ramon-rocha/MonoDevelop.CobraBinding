@@ -135,6 +135,7 @@ class CobraModuleVisitor inherits Cobra.Core.Visitor
 	var _fileName as String
 	var _regionMap as Dictionary<of ISyntaxNode, DomRegion>
 	var _symbolTable as Dictionary<of DomRegion, Dictionary<of String, INamedNode>>
+	const INITIAL_CAPACITY = 32
 
 	get fileName from var
 	get regionMap from var
@@ -144,8 +145,8 @@ class CobraModuleVisitor inherits Cobra.Core.Visitor
 		base.init
 		__ast = nil
 		_fileName = ""
-		_regionMap = Dictionary<of ISyntaxNode, DomRegion>()
-		_symbolTable = Dictionary<of DomRegion, Dictionary<of String, INamedNode>>()
+		_regionMap = Dictionary<of ISyntaxNode, DomRegion>(.INITIAL_CAPACITY)
+		_symbolTable = Dictionary<of DomRegion, Dictionary<of String, INamedNode>>(.INITIAL_CAPACITY)
 
 	def _addRegion(node as ISyntaxNode)
 		"""
@@ -194,14 +195,20 @@ class CobraModuleVisitor inherits Cobra.Core.Visitor
 		
 		Should only be called by _addRegion.
 		"""
-		_symbolTable[region] = Dictionary<of String, INamedNode>()
-		idMap = _symbolTable[region]
+		idMap as Dictionary<of String, INamedNode>? = nil
 		
 		if node inherits NameSpace
 			key = CobraLanguageBinding.AddOnKeys.globalNameSpace
 			if node is __ast.topNameSpace and node.addOnValues.containsKey(key)
 				# use the unified global namespace instead of the module's topNameSpace
 				globalNS = node.addOnValues[key] to NameSpace
+				
+				capacity = globalNS.declsInOrder.count
+				for useDirective in node.useDirectives
+					if useDirective.boundNameSpace <> nil
+						capacity += useDirective.boundNameSpace.declsInOrder.count
+				idMap = Dictionary<of String, INamedNode>(capacity)
+				
 				for nsMember in globalNS.declsInOrder
 					idMap[nsMember.name] = nsMember
 				
@@ -210,19 +217,29 @@ class CobraModuleVisitor inherits Cobra.Core.Visitor
 					if useDirective.boundNameSpace <> nil
 						for nsMember in useDirective.boundNameSpace.declsInOrder
 							idMap[nsMember.name] = nsMember
+			
 			else if node.isUnified or node.unifiedNameSpace == nil
+				capacity = node.declsInOrder.count
+				idMap = Dictionary<of String, INamedNode>(capacity)
 				for nsMember in node.declsInOrder
 					idMap[nsMember.name] = nsMember
 			else
 				# the unified namespace will include all decls, not just the ones from this module
+				capacity = node.unifiedNameSpace.declsInOrder.count
+				idMap = Dictionary<of String, INamedNode>(capacity)
 				for nsMember in node.unifiedNameSpace.declsInOrder
 					idMap[nsMember.name] = nsMember
 
 		else if node inherits Box
-			for boxMember in node.allMembers
+			members = node.allMembers
+			capacity = members.count
+			idMap = Dictionary<of String, INamedNode>(capacity)
+			for boxMember in members
 				idMap[boxMember.name] = boxMember
 
 		else if node inherits AbstractMethod
+			capacity = node.locals.count + node.params.count
+			idMap = Dictionary<of String, INamedNode>(capacity)
 			for v in node.locals
 				idMap[v.name] = v
 
@@ -231,8 +248,11 @@ class CobraModuleVisitor inherits Cobra.Core.Visitor
 			
 		else
 			print "Unkown IContainer: [node.toString] for region [region.toString]"
-
-
+			idMap = Dictionary<of String, INamedNode>()
+			
+		_symbolTable[region] = idMap to !
+	
+	
 	get methodName as String is override
 		return "visit"
 		

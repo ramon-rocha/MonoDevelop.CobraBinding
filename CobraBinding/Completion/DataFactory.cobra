@@ -12,18 +12,16 @@ class DataFactory
 	"""
 	Provides completion data entries and data lists.
 	"""
-
+	
 	shared
 	
 		def _createKeywordList(keywords as String[]) as CobraCompletionList
 			list = CobraCompletionList()
-		
 			for kw in keywords
-				list.add(kw, Icons.keyword)
-				
+				list.add(KeywordCompletionData(kw))
 			return list
-				
-	
+		
+		
 		var _keywordsTopLevel = @[
 			"use",
 			"namespace",
@@ -44,10 +42,7 @@ class DataFactory
 		var _kwListTopLevel as CobraCompletionList?
 		
 		get keywordListTopLevel as CobraCompletionList
-			/# I think we technically have a race condition here
-			   but it's pretty benign and locking is expensive, soooooo...meh #/
-			if _kwListTopLevel == nil
-				_kwListTopLevel = _createKeywordList(_keywordsTopLevel)
+			_kwListTopLevel ?= _createKeywordList(_keywordsTopLevel)
 			return _kwListTopLevel to !
 		
 		var _keywordsFollowingIs = @[
@@ -64,8 +59,7 @@ class DataFactory
 		var _kwListFollowingIs as CobraCompletionList?
 		
 		get keywordListFollowingIs as CobraCompletionList
-			if _kwListFollowingIs == nil
-				_kwListFollowingIs = _createKeywordList(_keywordsFollowingIs)
+			_kwListFollowingIs ?= _createKeywordList(_keywordsFollowingIs)
 			return _kwListFollowingIs to !
 		
 		var _keywordsInBox = @[
@@ -108,8 +102,7 @@ class DataFactory
 		var _kwListInBox as CobraCompletionList?
 		
 		get keywordListInBox as CobraCompletionList
-			if _kwListInBox == nil
-				_kwListInBox = _createKeywordList(_keywordsInBox)
+			_kwListInBox ?= _createKeywordList(_keywordsInBox)
 			return _kwListInBox to !
 		
 		var _keywordsInMethod = @[
@@ -161,8 +154,7 @@ class DataFactory
 		var _kwListInMethod as CobraCompletionList?
 		
 		get keywordListInMethod as CobraCompletionList
-			if _kwListInMethod == nil
-				_kwListInMethod = _createKeywordList(_keywordsInMethod)
+			_kwListInMethod ?= _createKeywordList(_keywordsInMethod)
 			return _kwListInMethod to !
 		
 		var _keywordsCobraTypes = @[
@@ -179,8 +171,7 @@ class DataFactory
 		var _kwListCobraTypes as CobraCompletionList?
 		
 		get keywordListCobraTypes as CobraCompletionList
-			if _kwListCobraTypes == nil
-				_kwListCobraTypes = _createKeywordList(_keywordsCobraTypes)
+			_kwListCobraTypes ?= _createKeywordList(_keywordsCobraTypes)
 			return _kwListCobraTypes to !
 		
 		var _keywordsLiterals = @[
@@ -192,8 +183,7 @@ class DataFactory
 		var _kwListLiterals as CobraCompletionList?
 		
 		get keywordListLiterals as CobraCompletionList
-			if _kwListLiterals == nil
-				_kwListLiterals = _createKeywordList(_keywordsLiterals)
+			_kwListLiterals ?= _createKeywordList(_keywordsLiterals)
 			return _kwListLiterals to !
 
 		def createNodeData(node as INamedNode) as NamedNodeData

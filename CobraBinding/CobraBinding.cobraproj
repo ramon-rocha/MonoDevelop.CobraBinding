@@ -111,6 +111,9 @@
     <Compile Include="Completion\NameSpaceDeclsList.cobra" />
     <Compile Include="Completion\CobraCompletionList.cobra" />
     <Compile Include="Tooltips\TooltipProvider.cobra" />
+    <Compile Include="Tooltips\KeywordData.cobra" />
+    <Compile Include="Completion\KeywordCompletionData.cobra" />
+    <Compile Include="Tooltips\Extensions.cobra" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Gui\Gui.csproj">

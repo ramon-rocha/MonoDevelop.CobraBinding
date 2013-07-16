@@ -101,6 +101,7 @@ class NamedNodeData inherits CompletionData
 		assert overloadCount == 2
 
 	var _node as INamedNode
+	var _description as String? = nil
 	var _tooltipInfo as TooltipInformation? = nil
 	
 	cue init(node as INamedNode)
@@ -146,8 +147,7 @@ class NamedNodeData inherits CompletionData
 		"""
 		Create the tooltip that displays next to the highlighted completion entry.
 		"""
-		if _tooltipInfo <> nil, return _tooltipInfo
-		_tooltipInfo = .TooltipProviderAlias.createCodeCompletionTooltip(_node)
+		_tooltipInfo ?= .TooltipProviderAlias.createCodeCompletionTooltip(_node)
 		return _tooltipInfo to !
 	
 	
@@ -155,9 +155,10 @@ class NamedNodeData inherits CompletionData
 		"""
 		Appears as the summaryMarkup in the tooltip for this completion entry.
 		"""
-		return .TooltipProviderAlias.createCodeCompletionSummaryMarkup(_node)
+		_description ?= .TooltipProviderAlias.createCodeCompletionSummaryMarkup(_node)
+		return _description to !
 	
-		
+	
 	get hasOverloads as bool is override
 		if _node inherits MemberOverload
 			return _node.members.count <> 0

@@ -64,7 +64,9 @@ class CobraBindingAddinInstaller
 		"TypeSystem[__s]LineInformation.cobra",
 		"TypeSystem[__s]CobraModuleVisitor.cobra",
 		"TypeSystem[__s]ParsedCobraDocument.cobra",
+		"Tooltips[__s]Extensions.cobra",
 		"Tooltips[__s]TooltipProvider.cobra",
+		"Tooltips[__s]KeywordData.cobra",
 		"Completion[__s]CobraCompletionList.cobra",
 		"Completion[__s]CobraCompletionTextEditorExtension.cobra",
 		"Completion[__s]DataFactory.cobra",
@@ -73,6 +75,7 @@ class CobraBindingAddinInstaller
 		"Completion[__s]NameSpaceDeclsList.cobra",
 		"Completion[__s]BoxMembersList.cobra",
 		"Completion[__s]MethodVarsList.cobra",
+		"Completion[__s]KeywordCompletionData.cobra",
 	]
 	
 	var _refs = [

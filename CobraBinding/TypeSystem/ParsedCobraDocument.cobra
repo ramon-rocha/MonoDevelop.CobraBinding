@@ -75,7 +75,7 @@ class ParsedCobraDocument inherits DefaultParsedDocument
 				nodeMap[region] = node
 			
 			return nodeMap
-			
+		
 	def getContainingRegions(line as int, col as int) as List<of DomRegion>
 		"""
 		Returns a list of document regions that contain the given document location.
@@ -219,6 +219,12 @@ class ParsedCobraDocument inherits DefaultParsedDocument
 			assert doc.resolveOffsetToWord(10, txtDoc) == nil
 			assert doc.resolveOffsetToWord(15, txtDoc) == "Example"
 			assert doc.resolveOffsetToWord(txtDoc.textLength - 1, txtDoc) == nil
+			
+			methodOffset = doc.content.indexOf("def")
+			assert doc.resolveOffsetToWord(methodOffset, txtDoc) == "def"
+			assert doc.resolveOffsetToWord(methodOffset + 1, txtDoc) == "def"
+			assert doc.resolveOffsetToWord(methodOffset + 2, txtDoc) == "def"
+			assert doc.resolveOffsetToWord(methodOffset + 3, txtDoc) == nil
 		body
 			length = txtDoc.textLength
 			if offset < 0 or offset >= length
@@ -262,6 +268,10 @@ class ParsedCobraDocument inherits DefaultParsedDocument
 		Parses the line of text for the corrsponding offset and returns
 		the corresponding node from the AST.
 		"""
+		if _regionMap == nil or _symbolTable == nil
+			# not enough information to get corresponding node from location
+			return nil
+		
 		docLine = txtDoc.getLineByOffset(offset)
 		sb = StringBuilder(txtDoc.getTextBetween(docLine.offset, offset))
 		i = offset

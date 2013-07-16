@@ -32,5 +32,8 @@ cobra -test -clr-platform:x86 -color:yes ^
 ..\..\Completion\Icons.cobra ^
 ..\..\Completion\MethodVarsList.cobra ^
 ..\..\Completion\NamedNodeData.cobra ^
+..\..\Completion\KeywordCompletionData.cobra ^
 ..\..\Completion\NameSpaceDeclsList.cobra ^
-..\..\Tooltips\TooltipProvider.cobra
+..\..\Tooltips\Extensions.cobra ^
+..\..\Tooltips\TooltipProvider.cobra ^
+..\..\Tooltips\KeywordData.cobra

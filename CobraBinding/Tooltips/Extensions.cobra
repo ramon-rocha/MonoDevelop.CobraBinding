@@ -1,0 +1,254 @@
+use Cobra.Compiler
+
+use Mono.TextEditor
+
+namespace MonoDevelop.CobraBinding.Tooltips
+
+extend String
+	def escapeMarkup as String
+		"""
+		Returns a new String with its angle brackets in their escaped representation.
+		
+		i.e. Turns 'List<of Foo>' into 'List&lt;of Foo&gt;'
+		"""
+		escaped = .replace(
+			"<", "&lt;").replace(
+			">", "&gt;"
+		)
+		return escaped
+		
+extend IType
+
+	def createTooltipMarkup as String
+		"""
+		Returns markup suitable for use in a tooltip.
+		
+		Generally, it will be the fully qualified name of this IType instance
+		such as 'System.String' or 'System.Collections.Generic.List<of int>'.
+		"""
+		typ = this
+		if typ inherits WrappedType
+			return "[typ.theWrappedType.createTooltipMarkup][typ.suffix]"
+		
+		if typ inherits Box
+			if not typ.isGeneric
+				return typ.qualifiedName.replace(",", ", ").escapeMarkup
+			
+			# fix markup for generics
+			# e.g. turn "<of,>" into "<of T1, T2>"
+			toReplace = StringBuilder("<of")
+			replaceWith = StringBuilder()
+			for gp in typ.genericParams
+				if replaceWith.length > 0
+					toReplace.append(",")
+					replaceWith.append(", [gp.name]")
+				else
+					replaceWith.append("<of [gp.name]")
+			toReplace.append(">")
+			replaceWith.append(">")
+			
+			r1 = toReplace.toString
+			r2 = replaceWith.toString
+			return typ.qualifiedName.replace(r1, r2).escapeMarkup
+		
+		if typ.parentNameSpace <> nil
+			return "[typ.parentNameSpace.fullName].[typ.name]"
+		
+		return typ.name
+
+		
+extend INamedNode
+	
+	def createTooltipMarkup as String
+		"""
+		Returns markup suitable for use in a tooltip.  It will have a format
+		similar to one of the following examples:
+		
+		namespace Foo.Bar.Baz
+		
+		class Foo
+		
+		def foo(bar as int) as String
+		
+		foo as Bar?
+		"""
+		test whitespace
+			parsedDoc = TooltipProvider.readTestData
+			txtDoc = TextDocument(parsedDoc.content)
+			
+			assert parsedDoc.resolveLocationToNode(1, 1, txtDoc) == nil
+			assert parsedDoc.resolveLocationToNode(12, 2, txtDoc) == nil
+			assert parsedDoc.resolveLocationToNode(20, 2, txtDoc) == nil
+			assert parsedDoc.resolveLocationToNode(37, 1, txtDoc) == nil
+		
+		test realNodes
+			parsedDoc = TooltipProvider.readTestData
+			txtDoc = TextDocument(parsedDoc.content)
+			
+			node = parsedDoc.resolveLocationToNode(2, 8, txtDoc) to INamedNode
+			assert node.name == "Foo"
+			assert node.createTooltipMarkup == "class Foo"
+			
+			node = parsedDoc.resolveLocationToNode(4, 6, txtDoc) to INamedNode
+			assert node.name == "bar"
+			assert node.createTooltipMarkup == "def bar(p1 as int, p2 as int) as System.String"
+			
+			node = parsedDoc.resolveLocationToNode(4, 10, txtDoc) to INamedNode
+			assert node.name == "p1"
+			assert node.createTooltipMarkup == "p1 as int"
+			
+			node = parsedDoc.resolveLocationToNode(4, 21, txtDoc) to INamedNode
+			assert node.name == "p2"
+			assert node.createTooltipMarkup == "p2 as int"
+			
+			node = parsedDoc.resolveLocationToNode(4, 39, txtDoc) to INamedNode
+			assert node.name == "String"
+			assert node.createTooltipMarkup == "class System.String"
+			
+			node = parsedDoc.resolveLocationToNode(5, 7, txtDoc) to INamedNode
+			assert node.name == "sum"
+			assert node.createTooltipMarkup == "sum as int"
+			
+			node = parsedDoc.resolveLocationToNode(8, 6, txtDoc) to INamedNode
+			assert node.name == "baz"
+			assert node.createTooltipMarkup == "def baz as void"
+			
+			node = parsedDoc.resolveLocationToNode(11, 8, txtDoc) to INamedNode
+			assert node.name == "Soop"
+			assert node.createTooltipMarkup == "sig Soop(x as System.String) as decimal"
+			
+			node = parsedDoc.resolveLocationToNode(19, 39, txtDoc) to INamedNode
+			assert node.name == "Chook"
+			assert node.createTooltipMarkup == "interface Bar.Chook"
+			
+			node = parsedDoc.resolveLocationToNode(21, 6, txtDoc) to INamedNode
+			assert node.name == "_s"
+			assert node.createTooltipMarkup == "var _s as Soop?"
+			
+			node = parsedDoc.resolveLocationToNode(35, 18, txtDoc) to INamedNode
+			assert node.name == "Lookie"
+			assert node.createTooltipMarkup == "mixin Nonsense.Bar.Lookie"
+		body
+			/#
+			colorScheme = IdeApp.preferences.colorScheme
+			colorStyle = Highlighting.SyntaxModeService.getColorStyle(colorScheme)
+			
+			chunkStyle = colorStyle.keywordConstants
+			color = colorStyle.getForeground(chunkStyle) to HslColor
+			colorString = HelperMethods.getColorString(color to Gdk.Color)
+			
+			return '[.name] <span foreground="[colorString]">as</span> [.getType.name]'
+			#/
+			
+			node = this
+			typ as IType? = nil
+			
+			if node inherits NameSpace
+				return "namespace [node.fullName]"
+			
+			else if node inherits AbstractLocalVar
+				# this could be a method parameter or local variable
+				typ = node.type
+				return "[node.name] as [typ.createTooltipMarkup]"
+			
+			else if node inherits EnumMember
+				if node.value == nil
+					# no need to include tooltip because the user has already typed the EnumDecl name
+					return ""
+				else
+					return "[node.resultType.name] (value = [node.value])"
+			
+			else if node implements Cobra.Compiler.IMember
+				# this is a box/namespace member
+				typ = node.resultType
+				
+				if node inherits Method _
+				or node inherits MemberOverload _
+				or node inherits MethodSig
+					paramMarkup = _createParamMarkup
+					kw = TooltipProvider.declKeyword[node.getType]
+					if paramMarkup.length > 0
+						return "[kw] [node.name]([paramMarkup]) as [typ.createTooltipMarkup]"
+					else
+						return "[kw] [node.name] as [typ.createTooltipMarkup]"
+				
+				else if node inherits Property
+					if node.getPart <> nil and node.setPart <> nil
+						# read-write property
+						kw = "pro"
+					else if node.getPart <> nil
+						# read-only property
+						kw = "get"
+					else
+						# write-only property
+						kw = "set"
+					return "[kw] [node.name] as [typ.createTooltipMarkup]"
+				
+				else if node inherits Box
+					kw = TooltipProvider.declKeyword[node.getType]
+					typ = node to IType
+					return "[kw] [typ.createTooltipMarkup]"
+				
+				else if node inherits EnumDecl
+					return "enum [typ.parentNameSpace.fullName].[typ.name]"
+				
+				else
+					kw = TooltipProvider.declKeyword[node.getType]
+					return "[kw] [node.name] as [typ.createTooltipMarkup]"
+				
+			return "Unhandled type for [node.name]: [typ.createTooltipMarkup]"
+		
+	def _createParamMarkup as String
+		"""
+		Returns the markup to be used for the parameters of a method
+		such as 'x as int, y as int, z as int'
+		"""
+		params = _getParams
+		sb = StringBuilder()
+		for p in params
+			if sb.length > 0, sb.append(', ')
+			sb.append(p.createTooltipMarkup)
+		
+		markup = sb.toString
+		if markup.length > 60 #TODO: Take the length of .resultType into consideration as well
+			# too long, break it up into multiple lines
+			markup = _createWrappedParamMarkup
+			
+		return markup
+			
+	def _createWrappedParamMarkup as String
+		"""
+		Returns the markup to be used for the parameters of a method
+		with each parameter on its own line and indented.
+		"""
+		params = _getParams
+		sb = StringBuilder()
+		for p in params
+			if sb.length > 0, sb.append(',')
+			sb.appendLine
+			sb.append('\t')
+			sb.append(p.createTooltipMarkup)
+		
+		sb.appendLine
+		return sb.toString
+	
+	
+	def _getParams as IList<of Param>
+		"""
+		Return the node's parameters
+		"""
+		require
+			this inherits MemberOverload _
+			or this inherits Method _
+			or this inherits MethodSig
+		body
+			node = this
+			if node inherits MemberOverload
+				return node.params
+			else if node inherits Method
+				return node.params
+			else if node inherits MethodSig
+				return node.params
+			
+			# contract violation
+			throw FallThroughException()

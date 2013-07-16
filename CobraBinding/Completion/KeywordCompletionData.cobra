@@ -1,0 +1,35 @@
+use Cobra.Compiler
+
+use MonoDevelop.CobraBinding
+
+use MonoDevelop.Ide.CodeCompletion
+
+use ICSharpCode.NRefactory.Completion
+
+namespace MonoDevelop.CobraBinding.Completion
+
+class KeywordCompletionData inherits CompletionData
+	
+	var _grammar as String?
+	var _description as String?
+	
+	cue init(keyword as String)
+		base.init(keyword, Icons.keyword)
+	
+	get description as String is override
+		"""
+		Returns an English description of the keyword.
+		"""
+		_description ?= Tooltips.KeywordData.instance.getDescription(.displayText to !)
+		return _description to !
+		
+	get grammar as String
+		"""
+		Returns an example grammar for the keyword.
+		"""
+		keyword = .displayText to !
+		_grammar ?= Tooltips.KeywordData.instance.getGrammarMarkup(keyword) ? keyword
+		return _grammar to !
+	
+	def createTooltipInformation(smartWrap as bool) as TooltipInformation is override
+		return Tooltips.TooltipProvider.createCodeCompletionTooltip(this)

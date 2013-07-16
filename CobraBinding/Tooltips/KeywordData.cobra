@@ -1,0 +1,118 @@
+use Cobra.Compiler
+
+namespace MonoDevelop.CobraBinding.Tooltips
+
+class KeywordData
+	
+	var _keywordGroups as Dictionary<of String, List<of Keyword>>
+	var _descriptionMap as Dictionary<of String, Keyword>
+	
+	/#
+	These need to be escaped before using as markup in a tooltip otherwise
+	it interprets the characters between the angle bracket characters as a tag.
+	
+	To add another grammar:
+		1: Add a const declaration
+		2: Add an entry in _grammarMap
+	#/
+	const nameSpaceGrammar = 'namespace <NamespaceId>\n\n...'
+	
+	const classGrammar = _
+		ns'class <ClassName>\n' + _
+		ns'    [is <AccessModifiers>]\n' + _
+		ns'    [has <Attributes>]\n' + _
+		ns'    [where <GenericParam> must be <GenericConstraints>]\n' + _
+		ns'    [inherits <BaseClassName> ]\n' + _
+		ns'    [implements <InterfaceName> [, <InterfaceName>]...]\n' + _
+		ns'    [<DocString>]\n\n    ...'
+		
+	const proGrammar = _
+		ns'pro <propName>\n' + _
+		ns'    get\n' + _
+		ns'        [...]\n' + _
+		ns'        return <value>\n' + _
+		ns'    set\n' + _
+		ns'        [...]'
+	
+	/#
+	Crap...how do we coordinate the grammar with the English description? "get" can either be
+	a property getter or part of a generator such as "for r in regions get r.size".  Right now,
+	the grammer for "get" does not match the description.
+	#/
+	const getGrammar = _
+		ns'get <propName> [ as <Type>] [from {var, <backingVariableName>} [= <initValue>] ]\n' + _
+		ns'    [<DocString>]'
+	
+	const defGrammar = _
+		ns'def <methodName>(<paramList>) [as <returnType>]  [is <AccessModifiers>]\n' + _
+		ns'    [has <Attributes>]\n' + _
+		ns'    [<DocString>]\n\n' + _
+		ns'    ...'
+	
+	const ifGrammar = _
+		ns'if <expression>\n' + _
+		ns'    <statements>\n' + _
+		ns'(else if <expression>\n' + _
+		ns'    <statements>)*\n' + _
+		ns'[else\n' + _
+		ns'    <statements>]'
+	
+	var _grammarMap as Dictionary<of String, String> = {
+		"namespace" : .nameSpaceGrammar,
+		"class" : .classGrammar,
+		"pro" : .proGrammar,
+		"get" : .getGrammar,
+		"def" : .defGrammar,
+		"if" : .ifGrammar,
+		"else" : .ifGrammar, # TODO: bold the keyword in the grammar
+	}
+	
+	shared
+		var __theConch = Object()
+		var _instance as KeywordData? = nil
+		
+		get instance as KeywordData
+			# multiple threads might request this at the same time
+			lock __theConch
+				_instance ?= KeywordData()
+			return _instance to !
+	
+	cue init is private
+		base.init
+		_keywordGroups = KeywordSpecs.groups
+		_descriptionMap = Dictionary<of String, Keyword>(128) # 114 keywords as of 07/15/2013
+		for wordList in _keywordGroups.values
+			for kw in wordList
+				_descriptionMap[kw.name] = kw
+	
+	def getDescription(keyword as String) as String?
+		"""
+		Returns an English description (if any) for the provided keyword.
+		"""
+		test validKeyword
+			assert KeywordData.instance.getDescription("print") <> nil
+			assert KeywordData.instance.getDescription("if") <> nil
+		test invalidKeyword
+			assert KeywordData.instance.getDescription("jump") == nil
+			assert KeywordData.instance.getDescription("exit") == nil
+		body
+			try
+				return _descriptionMap[keyword].description
+			catch
+				return nil
+				
+	def getGrammarMarkup(keyword as String) as String?
+		"""
+		Returns markup for the grammar (if any) for the provided keyword.
+		"""
+		test validKeyword
+			assert KeywordData.instance.getDescription("namespace") <> nil
+			assert KeywordData.instance.getDescription("class") <> nil
+		test invalidKeyword
+			assert KeywordData.instance.getDescription("jump") == nil
+			assert KeywordData.instance.getDescription("exit") == nil
+		body
+			try
+				return _grammarMap[keyword].escapeMarkup
+			catch
+				return nil

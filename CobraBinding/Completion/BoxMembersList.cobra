@@ -56,6 +56,13 @@ class BoxMembersList inherits CobraCompletionList
 		catch
 			print "Failed to access .declsInOrder for [b.name]"
 		
+		if b inherits Extension
+			# include the members from the extended box
+			try
+				_addMembers(b.extendedBox.allMembers, filter)
+			catch
+				_addMembers(b.extendedBox.declsInOrder, filter)
+		
 		
 	def _addMembers(members as IBoxMember*, filter as Filter?)
 		"""

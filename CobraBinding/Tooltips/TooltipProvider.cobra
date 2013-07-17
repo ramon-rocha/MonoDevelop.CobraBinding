@@ -98,11 +98,11 @@ class TooltipProvider inherits Mono.TextEditor.TooltipProvider
 			TODO: Can we avoid dynamic typing here?  INamedNode doesn't have a docString property.
 			"""
 			try
-				summary = node.docString ? ""
+				summary as String = node.docString ? ""
 				# remove tab characters otherwise it messes up the formatting in the tooltip
 				summary = summary.replace("\t", "")
 				#TODO: fix line breaks in the doc string
-				return summary
+				return summary.escapeMarkup
 			catch
 				# This node doesn't have a doc string
 				return ""

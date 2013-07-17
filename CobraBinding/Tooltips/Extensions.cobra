@@ -11,10 +11,9 @@ extend String
 		
 		i.e. Turns 'List<of Foo>' into 'List&lt;of Foo&gt;'
 		"""
-		escaped = .replace(
-			"<", "&lt;").replace(
-			">", "&gt;"
-		)
+		escaped = .replace("&", "&amp;")
+		escaped = escaped.replace("<", "&lt;")
+		escaped = escaped.replace(">", "&gt;")
 		return escaped
 		
 extend IType

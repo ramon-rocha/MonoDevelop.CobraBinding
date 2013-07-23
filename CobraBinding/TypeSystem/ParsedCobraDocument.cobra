@@ -336,15 +336,15 @@ class ParsedCobraDocument inherits DefaultParsedDocument
 					continue
 				for id, parentNode in idMap
 					if id == ids[0]
-						remainingIds = ids[1:ids.count]
-						node = _getNodeFromIds(remainingIds, parentNode to ISyntaxNode)
+						remainingIds = ids[1:]
+						node = _getNodeFromIds(remainingIds, parentNode to ISyntaxNode, containingRegions)
 						if node <> nil, return node
 			
 			# node was not found
 			return nil
 	
 	
-	def _getNodeFromIds(ids as List<of String>, parent as ISyntaxNode) as ISyntaxNode?
+	def _getNodeFromIds(ids as List<of String>, parent as ISyntaxNode, containingRegions as List<of DomRegion>) as ISyntaxNode?
 		"""
 		Given a list of identifiers, returns the syntax node in the AST, if any,
 		corresponding to the last valid idenfiier.
@@ -352,6 +352,7 @@ class ParsedCobraDocument inherits DefaultParsedDocument
 		if ids.count == 0
 			return parent
 		
+		memberName = ids[0]
 		if parent implements INamedNode
 		
 			typ = parent.typeForReceiver
@@ -368,16 +369,43 @@ class ParsedCobraDocument inherits DefaultParsedDocument
 				if typ inherits NameSpace
 					for useDirective in typ.useDirectives
 						if useDirective.boundNameSpace <> nil
-							nsMember = useDirective.boundNameSpace.memberForName(ids[0])
+							nsMember = useDirective.boundNameSpace.memberForName(memberName)
 							if nsMember <> nil
 								try
-									return _getNodeFromIds(ids[1:ids.count], nsMember to ISyntaxNode)
+									return _getNodeFromIds(ids[1:], nsMember to ISyntaxNode, containingRegions)
 								catch
 									throw ArgumentException()
 		
-				m = typ.memberForName(ids[0])
+				m = typ.memberForName(memberName)
 				if m <> nil
-					return _getNodeFromIds(ids[1:ids.count], m to ISyntaxNode)
+					return _getNodeFromIds(ids[1:], m to ISyntaxNode, containingRegions)
+				else if typ inherits Box
+					# it might be an extension method
+					# TODO: clean this up a little
+					ast = .getAst<of CobraModule>
+					nodeMap = .createNodeMap
+					if nodeMap == nil, return nil
+					ns = .getContainingNameSpace(containingRegions, nodeMap to !)
+					if ns <> nil and ns.unifiedNameSpace <> nil
+						for d in ns.unifiedNameSpace.declsInOrder
+							if d inherits Extension
+								if d.extendedBox <> nil _
+								and typ.isAssignableTo(d.extendedBox to !)
+									m = d.memberForName(memberName)
+									if m <> nil
+										return _getNodeFromIds(ids[1:], m to ISyntaxNode, containingRegions)
+					
+					for useDirective in ast.topNameSpace.useDirectives
+						ns = useDirective.boundNameSpace
+						if ns <> nil
+							for d in ns.declsInOrder
+								if d inherits Extension
+									if d.extendedBox <> nil _
+									and typ.isAssignableTo(d.extendedBox to !)
+										m = d.memberForName(memberName)
+										if m <> nil
+											return _getNodeFromIds(ids[1:], m to ISyntaxNode, containingRegions)
+					
 			else
 				print "[parent.typeForReceiver.name] does not implement IContainer"
 				print "Add a case for [parent.typeForReceiver.toString]\n"
@@ -509,6 +537,32 @@ class ParsedCobraDocument inherits DefaultParsedDocument
 			return containingBox
 	
 	
+	def getContainingNameSpace(regions as IList<of DomRegion>, nodeMap as Dictionary<of DomRegion, ISyntaxNode>) as NameSpace?
+		"""
+		Iterates through the given regions and returns the innermost containing NameSpace.
+		
+		Returns nil if none of the corresponding nodes inherit from NameSpace.
+		"""
+		require
+			regions.count > 0
+			all for region in regions get nodeMap.containsKey(region)
+		body
+			containingNS as NameSpace? = nil
+			innermostBeginLine = 0
+			innermostBeginColumn = 0
+			
+			i = 0
+			while i < regions.count
+				region = regions[i]
+				if region.beginLine > innermostBeginLine _
+				or (region.beginLine == innermostBeginLine and region.beginColumn > innermostBeginColumn)
+					node = nodeMap[region]
+					if node inherits NameSpace
+						innermostBeginLine = region.beginLine
+						innermostBeginColumn = region.beginColumn
+						containingNS = node
+				i += 1
+			return containingNS
 
 
 

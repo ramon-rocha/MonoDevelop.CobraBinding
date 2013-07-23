@@ -148,7 +148,13 @@ extend INamedNode
 			else if node inherits AbstractLocalVar
 				# this could be a method parameter or local variable
 				typ = node.type
-				return "[node.name] as [typ.createTooltipMarkup]"
+				if typ == nil
+					node.bindAll
+					typ = node.type
+				if typ <> nil
+					return "[node.name] as [typ.createTooltipMarkup]"
+				else
+					return "[node.name] as ???"
 			
 			else if node inherits EnumMember
 				if node.value == nil
@@ -164,13 +170,21 @@ extend INamedNode
 				if node inherits Method _
 				or node inherits MemberOverload _
 				or node inherits MethodSig
-					paramMarkup = _createParamMarkup
+					
 					kw = TooltipProvider.declKeyword[node.getType]
+					
+					if typ == nil
+						node.bindAll
+						typ = node.resultType
+					if typ == nil
+						return "[kw] [node.name] as ???"
+					
+					paramMarkup = _createParamMarkup
 					if paramMarkup.length > 0
 						return "[kw] [node.name]([paramMarkup]) as [typ.createTooltipMarkup]"
 					else
 						return "[kw] [node.name] as [typ.createTooltipMarkup]"
-				
+					
 				else if node inherits Property
 					if node.getPart <> nil and node.setPart <> nil
 						# read-write property
@@ -194,8 +208,11 @@ extend INamedNode
 				else
 					kw = TooltipProvider.declKeyword[node.getType]
 					return "[kw] [node.name] as [typ.createTooltipMarkup]"
-				
-			return "Unhandled type for [node.name]: [typ.createTooltipMarkup]"
+			
+			if typ <> nil
+				return "Unhandled type for [node.name]: [typ.createTooltipMarkup]"
+			else
+				return "Unhandled type for [node.name]: ???"
 		
 	def _createParamMarkup as String
 		"""
@@ -223,12 +240,11 @@ extend INamedNode
 		params = _getParams
 		sb = StringBuilder()
 		for p in params
-			if sb.length > 0, sb.append(',')
 			sb.appendLine
 			sb.append('\t')
 			sb.append(p.createTooltipMarkup)
 		
-		sb.appendLine
+		if sb.length > 0, sb.appendLine
 		return sb.toString
 	
 	

@@ -200,26 +200,28 @@ class DataFactory
 			for d in e.declsInOrder
 				data.add(NamedNodeData(d))
 			return data
-		
-		def createBoxMembersList(box as Box) as BoxMembersList
-			"""
-			Returns a completion data list which include all members of the given Box.
-			"""
-			return BoxMembersList(box)
 			
-		def createBoxInstanceMembersList(box as Box) as BoxMembersList
+		def createBoxInstanceMembersList(box as Box, namespaces as NameSpace*? = nil) as BoxMembersList
 			"""
 			Returns a completion data list that only includes public non-shared members.
 			"""
-			filter as BoxMembersList.Filter = do(m as IBoxMember)
+			filter as BoxMembersList.MemberFilter = do(m as IBoxMember)
 				return not m.isShared and "public" in m.isNames
-			return BoxMembersList(box, filter)
+			
+			if namespaces == nil
+				# no namespaces means no extension methods
+				return BoxMembersList(box, filter)
+			
+			members = BoxMembersList(box, filter)
+			for ns in namespaces
+				members.addExtensionMethods(ns)
+			return members
 			
 		def createBoxSharedMembersList(box as Box) as BoxMembersList
 			"""
 			Returns a completion data list that only includes public shared members.
 			"""
-			filter as BoxMembersList.Filter = do(m as IBoxMember)
+			filter as BoxMembersList.MemberFilter = do(m as IBoxMember)
 				if "public" in m.isNames
 					# only check isShared for BoxMember subclasses
 					# otherwise things like nested class decls do

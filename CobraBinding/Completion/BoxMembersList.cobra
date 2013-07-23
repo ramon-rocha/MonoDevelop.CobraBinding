@@ -28,7 +28,7 @@ class BoxMembersList inherits CobraCompletionList
 		assert filteredData.count < data.count
 	
 	# Used to only include some Box members such as "only public" or "only shared".
-	sig Filter(m as IBoxMember) as bool
+	sig MemberFilter(m as IBoxMember) as bool
 	
 	var _box as Box
 	
@@ -40,9 +40,14 @@ class BoxMembersList inherits CobraCompletionList
 	cue init(b as Box)
 		.init(b, nil)
 	
-	cue init(b as Box, filter as Filter?)
+	cue init(b as Box, filter as MemberFilter?)
 		base.init
 		_box = b
+		
+		/# Pretend we've already seen 'cue.init' and the indexer '[]'
+		so they are not included in the final list #/
+		_uniqueEntries.add("cue.init")
+		_uniqueEntries.add(ns'[]')
 		
 		try
 			# our compiler instance may no longer be valid so these calls could fail
@@ -57,23 +62,25 @@ class BoxMembersList inherits CobraCompletionList
 			print "Failed to access .declsInOrder for [b.name]"
 		
 		if b inherits Extension
-			# include the members from the extended box
+			# include the public members from the extended box
+			publicOnly as MemberFilter? = nil
+			if filter <> nil
+				# TODO: I'm thinking using a sig for filtering is wasteful...
+				publicOnly = do(m as IBoxMember)
+					return if(filter(m), "public" in m.isNames, false)
+			else
+				publicOnly = do(m as IBoxMember)
+					return "public" in m.isNames
 			try
-				_addMembers(b.extendedBox.allMembers, filter)
+				_addMembers(b.extendedBox.allMembers, publicOnly)
 			catch
-				_addMembers(b.extendedBox.declsInOrder, filter)
+				_addMembers(b.extendedBox.declsInOrder, publicOnly)
 		
-		
-	def _addMembers(members as IBoxMember*, filter as Filter?)
+	def _addMembers(members as IBoxMember*, filter as MemberFilter?)
 		"""
 		Adds an entry to the completion data list for each member in
 		the stream `members` that matches the criteria defined by `filter`.
 		"""
-		
-		/# Pretend we've already seen 'cue.init' and the indexer '[]'
-		so they are not included in the final list #/
-		_uniqueEntries.add("cue.init")
-		_uniqueEntries.add(ns'[]')
 		
 		if filter == nil
 			# include all members
@@ -83,5 +90,40 @@ class BoxMembersList inherits CobraCompletionList
 		else
 			# we should only include some members
 			for m in members
-				if filter(m) and _uniqueEntries.add(m.name)
+				if _uniqueEntries.add(m.name) and filter(m)
 					.add(NamedNodeData(m))
+
+
+	def addExtensionMethods(ns as NameSpace)
+		"""
+		Adds completion data entries for extension methods declared in the
+		given namespace for this box.
+		"""
+		publicOnly as MemberFilter = do(m as IBoxMember)
+			return "public" in m.isNames
+			
+		for nsMember in ns.declsInOrder
+			if nsMember inherits Extension
+				extendedBox = nsMember.extendedBox
+				if extendedBox <> nil
+					extendedBox.prepIfNeeded
+					
+					if _box.isAssignableTo(extendedBox)
+						_addMembers(nsMember.declsInOrder, publicOnly)
+					
+					else if _box.isGeneric and extendedBox.isGeneric
+						extDef = extendedBox.genericDef to !
+						if _box.genericDef == extDef _
+						or any for baseInterface in _box.baseInterfaces get baseInterface.genericDef == extDef
+							# this is either the same generic definition
+							# or we are implementing the same interface.
+							# either way it's okay to include the extension members
+							boxTemplate = _box.constructedTypeOf(extDef)
+							constructedBox = nsMember.constructedTypeFor(boxTemplate.genericParams)
+							try
+								constructedBox.prepIfNeeded
+							catch
+								# Something that relied on a valid compiler instance probably failed
+								pass
+							_addMembers(constructedBox.declsInOrder, publicOnly)
+	

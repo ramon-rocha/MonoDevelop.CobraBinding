@@ -326,7 +326,9 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 				# return fields and methods in the context of the current class
 				node = parsedDoc.getContainingBox(containingRegions, nodeMap)
 				if node inherits Box
-					return BoxMembersList(node)
+					# collect visible namespaces for finding extension methods
+					namespaces = _getNameSpaces(parsedDoc to !, ast, containingRegions, nodeMap)
+					return DataFactory.createBoxInstanceMembersList(node, namespaces)
 				else
 					print "Container does not inherit Box : [node]"
 					return nil
@@ -354,7 +356,9 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 								members = DataFactory.createBoxSharedMembersList(typ)
 							else
 								# probably a field or method
-								members = DataFactory.createBoxInstanceMembersList(typ)
+								# collect visible namespaces for finding extension methods
+								namespaces = _getNameSpaces(parsedDoc to !, ast, containingRegions, nodeMap)
+								members = DataFactory.createBoxInstanceMembersList(typ, namespaces)
 						else
 							# a literal or something else we can probably treat as an instance...right?
 							print "this is unexpected. [node] does not inherit NamedNode\n"
@@ -406,8 +410,8 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 			typ = node.resultType
 		
 		if typ <> nil
-			if typ inherits NilableType
-				typ = typ.nonNil
+			if typ inherits WrappedType
+				typ = _unwrapType(typ)
 			
 			if typ inherits PrimitiveType
 				typ = typ.box
@@ -417,6 +421,18 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 			print "[node] does not inherit AbstractLocalVar and does not implement Cobra.Compiler.IMember\n"
 				
 		return typ
+		
+	def _unwrapType(typ as WrappedType) as Cobra.Compiler.IType
+		"""
+		Helper method for _getTypeForMemberCompletion
+		"""
+		unwrappedType = typ.theWrappedType
+		
+		if unwrappedType inherits WrappedType
+			# the real type is wrapped in multiple layers
+			return _unwrapType(unwrappedType)
+		
+		return unwrappedType
 
 
 	def handleParameterCompletion(context as CodeCompletionContext?, completionChar as char) _
@@ -474,6 +490,7 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 			print "TODO: handle this type of container: [node.toString]"
 		
 		return dataList
+	
 		
 	def _getTopNameSpaceCompletionData(ast as CobraModule) as ICompletionDataList
 		dataList = CobraCompletionList()
@@ -483,6 +500,21 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 		dataList.addRange(DataFactory.keywordListLiterals)
 		dataList.addRange(DataFactory.createModuleDeclsList(ast))
 		return dataList
+		
+	def _getNameSpaces(parsedDoc as ParsedCobraDocument, ast as CobraModule,
+			containingRegions as List<of DomRegion>,
+			nodeMap as Dictionary<of DomRegion, ISyntaxNode>) as List<of NameSpace>
+		"""
+		Helper method for finding extension methods.
+		"""
+		namespaces = List<of NameSpace>()
+		ns = parsedDoc.getContainingNameSpace(containingRegions, nodeMap)
+		if ns <> nil and ns.unifiedNameSpace <> nil
+			namespaces.add(ns)
+		for useDirective in ast.topNameSpace.useDirectives
+			ns = useDirective.boundNameSpace
+			if ns <> nil, namespaces.add(ns)
+		return namespaces
 
 	shared
 		def createTestData as CobraModule

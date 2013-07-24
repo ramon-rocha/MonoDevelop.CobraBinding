@@ -408,33 +408,25 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 		else if node implements Cobra.Compiler.IMember
 			# this is a box/namespace member
 			typ = node.resultType
-		
-		if typ <> nil
-			if typ inherits WrappedType
-				typ = _unwrapType(typ)
 			
-			if typ inherits PrimitiveType
-				typ = typ.box
-			else if typ inherits Cobra.Compiler.ArrayType
-				typ = typ.box
-		else
-			print "[node] does not inherit AbstractLocalVar and does not implement Cobra.Compiler.IMember\n"
+		else if node inherits StreamType
+			typ = node.realType
+		
+		if typ == nil
+			print "[node] does not inherit AbstractLocalVar or StreamType and does not implement Cobra.Compiler.IMember\n"
+			return nil
+		
+		if typ inherits NilableType
+			typ = typ.nonNil
+			
+		if typ inherits PrimitiveType
+			typ = typ.box
+		else if typ inherits Cobra.Compiler.ArrayType
+			typ = typ.box
 				
 		return typ
+	
 		
-	def _unwrapType(typ as WrappedType) as Cobra.Compiler.IType
-		"""
-		Helper method for _getTypeForMemberCompletion
-		"""
-		unwrappedType = typ.theWrappedType
-		
-		if unwrappedType inherits WrappedType
-			# the real type is wrapped in multiple layers
-			return _unwrapType(unwrappedType)
-		
-		return unwrappedType
-
-
 	def handleParameterCompletion(context as CodeCompletionContext?, completionChar as char) _
 		as ParameterDataProvider? is override
 		

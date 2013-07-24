@@ -408,9 +408,6 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 		else if node implements Cobra.Compiler.IMember
 			# this is a box/namespace member
 			typ = node.resultType
-			
-		else if node inherits StreamType
-			typ = node.realType
 		
 		if typ == nil
 			print "[node] does not inherit AbstractLocalVar or StreamType and does not implement Cobra.Compiler.IMember\n"
@@ -422,6 +419,8 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 		if typ inherits PrimitiveType
 			typ = typ.box
 		else if typ inherits Cobra.Compiler.ArrayType
+			typ = typ.box
+		else if typ inherits StreamType
 			typ = typ.box
 				
 		return typ

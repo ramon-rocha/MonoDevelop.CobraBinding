@@ -162,30 +162,33 @@ class BoxMembersList inherits CobraCompletionList
 				return "public" in m.isNames
 				
 			for nsMember in ns.declsInOrder
-				# TODO: try to not to have such a deeply indented code structure
-				if nsMember inherits Extension
-					extendedBox = nsMember.extendedBox
-					if extendedBox <> nil
-						# TODO: wrap in try-catch
-						extendedBox.prepIfNeeded
-						
-						if _box.isAssignableTo(extendedBox)
-							_addMembers(nsMember.declsInOrder, publicOnly)
-						
-						else if _box.isGeneric and extendedBox.isGeneric
-							extDef = extendedBox.genericDef to !
-							if _box.genericDef == extDef _
-							or any for baseInterface in _box.baseInterfaces get baseInterface.genericDef == extDef
-								# this is either the same generic definition
-								# or we are implementing the same interface.
-								# either way it's okay to include the extension members
-								boxTemplate = _box.constructedTypeOf(extDef)
-								constructedBox = nsMember.constructedTypeFor(boxTemplate.genericParams)
-								try
-									constructedBox.prepIfNeeded
-								catch ex as Exception
-									# Something that relied on a valid compiler instance probably failed
-									print "a call to constructedBox.prepIfNeeded failed"
-									trace ex.message
-								_addMembers(constructedBox.declsInOrder, publicOnly)
-		
+				if not nsMember inherits Extension
+					continue
+				
+				extension = nsMember to Extension
+				extendedBox = extension.extendedBox
+				if extendedBox == nil
+					continue
+				
+				try
+					extendedBox.prepIfNeeded
+					
+					if _box.isAssignableTo(extendedBox to !)
+						_addMembers(extension.declsInOrder, publicOnly)
+					
+					else if _box.isGeneric and extendedBox.isGeneric
+						extDef = extendedBox.genericDef to !
+						if _box.genericDef == extDef _
+						or any for baseInterface in _box.baseInterfaces get baseInterface.genericDef == extDef
+							# this is either the same generic definition
+							# or we are implementing the same interface.
+							# either way it's okay to include the extension members
+							boxTemplate = _box.constructedTypeOf(extDef)
+							constructedBox = extension.constructedTypeFor(boxTemplate.genericParams)
+							constructedBox.prepIfNeeded
+							_addMembers(constructedBox.declsInOrder, publicOnly)
+				catch ex as Exception
+					# Something that relied on a valid compiler instance probably failed.
+					# Most likely it was a call to someBox.prepIfNeeded
+					print "an exception occurred while adding extension methods for [ns.minimalString] to [_box.minimalString]"
+					trace ex.message

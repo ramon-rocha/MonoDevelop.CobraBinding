@@ -129,7 +129,19 @@ class Second inherits First
 			pass
 			
 		class Ninth<of T1, T2>
-			pass
+			var t1 as T1
+			var t2 as T2
+			
+extend First
+	def anExtensionMethod
+		pass
+		
+	def anotherExtensionMethod as int
+		return 0
+
+extend Second
+	def thisOneReturnsIList as IList<of int>
+		return [1, 2, 3]
 	
 class Program
 

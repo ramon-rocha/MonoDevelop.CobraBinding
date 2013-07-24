@@ -99,32 +99,93 @@ class BoxMembersList inherits CobraCompletionList
 		Adds completion data entries for extension methods declared in the
 		given namespace for this box.
 		"""
-		publicOnly as MemberFilter = do(m as IBoxMember)
-			return "public" in m.isNames
+		test
+			# prepare data
+			ast = CobraCompletionTextEditorExtension.createTestData
+			namespaces = List<of NameSpace>()
+			ns = ast.topNameSpace.memberForName("TopLevelNameSpace") to NameSpace
+			namespaces.add(ns)
+			ns = ns.memberForName("SecondLevelNameSpace") to NameSpace
+			namespaces.add(ns)
+			ns = ns.memberForName("ThirdLevelNameSpace")to NameSpace
+			namespaces.add(ns)
 			
-		for nsMember in ns.declsInOrder
-			if nsMember inherits Extension
-				extendedBox = nsMember.extendedBox
-				if extendedBox <> nil
-					extendedBox.prepIfNeeded
-					
-					if _box.isAssignableTo(extendedBox)
-						_addMembers(nsMember.declsInOrder, publicOnly)
-					
-					else if _box.isGeneric and extendedBox.isGeneric
-						extDef = extendedBox.genericDef to !
-						if _box.genericDef == extDef _
-						or any for baseInterface in _box.baseInterfaces get baseInterface.genericDef == extDef
-							# this is either the same generic definition
-							# or we are implementing the same interface.
-							# either way it's okay to include the extension members
-							boxTemplate = _box.constructedTypeOf(extDef)
-							constructedBox = nsMember.constructedTypeFor(boxTemplate.genericParams)
-							try
-								constructedBox.prepIfNeeded
-							catch ex as Exception
-								# Something that relied on a valid compiler instance probably failed
-								print "a call to constructedBox.prepIfNeeded failed"
-								trace ex.message
-							_addMembers(constructedBox.declsInOrder, publicOnly)
-	
+			f = ns.memberForName("First") to Class
+			s = ns.memberForName("Second") to Class
+			
+			for ud in ast.topNameSpace.useDirectives
+				namespaces.add(ud.boundNameSpace to !)
+			
+			filter as BoxMembersList.MemberFilter = do(m as IBoxMember)
+				return "public" in m.isNames
+			
+			# do the test for the First class
+			firstMembers = BoxMembersList(f, filter)
+			originalCount = firstMembers.count
+			assert originalCount > 0
+			assert firstMembers.find("anExtensionMethod") == nil
+			for ns in namespaces
+				firstMembers.addExtensionMethods(ns)
+			newCount = firstMembers.count
+			assert newCount > 0
+			assert firstMembers.find("anExtensionMethod") <> nil
+			assert firstMembers.find("anotherExtensionMethod") <> nil
+			assert firstMembers.find("thisOneReturnsIList") == nil
+			
+			# the Second class should include the extensions on the First class
+			secondMembers = BoxMembersList(s, filter)
+			assert secondMembers.count > originalCount
+			originalCount = secondMembers.count
+			for ns in namespaces
+				secondMembers.addExtensionMethods(ns)
+			assert secondMembers.count > newCount
+			newCount = secondMembers.count
+			assert newCount > originalCount
+			assert secondMembers.find("anExtensionMethod") <> nil
+			assert secondMembers.find("anotherExtensionMethod") <> nil
+			emData = secondMembers.find("thisOneReturnsIList") to NamedNodeData?
+			assert emData <> nil
+			assert emData.node inherits Method
+			method = emData.node to Method
+			box = method.resultType to Box
+			assert box.qualifiedName == "System.Collections.Generic.IList<of int>"
+			
+			# test data members of the extension method
+			extData = BoxMembersList(box, filter)
+			for ns in namespaces
+				extData.addExtensionMethods(ns)
+			# verify Cobra.Core extensions are present
+			assert extData.find("first") <> nil
+			assert extData.find("pop") <> nil
+		body
+			publicOnly as MemberFilter = do(m as IBoxMember)
+				return "public" in m.isNames
+				
+			for nsMember in ns.declsInOrder
+				# TODO: try to not to have such a deeply indented code structure
+				if nsMember inherits Extension
+					extendedBox = nsMember.extendedBox
+					if extendedBox <> nil
+						# TODO: wrap in try-catch
+						extendedBox.prepIfNeeded
+						
+						if _box.isAssignableTo(extendedBox)
+							_addMembers(nsMember.declsInOrder, publicOnly)
+						
+						else if _box.isGeneric and extendedBox.isGeneric
+							extDef = extendedBox.genericDef to !
+							if _box.genericDef == extDef _
+							or any for baseInterface in _box.baseInterfaces get baseInterface.genericDef == extDef
+								# this is either the same generic definition
+								# or we are implementing the same interface.
+								# either way it's okay to include the extension members
+								boxTemplate = _box.constructedTypeOf(extDef)
+								constructedBox = nsMember.constructedTypeFor(boxTemplate.genericParams)
+								try
+									constructedBox.prepIfNeeded
+								catch ex as Exception
+									# Something that relied on a valid compiler instance probably failed
+									print "a call to constructedBox.prepIfNeeded failed"
+									trace ex.message
+								_addMembers(constructedBox.declsInOrder, publicOnly)
+		

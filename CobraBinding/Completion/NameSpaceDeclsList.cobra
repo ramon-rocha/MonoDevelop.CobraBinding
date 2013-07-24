@@ -32,8 +32,9 @@ class NameSpaceDeclsList inherits CobraCompletionList
 		
 		data3 = NameSpaceDeclsList(ns3)
 		assert data3.nameSpace is ns3
-		assert data3.count == ns3.declsInOrder.count
+		# extension declarations are not included in completion proposals
 		assert data3.count == 3
+		assert ns3.declsInOrder.count == 5
 		
 	test multipleFiles
 		# TODO: Include decls from a different source file but in the same namespace

@@ -122,8 +122,9 @@ class BoxMembersList inherits CobraCompletionList
 							constructedBox = nsMember.constructedTypeFor(boxTemplate.genericParams)
 							try
 								constructedBox.prepIfNeeded
-							catch
+							catch ex as Exception
 								# Something that relied on a valid compiler instance probably failed
-								pass
+								print "a call to constructedBox.prepIfNeeded failed"
+								trace ex.message
 							_addMembers(constructedBox.declsInOrder, publicOnly)
 	

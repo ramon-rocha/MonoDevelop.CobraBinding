@@ -36,4 +36,6 @@ cobra -test -clr-platform:x86 -color:yes ^
 ..\..\Completion\NameSpaceDeclsList.cobra ^
 ..\..\Tooltips\Extensions.cobra ^
 ..\..\Tooltips\TooltipProvider.cobra ^
-..\..\Tooltips\KeywordData.cobra
+..\..\Tooltips\KeywordData.cobra ^
+..\..\Commands\CommandId.cobra ^
+..\..\Commands\GoToDeclarationHandler.cobra

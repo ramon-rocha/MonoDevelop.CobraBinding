@@ -76,6 +76,8 @@ class CobraBindingAddinInstaller
 		"Completion[__s]BoxMembersList.cobra",
 		"Completion[__s]MethodVarsList.cobra",
 		"Completion[__s]KeywordCompletionData.cobra",
+		"Commands[__s]CommandId.cobra",
+		"Commands[__s]GoToDeclarationHandler.cobra",
 	]
 	
 	var _refs = [

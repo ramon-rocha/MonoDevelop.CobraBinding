@@ -87,4 +87,18 @@
 	<Extension path = "/MonoDevelop/Ide/TextEditorExtensions">
 		<Class fileExtensions=".cobra" class="MonoDevelop.CobraBinding.Completion.CobraCompletionTextEditorExtension" />
 	</Extension>
+	
+	<Extension path = "/MonoDevelop/Ide/Commands">
+		<Command id="MonoDevelop.CobraBinding.Commands.CommandId.GoToDelcaration"
+			defaultHandler="MonoDevelop.CobraBinding.Commands.GoToDeclarationHandler"
+			_label="Go to declaration"
+			shortcut="F12" />
+	</Extension>
+	
+	<Extension path = "/MonoDevelop/SourceEditor2/ContextMenu/Editor">
+		<Condition id="FileType" fileExtensions=".cobra">
+			<CommandItem id="MonoDevelop.CobraBinding.Commands.CommandId.GoToDelcaration" />
+		</Condition>
+	</Extension>
+	
 </Addin>

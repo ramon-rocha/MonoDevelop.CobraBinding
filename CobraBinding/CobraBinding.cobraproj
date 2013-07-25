@@ -91,6 +91,7 @@
     <Folder Include="TypeSystem\" />
     <Folder Include="Completion\" />
     <Folder Include="Tooltips\" />
+    <Folder Include="Commands\" />
   </ItemGroup>
   <ItemGroup>
     <Compile Include="AssemblyInfo.cs" />
@@ -114,6 +115,8 @@
     <Compile Include="Tooltips\KeywordData.cobra" />
     <Compile Include="Completion\KeywordCompletionData.cobra" />
     <Compile Include="Tooltips\Extensions.cobra" />
+    <Compile Include="Commands\CommandId.cobra" />
+    <Compile Include="Commands\GoToDeclarationHandler.cobra" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Gui\Gui.csproj">

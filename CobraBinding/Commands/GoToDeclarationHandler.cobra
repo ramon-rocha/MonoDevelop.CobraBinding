@@ -1,0 +1,67 @@
+use MonoDevelop.CobraBinding.TypeSystem
+
+use MonoDevelop.Core
+use MonoDevelop.Ide.Gui
+use MonoDevelop.Components.Commands
+
+namespace MonoDevelop.CobraBinding.Commands
+
+class GoToDeclarationHandler inherits CommandHandler
+	
+	var _node as Cobra.Compiler.INode? = nil
+	
+	def run is protected, override
+		or require _node <> nil
+		
+		location = _node.goToDefinitionLocation
+		if location == nil, return
+		
+		workbench = MonoDevelop.Ide.IdeApp.workbench
+		
+		if location.token <> nil and File.exists(location.token.fileName)
+			# declared in source
+			trace location.token.fileName
+			path = FilePath(location.token.fileName)
+			line = location.token.lineNum
+			column = location.token.colNum
+			options = OpenDocumentOptions.BringToFront | OpenDocumentOptions.TryToReuseViewer
+			workbench.openDocument(path, line, column, options)
+		
+		if location.clrNativeType <> nil
+			# declared in assembly
+			trace location.clrNativeType.clrType.assemblyQualifiedName
+			
+			/#
+			#TODO: not working, couldn't load references
+			for doc in workbench.documents
+				content = doc.getContent<of AssemblyBrowserViewContent?>
+				if content <> nil
+					# the assembly browser is already open
+					content.open(location.clrNativeType.clrType.assemblyQualifiedName)
+					doc.window.selectWindow
+					return
+			#/
+			
+			# open the assembly browser
+			#TODO
+			trace location.clrNativeType.clrType.fullName
+			trace location.clrNativeType.clrType.assembly.fullName
+	
+	
+	def update(info as CommandInfo?) is protected, override
+		
+		_node = nil
+		
+		try
+			# get the node corresponding to the cursor position
+			doc = MonoDevelop.Ide.IdeApp.workbench.activeDocument
+			parsedDoc = doc.parsedDocument
+			if parsedDoc inherits ParsedCobraDocument
+				location = doc.editor.caret.location
+				line, column = location.line, location.column
+				_node = parsedDoc.resolveLocationToNode(line, column, doc.editor.document to !)
+		catch
+			# something was probably nil
+			pass
+		
+		info.enabled = _node <> nil

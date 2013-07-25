@@ -201,6 +201,19 @@ class DataFactory
 				data.add(NamedNodeData(d))
 			return data
 			
+		def createBoxAllMembersList(box as Box, namespaces as NameSpace*? = nil) as BoxMembersList
+			"""
+			Returns a completion data list that includes all box members.
+			"""
+			if namespaces == nil
+				# no namespaces means no extension methods
+				return BoxMembersList(box, nil)
+			
+			members = BoxMembersList(box, nil)
+			for ns in namespaces
+				members.addExtensionMethods(ns)
+			return members
+			
 		def createBoxInstanceMembersList(box as Box, namespaces as NameSpace*? = nil) as BoxMembersList
 			"""
 			Returns a completion data list that only includes public non-shared members.

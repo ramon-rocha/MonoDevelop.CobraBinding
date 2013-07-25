@@ -7,34 +7,6 @@
 	<Property name="BlockCommentEnd">'''</Property>
 	<Property name="StringQuote">"</Property>
 	<Property name="StringQuote">'</Property>
-	
-	<!-- Numbers -->
-	<Match color="Number">(?:[0-9]+_?)+(?:\.[0-9]+)?</Match>
-	
-	<!-- Array Literals -->
-	<Rule name="Comma">
-		<Match color="Plain Text">,</Match>
-	</Rule>
-	
-	<Span color="Number" rule="Comma" tagColor="Keyword(Type)">
-		<Begin>@[</Begin>
-		<End>]</End>
-	</Span>
-	
-	<!-- Compiler directives -->
-	<Rule name="CompilerDirective">
-		<Keywords color="Script Keyword">
-			<Word>args</Word>
-			<Word>help</Word>
-			<Word>error</Word>
-			<Word>warning</Word>
-		</Keywords>
-	</Rule>
-	
-	<Span color="Script Keyword" rule="CompilerDirective" tagColor="Preprocessor" stopAtEol="True">
-		<Begin startsLine="True" firstNonWs="True">@</Begin>
-		<End> </End>
-	</Span>
 
 	<!-- Comments and doc strings -->
 	<Rule name="Comment">
@@ -64,19 +36,24 @@
 	</Span>
 	
 	<!-- Strings -->
-	<Span color="String">
+	<Span color="String" escape="\'">
 		<Begin>c'</Begin>
 		<End>'</End>
 	</Span>
-
-	<Span color="String">
-		<Begin>r'</Begin>
+	
+	<Span color="String" escape='\"'>
+		<Begin>c"</Begin>
+		<End>"</End>
+	</Span>
+	
+	<Span color="String" escape="\'">
+		<Begin>ns'</Begin>
 		<End>'</End>
 	</Span>
 	
-	<Span color="String">
-		<Begin>ns'</Begin>
-		<End>'</End>
+	<Span color="String" escape='\"'>
+		<Begin>ns"</Begin>
+		<End>"</End>
 	</Span>
 	
 	<Rule name="StringExpr">
@@ -87,15 +64,28 @@
 	</Rule>
 	
 	<Span color="String" rule="StringExpr">
+		<Begin>r'</Begin>
+		<End>'</End>
+	</Span>
+	
+	<Span color="String" rule="StringExpr">
+		<Begin>r"</Begin>
+		<End>"</End>
+	</Span>
+	
+	<Span color="String" rule="StringExpr" escape='\"'>
 		<Begin>"</Begin>
 		<End>"</End>
 	</Span>
 	
-	<Span color="String" rule="StringExpr">
+	<Span color="String" rule="StringExpr" escape="\'">
 		<Begin>'</Begin>
 		<End>'</End>
 	</Span>
 	
+	<!-- Numbers -->
+	<Match color="Number">(?:[0-9]+_?)+(?:\.[0-9]+)?</Match>
+
 	<!-- Generics -->
 	<Rule name="Generic">
 		<Span color="Keyword(Type)" tagColor="Keyword(Selection)" rule="Generic">

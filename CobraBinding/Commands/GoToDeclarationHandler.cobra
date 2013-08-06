@@ -1,8 +1,12 @@
-use MonoDevelop.CobraBinding.TypeSystem
-
 use MonoDevelop.Core
+use MonoDevelop.Ide
+use MonoDevelop.Ide.TypeSystem
 use MonoDevelop.Ide.Gui
 use MonoDevelop.Components.Commands
+
+use ICSharpCode.NRefactory.TypeSystem
+
+use MonoDevelop.CobraBinding.TypeSystem
 
 namespace MonoDevelop.CobraBinding.Commands
 
@@ -11,7 +15,13 @@ class GoToDeclarationHandler inherits CommandHandler
 	var _location as Cobra.Compiler.GoToLocation? = nil
 	
 	def run is protected, override
+		"""
+		Opens the file containing the declaration under the cursor either in the source
+		editor or in the Assembly Browser if the declaration is from an assembly
+		reference.
+		"""
 		or require _location <> nil
+		
 		
 		if _location == nil
 			return
@@ -26,28 +36,31 @@ class GoToDeclarationHandler inherits CommandHandler
 			options = OpenDocumentOptions.BringToFront | OpenDocumentOptions.TryToReuseViewer
 			workbench.openDocument(path, line, column, options)
 		
-		if _location.clrNativeType <> nil
-			# declared in assembly
-			trace _location.clrNativeType.clrType.assemblyQualifiedName
+		else if _location.clrNativeType <> nil
+			# declared in assembly reference, show in assembly browser
+			try
+				reflectionName = _location.clrNativeType.clrType.fullName
+				typeRef = ReflectionHelper.parseReflectionName(reflectionName)
+				proj = workbench.activeDocument.project
+				compilation = TypeSystemService.getCompilation(proj)
+				context = SimpleTypeResolveContext(compilation.mainAssembly)
+				resolvedType = typeRef.resolve(context)
+				
+				if resolvedType <> nil and resolvedType implements INamedElement
+					IdeApp.projectOperations.jumpToDeclaration(resolvedType, true)
+				else
+					print "Failed to resolve [reflectionName] to a type"
 			
-			/#
-			#TODO: not working, couldn't load references
-			for doc in workbench.documents
-				content = doc.getContent<of AssemblyBrowserViewContent?>
-				if content <> nil
-					# the assembly browser is already open
-					content.open(location.clrNativeType.clrType.assemblyQualifiedName)
-					doc.window.selectWindow
-					return
-			#/
-			
-			# open the assembly browser
-			#TODO
-			trace _location.clrNativeType.clrType.fullName
-			trace _location.clrNativeType.clrType.assembly.fullName
+			catch ex as Exception
+				print "Failed to display [reflectionName] in Assembly Browser"
+				print ex
 	
 	
 	def update(info as CommandInfo?) is protected, override
+		"""
+		Determines if the "Go to declaration" command should be enabled for the
+		current cursor location.
+		"""
 		
 		_location = nil
 		
@@ -64,14 +77,4 @@ class GoToDeclarationHandler inherits CommandHandler
 			# something was probably nil
 			pass
 		
-		# TODO: Replace the following if/else structure with...
-		#info.enabled = _location <> nil
-		if _location <> nil _
-		and _location.token <> nil _
-		and File.exists(_location.token.fileName)
-			# the location is in our source
-			info.enabled = true
-		else
-			# the location does not exist or is in an assembly
-			#info.enabled = _location.clrNativeType <> nil
-			info.enabled = false
+		info.enabled = _location <> nil

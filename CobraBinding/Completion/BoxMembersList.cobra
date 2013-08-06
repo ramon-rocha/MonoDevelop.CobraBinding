@@ -191,4 +191,4 @@ class BoxMembersList inherits CobraCompletionList
 					# Something that relied on a valid compiler instance probably failed.
 					# Most likely it was a call to someBox.prepIfNeeded
 					print "an exception occurred while adding extension methods for [ns.minimalString] to [_box.minimalString]"
-					trace ex.message
+					trace ex

@@ -91,7 +91,7 @@
 	<Extension path = "/MonoDevelop/Ide/Commands">
 		<Command id="MonoDevelop.CobraBinding.Commands.CommandId.GoToDelcaration"
 			defaultHandler="MonoDevelop.CobraBinding.Commands.GoToDeclarationHandler"
-			_label="Go to declaration" />
+			_label="_Go to Declaration" />
 			<!-- TODO: enable the following shortcut key once we figure out the correct way to register this command.
 			Right now, it conflicts with the command from the MonoDevelop.Refactoring addin so the shortcut must
 			be created manually.

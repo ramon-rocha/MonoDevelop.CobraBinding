@@ -36,6 +36,19 @@
 	</Span>
 	
 	<!-- Strings -->
+	
+	<!-- HACK for Backslash Character Literals -->
+	<Span color="String">
+		<Begin>c'\</Begin>
+		<End>\'</End>
+	</Span>
+	
+	<Span color="String">
+		<Begin>c"\</Begin>
+		<End>\"</End>
+	</Span>
+	
+	<!-- Character Literals -->
 	<Span color="String" escape="\'">
 		<Begin>c'</Begin>
 		<End>'</End>
@@ -46,6 +59,7 @@
 		<End>"</End>
 	</Span>
 	
+	<!-- Non-substituted Strings -->
 	<Span color="String" escape="\'">
 		<Begin>ns'</Begin>
 		<End>'</End>
@@ -56,6 +70,7 @@
 		<End>"</End>
 	</Span>
 	
+	<!-- Bracketed Expression in String -->
 	<Rule name="StringExpr">
 		<Span color="Keyword(Parameter)" tagColor="Punctuation">
 			<Begin>[</Begin>
@@ -63,6 +78,7 @@
 		</Span>
 	</Rule>
 	
+	<!-- Raw Strings -->
 	<Span color="String" rule="StringExpr">
 		<Begin>r'</Begin>
 		<End>'</End>
@@ -73,6 +89,7 @@
 		<End>"</End>
 	</Span>
 	
+	<!-- Normal Strings -->
 	<Span color="String" rule="StringExpr" escape='\"'>
 		<Begin>"</Begin>
 		<End>"</End>

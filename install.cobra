@@ -148,22 +148,15 @@ class CobraBindingAddinInstaller
 
 			print "Running [c.startInfo.fileName]..."
 			if v >= 1, print "  args: [c.startInfo.arguments]"
-			#trace c.startInfo.arguments
-			c.start
-			if v >= 1, print '.waitForExit ...'
-			c.waitForExit
-			if v >= 1, print 'finished .waitForExit'
-			if v
-				# the output of the command is passed through, so not much to do
-				pass
-			else if c.exitCode <> 0
+			
+			output = c.runAndCaptureOutput
+			if c.exitCode <> 0
 				# print command output on failure of the command
 				print "Failed!"
 				print 'std out:'
-				print c.standardOutput.readToEnd
+				print output.standardOutput
 				print 'std err:'
-				print c.standardError.readToEnd
-			if c.exitCode <> 0
+				print output.errorOutput
 				print
 				print "The addin was not installed due to compilation errors."
 				CobraCore.exit(c.exitCode)

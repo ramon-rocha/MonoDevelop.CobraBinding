@@ -33,5 +33,5 @@ namespace Nonsense.Bar
 		var b as int
 		
 	class Pod adds Lookie
-		pass
-		
+		def main
+			pass

@@ -46,7 +46,7 @@ class GoToDeclarationHandler inherits CommandHandler
 				context = SimpleTypeResolveContext(compilation.mainAssembly)
 				resolvedType = typeRef.resolve(context)
 				
-				if resolvedType <> nil and resolvedType implements INamedElement
+				if resolvedType <> nil
 					IdeApp.projectOperations.jumpToDeclaration(resolvedType, true)
 				else
 					print "Failed to resolve [reflectionName] to a type"
@@ -54,6 +54,8 @@ class GoToDeclarationHandler inherits CommandHandler
 			catch ex as Exception
 				print "Failed to display [reflectionName] in Assembly Browser"
 				print ex
+		else
+			print "Don't know how to get the type for location: [_location]"
 	
 	
 	def update(info as CommandInfo?) is protected, override
@@ -61,6 +63,7 @@ class GoToDeclarationHandler inherits CommandHandler
 		Determines if the "Go to declaration" command should be enabled for the
 		current cursor location.
 		"""
+		if info == nil, return
 		
 		_location = nil
 		
@@ -73,8 +76,8 @@ class GoToDeclarationHandler inherits CommandHandler
 				line, column = location.line, location.column
 				node = parsedDoc.resolveLocationToNode(line, column, doc.editor.document to !)
 				_location = node.goToDefinitionLocation
-		catch
+		catch ex as Exception
 			# something was probably nil
-			pass
+			trace ex
 		
 		info.enabled = _location <> nil

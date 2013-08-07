@@ -35,26 +35,13 @@
 		<End>'''</End>
 	</Span>
 	
-	<!-- Strings -->
-	
-	<!-- HACK for Backslash Character Literals -->
-	<Span color="String">
-		<Begin>c'\</Begin>
-		<End>\'</End>
-	</Span>
-	
-	<Span color="String">
-		<Begin>c"\</Begin>
-		<End>\"</End>
-	</Span>
-	
 	<!-- Character Literals -->
-	<Span color="String" escape="\'">
+	<Span color="String">
 		<Begin>c'</Begin>
 		<End>'</End>
 	</Span>
 	
-	<Span color="String" escape='\"'>
+	<Span color="String">
 		<Begin>c"</Begin>
 		<End>"</End>
 	</Span>

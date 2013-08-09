@@ -111,6 +111,7 @@
     <Compile Include="Completion\BoxMembersList.cobra" />
     <Compile Include="Completion\NameSpaceDeclsList.cobra" />
     <Compile Include="Completion\CobraCompletionList.cobra" />
+    <Compile Include="Completion\CobraParameterDataProvider.cobra" />
     <Compile Include="Tooltips\TooltipProvider.cobra" />
     <Compile Include="Tooltips\KeywordData.cobra" />
     <Compile Include="Completion\KeywordCompletionData.cobra" />

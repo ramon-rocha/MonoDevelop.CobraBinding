@@ -86,7 +86,6 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 						return parsedDoc
 		
 		return cachedDoc
-		
 	
 	def _canHandleCodeCompletion(context as CodeCompletionContext?, completionChar as char,
 								txtDoc as TextDocument?, parsedDoc as ParsedCobraDocument?) as bool
@@ -96,7 +95,6 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 		"""
 		if completionChar <> c'.' _
 		and completionChar <> c'_' _
-		and completionChar <> c'\0' _
 		and not completionChar.isLetter
 			return false
 		
@@ -245,10 +243,6 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 		parsedDoc = _getBestParsedDocument(doc)
 		if not _canHandleCodeCompletion(context, completionChar, txtDoc, parsedDoc)
 			# not enough information to provide completion results
-			return nil
-
-		if completionChar == c'('
-			#TODO handle parameter completion
 			return nil
 		
 		# extend code regions to include blank lines
@@ -428,9 +422,72 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 		
 	def handleParameterCompletion(context as CodeCompletionContext?, completionChar as char) _
 		as ParameterDataProvider? is override
+		"""
+		Return the object that will control the information displayed for
+		method parameters.
+		"""
+		
+		if completionChar == c'\0'
+			# don't let arrow navigation trigger paremeter completion
+			return nil
+		
+		txtDoc = .editor.document
+		if txtDoc == nil, return nil
+		
+		startOffset = txtDoc.locationToOffset(context.triggerLine, 0)
+		endOffset = context.triggerOffset
+		text = txtDoc.getTextBetween(startOffset, endOffset) ? ""
+		if not ParserAlias.isInsideCall(text), return nil
+		
+		parsedDoc = _getBestParsedDocument(.document)
+		if parsedDoc == nil, return nil
+		if parsedDoc.isInsideComment(endOffset, txtDoc to !)
+			return nil
+		
+		# backtrack past the args that have already been specified
+		endOffset -= 1
+		requiredParensCount = 1
+		for i in text.length - 1 : 0 : -1
+			c = text[i]
+			if c == c')'
+				requiredParensCount += 1
+			else if c == c'('
+				requiredParensCount -= 1
+				if requiredParensCount == 0
+					break
+			endOffset -= 1
+		
+		if endOffset <= startOffset, return nil
+		
+		node = parsedDoc.resolveOffsetToNode(endOffset, txtDoc to !)
+		if node == nil, return nil
+		
+		if node inherits ClassOrStruct
+			try
+				node = node.memberForName('cue.init') to ISyntaxNode
+			catch
+				# probably an invalid compiler state
+				return nil
+		if node inherits MemberOverload
+			node = node.members[0] to ISyntaxNode
+		
+		if node inherits AbstractMethod
+			return CobraParameterDataProvider(this, endOffset, node)
 		
 		return nil
 	
+	def getCurrentParameterIndex(startOffset as int) as int is override
+		"""
+		Returns the 1-based index for the current parameter or -1 for unhandled cases.
+		"""
+		endOffset = .editor.caret.offset
+		if endOffset < startOffset, return -1
+		
+		txtDoc = .editor.document to !
+		text = txtDoc.getTextBetween(startOffset, endOffset) ? ""
+		if not ParserAlias.isInsideCall(text), return -1
+		
+		return text.count(c',') + 1
 	
 	def _isInsideString(context as CodeCompletionContext, txtDoc as TextDocument) as bool
 		"""

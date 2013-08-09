@@ -152,6 +152,12 @@ extend INamedNode
 					node.bindAll
 					typ = node.type
 				if typ <> nil
+					if node inherits Param
+						if node.isOut
+							return "[node.name] as out [typ.createTooltipMarkup]"
+						else if node.isInOut
+							return "[node.name] as inout [typ.createTooltipMarkup]"
+					
 					return "[node.name] as [typ.createTooltipMarkup]"
 				else
 					return "[node.name] as ???"
@@ -167,7 +173,11 @@ extend INamedNode
 				# this is a box/namespace member
 				typ = node.resultType
 				
-				if node inherits Method _
+				if node inherits Initializer
+					kw = TooltipProvider.declKeyword[node.parentBox.getType]
+					return "[kw] [node.parentBox.name]([_createParamMarkup])"
+				
+				else if node inherits Method _
 				or node inherits MemberOverload _
 				or node inherits MethodSig
 					
@@ -240,6 +250,7 @@ extend INamedNode
 		params = _getParams
 		sb = StringBuilder()
 		for p in params
+			if sb.length > 0, sb.append(',')
 			sb.appendLine
 			sb.append('\t')
 			sb.append(p.createTooltipMarkup)
@@ -254,13 +265,13 @@ extend INamedNode
 		"""
 		require
 			this inherits MemberOverload _
-			or this inherits Method _
+			or this inherits AbstractMethod _
 			or this inherits MethodSig
 		body
 			node = this
 			if node inherits MemberOverload
 				return node.params
-			else if node inherits Method
+			else if node inherits AbstractMethod
 				return node.params
 			else if node inherits MethodSig
 				return node.params

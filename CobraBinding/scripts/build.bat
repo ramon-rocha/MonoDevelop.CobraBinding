@@ -2,11 +2,11 @@ cd /d %~dp0
 
 cd refs
 
-cobra -compile -v -timeit -target:lib -out:"../../bin/Debug/MonoDevelop.CobraBinding.dll" ^
+cobra -compile -v -timeit -target:lib -out:"..\\..\\bin\\Debug\\MonoDevelop.CobraBinding.dll" ^
 -contracts:inline -include-asserts:no -include-nil-checks:no ^
 -include-tests:no -include-traces:yes -optimize ^
 -color:yes -debug:full ^
--sharp-args:"-res:\"../../CobraBinding.addin.xml\" -res:\"../../CobraSyntaxMode.xml\" -res:\"../../templates/ConsoleProject.xpt.xml\" -res:\"../../templates/EmptyCobraFile.xft.xml\" -res:\"../../templates/EmptyProject.xpt.xml\" -res:\"../../templates/GtkSharp2Project.xpt.xml\" -res:\"../../templates/LibraryProject.xpt.xml\"" ^
+-sharp-args:"-res:\"..\\..\\CobraBinding.addin.xml\" -res:\"..\\..\\CobraSyntaxMode.xml\" -res:\"..\\..\\templates/ConsoleProject.xpt.xml\" -res:\"..\\..\\templates/EmptyCobraFile.xft.xml\" -res:\"..\\..\\templates/EmptyProject.xpt.xml\" -res:\"..\\..\\templates/GtkSharp2Project.xpt.xml\" -res:\"..\\..\\templates/LibraryProject.xpt.xml\"" ^
 -ref:atk-sharp.dll ^
 -ref:gdk-sharp.dll ^
 -ref:glib-sharp.dll ^
@@ -32,6 +32,7 @@ cobra -compile -v -timeit -target:lib -out:"../../bin/Debug/MonoDevelop.CobraBin
 ..\..\Completion\BoxMembersList.cobra ^
 ..\..\Completion\CobraCompletionList.cobra ^
 ..\..\Completion\CobraCompletionTextEditorExtension.cobra ^
+..\..\Completion\CobraParameterDataProvider.cobra ^
 ..\..\Completion\DataFactory.cobra ^
 ..\..\Completion\Icons.cobra ^
 ..\..\Completion\MethodVarsList.cobra ^

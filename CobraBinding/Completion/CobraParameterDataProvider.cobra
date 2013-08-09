@@ -1,0 +1,71 @@
+use Cobra.Compiler
+
+use MonoDevelop.Ide.CodeCompletion
+use MonoDevelop.CobraBinding.Tooltips
+
+namespace MonoDevelop.CobraBinding.Completion
+
+class CobraParameterDataProvider inherits ParameterDataProvider
+	
+	var _completionExtension as CobraCompletionTextEditorExtension
+	var _method as AbstractMethod
+	
+	cue init(ext as CobraCompletionTextEditorExtension, startOffset as int, m as AbstractMethod)
+		base.init(startOffset)
+		_completionExtension = ext
+		_method = m
+	
+	get count as int is override
+		"""
+		The number of overloads available for this method.
+		"""
+		return if(_method.overloadGroup, _method.overloadGroup.members.count, 1)
+		
+	def _getParameter(overload as int, currentParameter as int) as Param
+		if currentParameter < 0
+			return _method.params[0]
+		
+		if overload == 0 or .count == 1
+			if currentParameter > _method.params.count - 1
+				return _method.params.last
+			return _method.params[currentParameter]
+		else
+			if currentParameter > _method.overloadGroup.members[overload].params.count - 1
+				return _method.overloadGroup.members[overload].params.last
+			return _method.overloadGroup.members[overload].params[currentParameter]
+	
+	def getParameterName(overload as int,  currentParameter as int) as String is override
+		"""
+		Returns the name of the parameter at the specified index for the given overload ID.
+		"""
+		return _getParameter(overload, currentParameter).name
+	
+	def allowParameterList(overload as int) as bool is override
+		if overload == 0 or .count == 1
+			return _method.params.count > 0
+		else
+			return _method.overloadGroup.members[overload].params.count > 0
+	
+	#def getDescription(overload as int, currentParameter as int) as String is override
+	#	return "overload = [overload], currentParameter = [currentParameter]"
+		
+	#def getHeading(overload as int, parameterDescription as String[], currentParameter as int) as String is override
+	#	return "overload = [overload],\n parameterDescription = [parameterDescription],\n currentParameter = [currentParameter]"
+		
+	def getParameterCount(overload as int) as int is override
+		if overload == 0 or .count == 1
+			return _method.params.count
+		else
+			return _method.overloadGroup.members[overload].params.count
+		
+	def createTooltipInformation(overload as int, currentParameter as int, smartWrap as bool) as TooltipInformation is override
+		if overload == 0 or .count == 1
+			info = TooltipProvider.createCodeCompletionTooltip(_method)
+		else
+			info = TooltipProvider.createCodeCompletionTooltip(_method.overloadGroup.members[overload])
+		
+		# bold the currentParameter
+		paramMarkup = _getParameter(overload, currentParameter).createTooltipMarkup
+		info.signatureMarkup = info.signatureMarkup.replace("[paramMarkup]", "<b>[paramMarkup]</b>")
+		
+		return info

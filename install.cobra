@@ -69,6 +69,7 @@ class CobraBindingAddinInstaller
 		"Tooltips[__s]KeywordData.cobra",
 		"Completion[__s]CobraCompletionList.cobra",
 		"Completion[__s]CobraCompletionTextEditorExtension.cobra",
+		"Completion[__s]CobraParameterDataProvider.cobra",
 		"Completion[__s]DataFactory.cobra",
 		"Completion[__s]Icons.cobra",
 		"Completion[__s]NamedNodeData.cobra",

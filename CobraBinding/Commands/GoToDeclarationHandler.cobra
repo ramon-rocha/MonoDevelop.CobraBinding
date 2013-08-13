@@ -33,7 +33,7 @@ class GoToDeclarationHandler inherits CommandHandler
 			path = FilePath(_location.token.fileName)
 			line = _location.token.lineNum
 			column = _location.token.colNum
-			options = OpenDocumentOptions.BringToFront | OpenDocumentOptions.TryToReuseViewer
+			options = OpenDocumentOptions.BringToFront | OpenDocumentOptions.TryToReuseViewer | OpenDocumentOptions.CenterCaretLine
 			workbench.openDocument(path, line, column, options)
 		
 		else if _location.clrNativeType <> nil

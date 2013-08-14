@@ -22,6 +22,10 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 	Provides support for code completion when editing Cobra source files.
 	"""
 
+	#TODO: uncomment in next version of Xamarin Studio
+	#get completionLanguage as String is override
+	#	return MonoDevelop.CobraBinding.CobraLanguageBinding.languageName
+	
 	shared
 		/#
 		This is used when the current parsed document has errors or
@@ -128,23 +132,49 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 	
 	def keyPress(key as Gdk.Key, keyChar as char, modifier as Gdk.ModifierType) as bool is override
 		"""
-		Look for Return/Enter key presses and extend regions of doc strings and comment blocks.
-		"""
-		editor = .editor
-		doc = .document
-		if (key == Gdk.Key.Return or key == Gdk.Key.KP_Enter) and doc <> nil and editor <> nil
-			parsedDoc = doc.parsedDocument
-			txtDoc = editor.document
-			if parsedDoc <> nil and txtDoc <> nil
-				line = editor.caret.line - 1
-				prevLineText  = txtDoc.getLineText(line) ? ""
-				col = prevLineText.length + 1
-				for fold in parsedDoc.foldings
-					if fold.type == FoldType.Comment
-						if fold.region.beginLine == line or fold.region.isInside(line, col)
-							fold.region = _resizeNonCodeRegion(fold.region, txtDoc to !)
+		Look for Return/Enter key presses and then extend regions of doc strings and comment blocks.
+		Also, hide the parameter completion window on certain keys or when no longer inside a call.
 		
-		# Returns true if the key that was pressed should be processed by this extension or not.
+		Returns true if the key that was pressed should be processed by this extension or not.
+		"""
+		if keyChar == c')' and ParameterInformationWindowManager.isWindowVisible
+			ParameterInformationWindowManager.hideWindow(this, .completionWidget)
+			return base.keyPress(key, keyChar, modifier)
+		
+		editor = .editor
+		if editor == nil, return base.keyPress(key, keyChar, modifier)
+		
+		txtDoc = editor.document
+		if txtDoc == nil, return base.keyPress(key, keyChar, modifier)
+		
+		if ParameterInformationWindowManager.isWindowVisible
+			# make sure we are inside an actual method call.
+			# we might not be if we hit the arrow keys and there are no overloads
+			startOffset = txtDoc.locationToOffset(editor.caret.line, 0)
+			endOffset = editor.caret.offset
+			text = txtDoc.getTextBetween(startOffset, endOffset) ? ""
+			if not ParserAlias.isInsideCall(text) _
+			or text.trimStart.startsWith("def") _
+			or text.trimStart.startsWith("cue init")
+				ParameterInformationWindowManager.hideWindow(this, .completionWidget)
+				return base.keyPress(key, keyChar, modifier)
+		
+		if key == Gdk.Key.KP_Enter or key == Gdk.Key.Return
+			doc = .document
+			if doc == nil, return base.keyPress(key, keyChar, modifier)
+			
+			parsedDoc = doc.parsedDocument
+			if parsedDoc == nil, return base.keyPress(key, keyChar, modifier)
+		
+			line = editor.caret.line - 1
+			prevLineText  = txtDoc.getLineText(line) ? ""
+			col = prevLineText.length - 1
+			col = if(col < 0, 0, col)
+			for fold in parsedDoc.foldings
+				if fold.type == FoldType.Comment
+					if fold.region.beginLine == line or fold.region.isInside(line, col)
+						fold.region = _resizeNonCodeRegion(fold.region, txtDoc to !)
+		
 		return base.keyPress(key, keyChar, modifier)
 		
 		
@@ -424,20 +454,33 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 		as ParameterDataProvider? is override
 		"""
 		Return the object that will control the information displayed for
-		method parameters.
+		method parameters.  In some instances, we won't return anything which
+		means the current provider (if any) should be reused.
 		"""
-		
-		if completionChar == c'\0'
-			# don't let arrow navigation trigger paremeter completion
+		if ParameterInformationWindowManager.isWindowVisible
+			# the window is already displayed, don't create a new provider
+			# otherwise we will reset the current overload back to 0
 			return nil
 		
-		txtDoc = .editor.document
+		if completionChar == c'\0'
+			# don't return a provider for navigation keys
+			return nil
+		
+		# make sure we have the required data
+		if context == nil, return nil
+		editor = .editor
+		if editor == nil, return nil
+		txtDoc = editor.document
 		if txtDoc == nil, return nil
 		
+		# make sure we are inside an actual method call
 		startOffset = txtDoc.locationToOffset(context.triggerLine, 0)
 		endOffset = context.triggerOffset
 		text = txtDoc.getTextBetween(startOffset, endOffset) ? ""
-		if not ParserAlias.isInsideCall(text), return nil
+		if not ParserAlias.isInsideCall(text) _
+		or text.trimStart.startsWith("def") _
+		or text.trimStart.startsWith("cue init")
+			return nil
 		
 		parsedDoc = _getBestParsedDocument(.document)
 		if parsedDoc == nil, return nil
@@ -445,15 +488,21 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 			return nil
 		
 		# backtrack past the args that have already been specified
+		# to the position of the opening parenthesis for this call
 		endOffset -= 1
 		requiredParensCount = 1
 		for i in text.length - 1 : 0 : -1
 			c = text[i]
 			if c == c')'
+				# a closing parenthesis means we'll ignore the next
+				# opening parenthesis we see.
+				# For example, we would ignore the opening parenthesis
+				# for 'bar(y)' in 'foo(x, bar(y), z'
 				requiredParensCount += 1
 			else if c == c'('
 				requiredParensCount -= 1
 				if requiredParensCount == 0
+					# we found the opening parenthesis
 					break
 			endOffset -= 1
 		
@@ -468,26 +517,54 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 			catch
 				# probably an invalid compiler state
 				return nil
+		
 		if node inherits MemberOverload
 			node = node.members[0] to ISyntaxNode
 		
 		if node inherits AbstractMethod
 			return CobraParameterDataProvider(this, endOffset, node)
 		
+		#TODO: handle indexers, dictionary keys, and generic args
+		
 		return nil
+		
 	
 	def getCurrentParameterIndex(startOffset as int) as int is override
 		"""
 		Returns the 1-based index for the current parameter or -1 for unhandled cases.
 		"""
-		endOffset = .editor.caret.offset
-		if endOffset < startOffset, return -1
+		or require
+			.editor <> nil
+			.editor.caret <> nil
+		body
+			endOffset = .editor.caret.offset
+			if endOffset < startOffset, return -1
+			
+			txtDoc = .editor.document
+			if txtDoc == nil, return -1
+			
+			text = txtDoc.getTextBetween(startOffset, endOffset) ? ""
+			return text.count(c',') + 1
+	
 		
-		txtDoc = .editor.document to !
-		text = txtDoc.getTextBetween(startOffset, endOffset) ? ""
-		if not ParserAlias.isInsideCall(text), return -1
+	def guessBestMethodOverload(provider as IParameterDataProvider?, currentOverload as int) _
+		as int is override
 		
-		return text.count(c',') + 1
+		if provider <> nil
+			return .guessBestMethodOverload(provider to CobraParameterDataProvider, currentOverload)
+		else
+			return -1
+	
+	def guessBestMethodOverload(provider as CobraParameterDataProvider, currentOverload as int) as int
+		currentParam = .getCurrentParameterIndex(provider.startOffset)
+		if currentParam > provider.getParameterCount(currentOverload)
+			# find a better overload
+			# TODO: be smarter about this
+			for i in provider.count
+				if provider.getParameterCount(i) >= currentParam
+					return i
+		return -1
+	
 	
 	def _isInsideString(context as CodeCompletionContext, txtDoc as TextDocument) as bool
 		"""

@@ -14,58 +14,86 @@ class CobraParameterDataProvider inherits ParameterDataProvider
 		base.init(startOffset)
 		_completionExtension = ext
 		_method = m
+		
+	get method from var
 	
 	get count as int is override
 		"""
 		The number of overloads available for this method.
 		"""
+		and ensure result > 0
 		return if(_method.overloadGroup, _method.overloadGroup.members.count, 1)
-		
-	def _getParameter(overload as int, currentParameter as int) as Param
-		if currentParameter < 0
-			return _method.params[0]
-		
-		if overload == 0 or .count == 1
-			if currentParameter > _method.params.count - 1
-				return _method.params.last
-			return _method.params[currentParameter]
-		else
-			if currentParameter > _method.overloadGroup.members[overload].params.count - 1
-				return _method.overloadGroup.members[overload].params.last
-			return _method.overloadGroup.members[overload].params[currentParameter]
 	
-	def getParameterName(overload as int,  currentParameter as int) as String is override
+	
+	def _getParameter(overload as int, currentParameter as int) as Param
+		require
+			overload >= 0
+			overload < .count
+			currentParameter >= 0
+			currentParameter < .getParameterCount(overload)
+		body
+			if overload == 0 or .count == 0
+				return _method.params[currentParameter]
+			else
+				return _method.overloadGroup.members[overload].params[currentParameter]
+	
+	
+	def getParameterName(overload as int,  currentParameter as int) as String? is override
 		"""
 		Returns the name of the parameter at the specified index for the given overload ID.
 		"""
+		#TODO: do we ever get invalid input?  do we need these checks?
+		if overload < 0 or overload >= .count
+			return nil
+		
+		if currentParameter < 0 or currentParameter >= .getParameterCount(overload)
+			return nil
+		
 		return _getParameter(overload, currentParameter).name
 	
-	def allowParameterList(overload as int) as bool is override
-		if overload == 0 or .count == 1
-			return _method.params.count > 0
-		else
-			return _method.overloadGroup.members[overload].params.count > 0
 	
-	#def getDescription(overload as int, currentParameter as int) as String is override
-	#	return "overload = [overload], currentParameter = [currentParameter]"
-		
-	#def getHeading(overload as int, parameterDescription as String[], currentParameter as int) as String is override
-	#	return "overload = [overload],\n parameterDescription = [parameterDescription],\n currentParameter = [currentParameter]"
-		
+	def allowParameterList(overload as int) as bool is override
+		# TODO: see https://github.com/mono/monodevelop/blob/master/main/src/addins/CSharpBinding/MonoDevelop.CSharp.Completion/MethodParameterDataProvider.cs#L303
+		return false
+	
+	
 	def getParameterCount(overload as int) as int is override
-		if overload == 0 or .count == 1
+		"""
+		Return the number of parameters available for the given overload ID.
+		
+		Returns -1 for an invalid overload ID value.
+		"""
+		if overload < 0 or overload >= .count
+			return -1
+		
+		if overload == 0
 			return _method.params.count
 		else
 			return _method.overloadGroup.members[overload].params.count
+	
 		
 	def createTooltipInformation(overload as int, currentParameter as int, smartWrap as bool) as TooltipInformation is override
-		if overload == 0 or .count == 1
+		"""
+		Return the tooltip object to display for the given overload and current parameter indices.
+		"""
+		if overload < 0
+			overload = 0
+		else if overload >= .count
+			overload = .count - 1
+		
+		if currentParameter < 0
+			currentParameter = 0
+		else if currentParameter >= .getParameterCount(overload)
+			currentParameter = .getParameterCount(overload) - 1
+		
+		if overload == 0
 			info = TooltipProvider.createCodeCompletionTooltip(_method)
 		else
 			info = TooltipProvider.createCodeCompletionTooltip(_method.overloadGroup.members[overload])
 		
-		# bold the currentParameter
-		paramMarkup = _getParameter(overload, currentParameter).createTooltipMarkup
-		info.signatureMarkup = info.signatureMarkup.replace("[paramMarkup]", "<b>[paramMarkup]</b>")
+		# bold the currentParameter (if any)
+		if .getParameterCount(overload) > 0
+			paramMarkup = _getParameter(overload, currentParameter).createTooltipMarkup
+			info.signatureMarkup = info.signatureMarkup.replace("[paramMarkup]", "<b>[paramMarkup]</b>")
 		
 		return info

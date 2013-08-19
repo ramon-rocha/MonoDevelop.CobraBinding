@@ -28,6 +28,7 @@ cobra -test -clr-platform:x86 -color:yes ^
 ..\..\Completion\BoxMembersList.cobra ^
 ..\..\Completion\CobraCompletionList.cobra ^
 ..\..\Completion\CobraCompletionTextEditorExtension.cobra ^
+..\..\Completion\CobraParameterDataProvider.cobra ^
 ..\..\Completion\DataFactory.cobra ^
 ..\..\Completion\Icons.cobra ^
 ..\..\Completion\MethodVarsList.cobra ^

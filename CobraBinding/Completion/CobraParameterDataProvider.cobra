@@ -58,12 +58,11 @@ class CobraParameterDataProvider inherits ParameterDataProvider
 		"""
 		if overload < 0 or overload >= .count
 			return false
-			
+		
 		if overload == 0
-			params = _method.params
-		else
-			params = _method.overloadGroup.members[overload].params
-			
+			return _method.hasVariParams
+		
+		params = _method.overloadGroup.members[overload].params
 		return params.last.typeForReceiver inherits VariType
 	
 	

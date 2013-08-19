@@ -53,8 +53,18 @@ class CobraParameterDataProvider inherits ParameterDataProvider
 	
 	
 	def allowParameterList(overload as int) as bool is override
-		# TODO: see https://github.com/mono/monodevelop/blob/master/main/src/addins/CSharpBinding/MonoDevelop.CSharp.Completion/MethodParameterDataProvider.cs#L303
-		return false
+		"""
+		Returns true if this overload allows for a variable number of arguments.
+		"""
+		if overload < 0 or overload >= .count
+			return false
+			
+		if overload == 0
+			params = _method.params
+		else
+			params = _method.overloadGroup.members[overload].params
+			
+		return params.last.typeForReceiver inherits VariType
 	
 	
 	def getParameterCount(overload as int) as int is override
@@ -91,8 +101,16 @@ class CobraParameterDataProvider inherits ParameterDataProvider
 		
 		# bold the currentParameter (if any)
 		paramCount = .getParameterCount(overload)
-		if paramCount > 0 and currentParameter < paramCount
-			paramMarkup = _getParameter(overload, currentParameter).createTooltipMarkup
+		if paramCount > 0
+			if currentParameter < paramCount
+				paramMarkup = _getParameter(overload, currentParameter).createTooltipMarkup
+			else if .allowParameterList(overload)
+				# variable list of arguments, bold the last parameter
+				paramMarkup = _getParameter(overload, paramCount - 1).createTooltipMarkup
+			else
+				# invalid parameter index, don't bold any parameter name
+				return info
+			
 			info.signatureMarkup = info.signatureMarkup.replace("[paramMarkup]", "<b>[paramMarkup]</b>")
 		
 		return info

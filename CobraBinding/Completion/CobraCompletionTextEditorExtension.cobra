@@ -557,9 +557,10 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 	
 	def guessBestMethodOverload(provider as CobraParameterDataProvider, currentOverload as int) as int
 		currentParam = .getCurrentParameterIndex(provider.startOffset)
-		if currentParam > provider.getParameterCount(currentOverload)
+		if currentParam > provider.getParameterCount(currentOverload) _
+		and not provider.allowParameterList(currentOverload)
 			# find a better overload
-			# TODO: be smarter about this
+			# TODO: parse the line and use the types of the args already specified to find a better overload
 			for i in provider.count
 				if provider.getParameterCount(i) >= currentParam
 					return i

@@ -83,8 +83,6 @@ class CobraParameterDataProvider inherits ParameterDataProvider
 		
 		if currentParameter < 0
 			currentParameter = 0
-		else if currentParameter >= .getParameterCount(overload)
-			currentParameter = .getParameterCount(overload) - 1
 		
 		if overload == 0
 			info = TooltipProvider.createCodeCompletionTooltip(_method)
@@ -92,7 +90,8 @@ class CobraParameterDataProvider inherits ParameterDataProvider
 			info = TooltipProvider.createCodeCompletionTooltip(_method.overloadGroup.members[overload])
 		
 		# bold the currentParameter (if any)
-		if .getParameterCount(overload) > 0
+		paramCount = .getParameterCount(overload)
+		if paramCount > 0 and currentParameter < paramCount
 			paramMarkup = _getParameter(overload, currentParameter).createTooltipMarkup
 			info.signatureMarkup = info.signatureMarkup.replace("[paramMarkup]", "<b>[paramMarkup]</b>")
 		

@@ -189,6 +189,6 @@ class BoxMembersList inherits CobraCompletionList
 							_addMembers(constructedBox.declsInOrder, publicOnly)
 				catch ex as Exception
 					# Something that relied on a valid compiler instance probably failed.
-					# Most likely it was a call to someBox.prepIfNeeded
+					# Most likely it was a call to extendedBox.prepIfNeeded
 					print "an exception occurred while adding extension methods for [ns.minimalString] to [_box.minimalString]"
 					trace ex

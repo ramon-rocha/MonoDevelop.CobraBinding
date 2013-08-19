@@ -157,8 +157,12 @@ extend INamedNode
 				# this could be a method parameter or local variable
 				typ = node.type
 				if typ == nil
-					node.bindAll
-					typ = node.type
+					try
+						node.bindAll
+						typ = node.type
+					catch ex as Exception
+						trace ex.message
+						print ex.toString
 				if typ <> nil
 					if node inherits Param
 						if node.isOut

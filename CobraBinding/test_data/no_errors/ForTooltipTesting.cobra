@@ -34,4 +34,10 @@ namespace Nonsense.Bar
 		
 	class Pod adds Lookie
 		def main
-			pass
+			print .combine([1, 2, 3], [4, 5, 6])
+			
+		def combine(xs as List<of int>, ys as List<of int>) as List<of int>
+			combined = List<of int>()
+			combined.addRange(xs)
+			combined.addRange(ys)
+			return combined

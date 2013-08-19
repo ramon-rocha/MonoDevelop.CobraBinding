@@ -84,7 +84,8 @@ class TooltipProvider inherits Mono.TextEditor.TooltipProvider
 				signature = node.createTooltipMarkup
 			catch ex as Exception
 				signature = "Doh! Something went wrong trying to generate the signatureMarkup..."
-				trace ex.toString
+				trace ex.message
+				print ex.toString
 			info.signatureMarkup = signature
 			info.summaryMarkup = .createCodeCompletionSummaryMarkup(node)
 			return info

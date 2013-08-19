@@ -127,6 +127,14 @@ extend INamedNode
 			node = parsedDoc.resolveLocationToNode(35, 18, txtDoc) to INamedNode
 			assert node.name == "Lookie"
 			assert node.createTooltipMarkup == "mixin Nonsense.Bar.Lookie"
+			
+			node = parsedDoc.resolveLocationToNode(37, 12, txtDoc) to INamedNode
+			assert node.name == "combine"
+			assert node.createTooltipMarkup ==
+				"def combine([CobraCore.newLine]" + _
+				"\txs as System.Collections.Generic.List&lt;of int&gt;,[CobraCore.newLine]" + _
+				"\tys as System.Collections.Generic.List&lt;of int&gt;[CobraCore.newLine]" + _
+				") as System.Collections.Generic.List&lt;of int&gt;"
 		body
 			/#
 			colorScheme = IdeApp.preferences.colorScheme
@@ -190,10 +198,15 @@ extend INamedNode
 						return "[kw] [node.name] as ???"
 					
 					paramMarkup = _createParamMarkup
-					if paramMarkup.length > 0
-						return "[kw] [node.name]([paramMarkup]) as [typ.createTooltipMarkup]"
-					else
-						return "[kw] [node.name] as [typ.createTooltipMarkup]"
+					typeMarkup = typ.createTooltipMarkup
+					if paramMarkup.length == 0
+						return "[kw] [node.name] as [typeMarkup]"
+					
+					markup = "[kw] [node.name]([paramMarkup]) as [typeMarkup]"
+					if markup.length > 60
+						# too long, break it up into multiple lines
+						markup = markup.replace(paramMarkup, _createWrappedParamMarkup)
+					return markup
 					
 				else if node inherits Property
 					if node.getPart <> nil and node.setPart <> nil
@@ -235,12 +248,7 @@ extend INamedNode
 			if sb.length > 0, sb.append(', ')
 			sb.append(p.createTooltipMarkup)
 		
-		markup = sb.toString
-		if markup.length > 60 #TODO: Take the length of .resultType into consideration as well
-			# too long, break it up into multiple lines
-			markup = _createWrappedParamMarkup
-			
-		return markup
+		return sb.toString
 			
 	def _createWrappedParamMarkup as String
 		"""

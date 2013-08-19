@@ -272,6 +272,7 @@ class ParsedCobraDocument inherits DefaultParsedDocument
 			# not enough information to get corresponding node from location
 			return nil
 		
+		# extract the identifier from the text at this line
 		docLine = txtDoc.getLineByOffset(offset)
 		sb = StringBuilder(txtDoc.getTextBetween(docLine.offset, offset))
 		i = offset
@@ -288,7 +289,21 @@ class ParsedCobraDocument inherits DefaultParsedDocument
 		location = txtDoc.offsetToLocation(offset)
 		
 		containingRegions = .getContainingRegions(location.line, location.column)
-		return .resolveTextToNode(text, containingRegions)
+		node = .resolveTextToNode(text, containingRegions)
+		
+		if node implements IOverloadable
+			# Prefer the overload declared at the current line.
+			# This gives the correct overload for a declaration,
+			# but not necessarily for an invocation.  We'll need
+			# a smarter line parser for that.
+			if node.overloadGroup == nil
+				return node to ISyntaxNode
+			
+			for member in node.overloadGroup.members
+				if member.token.lineNum == location.line
+					return member to ISyntaxNode
+		
+		return node
 	
 	
 	def resolveTextToNode(text as String, containingRegions as List<of DomRegion>) as ISyntaxNode?

@@ -53,7 +53,8 @@ class Parser inherits TypeSystemParser implements IFoldingParser
 			proj = project to DotNetProject #TODO to CobraProject
 
 			# we need to include the paths to any referenced assemblies
-			refs.addRange(proj.getReferencedAssemblies(ConfigurationSelector.default))
+			for projRef in proj.references
+				refs.addRange(projRef.getReferencedFileNames(ConfigurationSelector.default))
 			
 			# to generate a full AST, we need all the Cobra source files in this project
 			for projFile in proj.files

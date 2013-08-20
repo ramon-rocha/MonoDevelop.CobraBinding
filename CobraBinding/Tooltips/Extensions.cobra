@@ -196,8 +196,12 @@ extend INamedNode
 					kw = TooltipProvider.declKeyword[node.getType]
 					
 					if typ == nil
-						node.bindAll
-						typ = node.resultType
+						try
+							node.bindAll
+							typ = node.resultType
+						catch ex as Exception
+							trace ex.message
+							print ex.toString
 					if typ == nil
 						return "[kw] [node.name] as ???"
 					

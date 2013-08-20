@@ -270,6 +270,9 @@ extend INamedNode
 		if attributes.length == 0
 			return "\nis [isNames.toString]"
 		
+		if isNames.length == 0
+			return "\nhas [attributes.toString]"
+		
 		return "\nis [isNames.toString]\nhas [attributes.toString]"
 		
 	def _createParamMarkup as String

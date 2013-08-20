@@ -82,7 +82,7 @@ class NamedNodeData inherits CompletionData
 		assert aData.displayText == "Action<of"
 		assert aData.completionText == "Action<of "
 		sigMarkup = aData.createTooltipInformation(false).signatureMarkup
-		assert sigMarkup == "class System.Action&lt;of T&gt;"
+		assert sigMarkup == "class System.Action&lt;of T&gt;\nis extern"
 		assert aData.hasOverloads
 		overloadCount = 0
 		for o in aData.overloadedData

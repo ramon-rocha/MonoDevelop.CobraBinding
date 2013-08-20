@@ -105,7 +105,7 @@ extend INamedNode
 			
 			node = parsedDoc.resolveLocationToNode(4, 39, txtDoc) to INamedNode
 			assert node.name == "String"
-			assert node.createTooltipMarkup == "class System.String"
+			assert node.createTooltipMarkup == "class System.String\nis extern"
 			
 			node = parsedDoc.resolveLocationToNode(5, 7, txtDoc) to INamedNode
 			assert node.name == "sum"
@@ -125,7 +125,7 @@ extend INamedNode
 			
 			node = parsedDoc.resolveLocationToNode(21, 6, txtDoc) to INamedNode
 			assert node.name == "_s"
-			assert node.createTooltipMarkup == "var _s as Soop?"
+			assert node.createTooltipMarkup == "var _s as Soop?\nis protected"
 			
 			node = parsedDoc.resolveLocationToNode(35, 18, txtDoc) to INamedNode
 			assert node.name == "Lookie"
@@ -190,7 +190,7 @@ extend INamedNode
 				
 				if node inherits Initializer
 					kw = TooltipProvider.declKeyword[node.parentBox.getType]
-					return "[kw] [node.parentBox.name]([_createParamMarkup])"
+					return "[kw] [node.parentBox.name]([_createParamMarkup])[_createTrailingMarkup]"
 				
 				else if node inherits Method _
 				or node inherits MemberOverload _
@@ -211,9 +211,9 @@ extend INamedNode
 					paramMarkup = _createParamMarkup
 					typeMarkup = typ.createTooltipMarkup
 					if paramMarkup.length == 0
-						return "[kw] [node.name] as [typeMarkup]"
+						return "[kw] [node.name] as [typeMarkup][_createTrailingMarkup]"
 					
-					markup = "[kw] [node.name]([paramMarkup]) as [typeMarkup]"
+					markup = "[kw] [node.name]([paramMarkup]) as [typeMarkup][_createTrailingMarkup]"
 					if markup.length > 60
 						# too long, break it up into multiple lines
 						markup = markup.replace(paramMarkup, _createWrappedParamMarkup)
@@ -229,24 +229,48 @@ extend INamedNode
 					else
 						# write-only property
 						kw = "set"
-					return "[kw] [node.name] as [typ.createTooltipMarkup]"
+					return "[kw] [node.name] as [typ.createTooltipMarkup][_createTrailingMarkup]"
 				
 				else if node inherits Box
 					kw = TooltipProvider.declKeyword[node.getType]
 					typ = node to IType
-					return "[kw] [typ.createTooltipMarkup]"
+					return "[kw] [typ.createTooltipMarkup][_createTrailingMarkup]"
 				
 				else if node inherits EnumDecl
 					return "enum [typ.parentNameSpace.fullName].[typ.name]"
 				
 				else
 					kw = TooltipProvider.declKeyword[node.getType]
-					return "[kw] [node.name] as [typ.createTooltipMarkup]"
+					return "[kw] [node.name] as [typ.createTooltipMarkup][_createTrailingMarkup]"
 			
 			if typ <> nil
 				return "Unhandled type for [node.name]: [typ.createTooltipMarkup]"
 			else
 				return "Unhandled type for [node.name]: ???"
+				
+	def _createTrailingMarkup as String
+		"""
+		Return the markup for non-default "is names" and attributes for this node.
+		"""
+		node = this
+		isNames = StringBuilder()
+		attributes = StringBuilder()
+		if node implements IBoxMember
+			for name in node.isNames
+				if name <> "public" and name <> "virtual"
+					if isNames.length > 0, isNames.append(", ")
+					isNames.append(name)
+			for att in node.attributes
+				if attributes.length > 0, attributes.append(", ")
+				attributes.append(att.name)
+		
+		if isNames.length == 0 and attributes.length == 0
+			return ""
+		
+		if attributes.length == 0
+			return "\nis [isNames.toString]"
+		
+		return "\nis [isNames.toString]\nhas [attributes.toString]"
 		
 	def _createParamMarkup as String
 		"""

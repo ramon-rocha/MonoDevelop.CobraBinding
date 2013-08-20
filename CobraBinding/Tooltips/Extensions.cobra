@@ -27,7 +27,10 @@ extend IType
 		"""
 		typ = this
 		if typ inherits WrappedType
-			return "[typ.theWrappedType.createTooltipMarkup][typ.suffix]"
+			if typ inherits VariType
+				return "vari [typ.theWrappedType.createTooltipMarkup]"
+			else
+				return "[typ.theWrappedType.createTooltipMarkup][typ.suffix]"
 		
 		if typ inherits Box
 			if not typ.isGeneric

@@ -9,7 +9,7 @@ It currently supports the following features:
 
 * Syntax Highlighting
 
-* Underlining Syntax Errors
+* Underlining Syntax and Other Errors
 
 * Folding Regions
 
@@ -19,7 +19,7 @@ It currently supports the following features:
 
 * Interactive Debugging
 
-* Limited Code Completion
+* Limited Code and Parameter Completion
 
 * Mouseover Tooltips
 
@@ -47,7 +47,7 @@ Minimum Requirements
 
 * MonoDevelop 4.0 (Linux) or Xamarin Studio 4.0.2 (Windows/Mac)
 
-* Cobra svn:3031 (post 0.9.4)
+* Cobra svn:3039 (post 0.9.4)
 
 Additional Requirements for Windows 64-bit
 --------------------------------------------
@@ -66,21 +66,13 @@ At this time, the workaround is to target the x86 platform when installing
 Cobra.  If you have already installed Cobra, you'll need to run the installer
 again.  You do not need to uninstall the previously installed version.
 
-Make sure to run these commands from the Visual Studio or Windows SDK Command 
+Make sure to run these commands from a Visual Studio or Windows SDK Command
 Prompt with the correct privileges (i.e. 'Run as Administrator').
 
-First, set your system to use the 32-bit CLR by executing this command:
-
-    C:\Windows\Microsoft.NET\Framework64\v2.0.50727\Ldr64.exe setwow
-
-Then, run the Cobra installer including the '-x86' option:
+Run the Cobra installer including the '-x86' option:
 
     cd\<path\to\cobra\workspace>\Source
     bin\install-from-workspace.bat -x86
-
-Finally, restore your system to defaulting to the 64-bit CLR via:
-
-    C:\Windows\Microsoft.NET\Framework64\v2.0.50727\Ldr64.exe set64
 
 You can verify success by executing:
 
@@ -90,14 +82,7 @@ Check the reported processorArchitecure. There should be an entry that reads
 'x86' instead of 'MSIL'.  It's okay to have multiple entries as long as at
 least one them is 'x86'.  Now, just make sure to target your Cobra programs
 to the x86 platform (the default option in MonoDevelop) when compiling,
-running, and debugging, and you shouldn't have any issues.  If you have
-.NET 4.5 installed, you need to make sure you set .NET as the active runtime
-when debugging as not all of 4.5 mscorlib has been implemented in Mono yet.
-
-NOTE: Some alternate workarounds may include compiling MonoDevelop from source 
-or maybe installing Cobra targetting the 'anycpu32bitpreferred' platform 
-on .NET 4.5 instead.  These alternatives have not been tried or tested yet.
-
+running, and debugging, and you shouldn't have any issues.
 
 Installation
 ------------
@@ -137,15 +122,15 @@ What Works?
  * Leading .dot and _underscore completion
  * Local variable completion
  * Arbitrary.member.completion
+ * Parameter completion
 
-Isn't that everything?  Not quite.  Parameter completion is not implemented yet
-but the biggest problem is that most of the "working" scenarios only work when
-there are no parsing errors in the file (i.e. no red squiggly lines).  A caching
-mechanism works around this to mitigate the annoyance but it's less than ideal.
+Isn't that everything?  Not quite.  The biggest problem is that most of the
+"working" scenarios only work when there are no parsing errors in the file
+(i.e. no red squiggly lines).  A caching mechanism works around this to
+mitigate the annoyance but it's less than ideal.
 
 What Doesn't Work?
 ------------------
- * Parameter completion
  * Completion of identifiers for declarations made while parsing errors exist
  * Project references don't work quite right
  * ```if inherits``` and ```if implements``` blocks do not show all available members
@@ -191,9 +176,6 @@ In the near-term, we can investigate tweaking the stock CobraParser or possibly
 inheriting from it and overriding its behaviors to get better data for completion:
 
 http://cobra-language.com/trac/cobra/browser/cobra/trunk/Source/CobraParser.cobra
-
-We can also make enhancements for things like tooltips while the development
-of the source analysis library is underway.
 
 Contributing
 ============
@@ -297,13 +279,6 @@ You can use the existing templates as a starting point for new ones.  They are l
  
 You'll also need to update install.cobra and then reinstall the addin to see the results of your changes.
 
-### Fix syntax highlighting bugs
-Check the issues list for syntax bugs, then update this file and try to fix the bug:
-
-    <solutionFolder>/CobraBinding/CobraSyntaxMode.xml
- 
-Make sure to reinstall the addin after you modify the XML file to see the results of your changes.
- 
 ### Add support for MSBuild Items
 This would allow for compilation of Cobra projects from the command line.  See here for some tips
 on getting started:

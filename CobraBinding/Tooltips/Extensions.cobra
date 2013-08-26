@@ -172,6 +172,9 @@ extend INamedNode
 							return "[node.name] as out [typ.createTooltipMarkup]"
 						else if node.isInOut
 							return "[node.name] as inout [typ.createTooltipMarkup]"
+						else if node.isOptional
+							defaultValue = node.optionalValue.toCobraSource
+							return "[node.name] as [typ.createTooltipMarkup] = [defaultValue]"
 					
 					return "[node.name] as [typ.createTooltipMarkup]"
 				else

@@ -47,6 +47,11 @@ Minimum Requirements
 
 * Cobra 0.9.4
 
+If you are running the latest version of Cobra from subversion and you find
+that the installer from the 'master' branch doesn't work, try to use the
+'cobra-svn' branch instead.  If that still doesn't work, please submit a bug
+report.
+
 Additional Requirements for Windows 64-bit
 --------------------------------------------
 Just skip this whole section if you are not running 64-bit Windows.

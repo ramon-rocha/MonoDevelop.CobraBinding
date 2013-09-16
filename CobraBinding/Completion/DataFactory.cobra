@@ -50,10 +50,17 @@ class DataFactory
 			"protected",
 			"private",
 			"internal",
+			
 			"partial",
-			"extern",
-			"abstract",
+			"virtual",
+			"nonvirtual",
 			"override",
+			"new",
+			
+			"shared",
+			"readonly",
+			"abstract",
+			"extern"
 		]
 		
 		var _kwListFollowingIs as CobraCompletionList?

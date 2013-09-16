@@ -143,6 +143,7 @@
 		<Word>new</Word>
 
 		<Word>shared</Word>
+		<Word>readonly</Word>
 		<Word>abstract</Word>
 		<Word>extern</Word>
 	</Keywords>

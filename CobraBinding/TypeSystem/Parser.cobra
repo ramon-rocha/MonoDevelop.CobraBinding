@@ -433,7 +433,7 @@ class Parser inherits TypeSystemParser implements IFoldingParser
 				# if a line opens a region and there's >0 locations on the stack, pop it and make a fold
 				else if curr.opensRegion and regionStack.count > 0
 					startLocation = TextLocation(lineNumber, curr.line.length + 2)
-					endLocation = regionStack.pop to !
+					endLocation = regionStack.pop
 					folds.add(FoldingRegion(DomRegion(startLocation, endLocation), FoldType.UserRegion))
 				
 				# handle indent blocks (ignore commented lines)

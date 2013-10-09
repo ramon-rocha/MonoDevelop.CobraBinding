@@ -13,6 +13,8 @@ class LineInformation
 		assert not info.closesDocString
 		assert info.previous == nil
 		assert info.next == nil
+		assert not info.opensRegion
+		assert not info.closesRegion
 		
 		info = LineInformation("#/", true, false, info)
 		assert not info.opensComment
@@ -23,6 +25,8 @@ class LineInformation
 		assert info.previous.line == "/#"
 		assert info.previous.next == info
 		assert info.next == nil
+		assert not info.opensRegion
+		assert not info.closesRegion
 		
 		info = LineInformation("'''", info)
 		assert not info.opensComment
@@ -30,18 +34,32 @@ class LineInformation
 		assert info.opensDocString
 		assert not info.closesDocString
 		assert info.docStringTag == "'''"
+		assert not info.opensRegion
+		assert not info.closesRegion
 		
 		info = LineInformation("'''", false, true, "'''", info)
 		assert not info.opensComment
 		assert not info.closesComment
 		assert not info.opensDocString
 		assert info.closesDocString
+		assert not info.opensRegion
+		assert not info.closesRegion
 		
 		info = LineInformation("'''", false, true, '"""', info)
 		assert not info.opensComment
 		assert not info.closesComment
 		assert not info.opensDocString
 		assert not info.closesDocString
+		assert not info.opensRegion
+		assert not info.closesRegion
+
+		info = LineInformation("#region TestRegion")
+		assert not info.opensComment
+		assert not info.closesComment
+		assert not info.opensDocString
+		assert not info.closesDocString
+		assert info.opensRegion
+		assert not info.closesRegion
 	
 	test codeSamples
 		info = LineInformation("'''Single line doc string!'''")
@@ -104,7 +122,28 @@ class LineInformation
 		assert info.isBlank
 		assert info.line.length == 0
 
+	test regions
+		info = LineInformation("print 'Hello, world!'")
+		assert not info.opensRegion
+		assert not info.closesRegion
+
+		info = LineInformation("#region TestRegion")
+		assert info.opensRegion
+		assert not info.closesRegion
+
+		info = LineInformation("#endregion")
+		assert not info.opensRegion
+		assert info.closesRegion
+
+		info = LineInformation("print 'Hello, world!' #region Test")
+		assert not info.opensRegion
+		assert not info.closesRegion
+
+		info = LineInformation("#regional data")
+		assert not info.opensRegion
+		assert not info.closesRegion
 	
+
 	var _line as String
 	var _isBlank as bool
 	var _opensComment as bool
@@ -114,6 +153,9 @@ class LineInformation
 	var _docStringTag as String?
 	var _previous as LineInformation?
 	var _next as LineInformation?
+
+	var _opensRegion as bool
+	var _closesRegion as bool
 
 	cue init(line as String)
 		.init(line, false, false, nil, nil)
@@ -150,6 +192,9 @@ class LineInformation
 		_opensDocString = false
 		_closesDocString = false
 
+		_opensRegion = false
+		_closesRegion = false
+
 		_previous = previous
 		if _previous <> nil
 			_previous.next = this
@@ -175,8 +220,18 @@ class LineInformation
 								_closesComment = false
 							else
 								_closesComment = true
-								
+
 						else if not inComment and not inString and not inDocString
+							if _line.length - _line.trimStart.length == i
+								# the comment is the first thing on the line
+								if String.compare(line, i, "#region", 0, 7) == 0
+									if (length == i + 7) or (length > i + 7 and (line[i+7] == " " or line[i+7] == "\t"))
+										# our comment starts with a start-region tag
+										_opensRegion = true
+								else if String.compare(line, i, "#endregion", 0, 10) == 0
+									# our comment starts with an end-region tag
+									_closesRegion = true
+
 							# the rest of the line is commented out, skip it
 							i = length
 				on c'/'
@@ -266,6 +321,12 @@ class LineInformation
 		
 	get docStringTag from var
 		"""If this line opens a DocString, this is the tag that was used."""
+
+	get opensRegion from var
+		"""Returns true if this line opens a #region."""
+
+	get closesRegion from var
+		"""Returns true if this line closes a #region with #endregion."""
 
 	get previous from var
 		"""The line information for the previous line of source code."""

@@ -95,6 +95,13 @@ class CobraBindingAddinInstaller
 		r"\GtkSharp\2.12\lib\gtk-sharp-2.0\glib-sharp.dll",
 		r"\GtkSharp\2.12\lib\gtk-sharp-2.0\atk-sharp.dll",
 	]
+	
+	var _macRefs = [
+		"/Applications/Xamarin Studio.app/Contents/MacOS/lib/monodevelop/bin/MonoDevelop.Core.dll",
+		"/Applications/Xamarin Studio.app/Contents/MacOS/lib/monodevelop/bin/MonoDevelop.Ide.dll",
+		"/Applications/Xamarin Studio.app/Contents/MacOS/lib/monodevelop/bin/ICSharpCode.NRefactory.dll",
+		"/Applications/Xamarin Studio.app/Contents/MacOS/lib/monodevelop/bin/Mono.TextEditor.dll",
+	]
 
 	def main
 		v = _verbosity
@@ -278,14 +285,6 @@ class CobraBindingAddinInstaller
 			# and we'll use cobra to compile the CobraBinding project
 			info = _createProcessStartInfo
 			
-			if CobraCore.isRunningOnMac
-				info.environmentVariables["MONO_PATH"] = "/Applications/Xamarin\\ Studio.app/Contents/MacOS/lib/monodevelop/bin"
-				monoDevPkgConfigPath = '/Applications/Xamarin\\ Studio.app/Contents/MacOS/lib/pkgconfig'
-				pkgConfigPath = Environment.getEnvironmentVariable('PKG_CONFIG_PATH') ? ''
-				if monoDevPkgConfigPath not in pkgConfigPath
-					if pkgConfigPath <> '', pkgConfigPath += ':'
-					info.environmentVariables["PKG_CONFIG_PATH"] = pkgConfigPath + monoDevPkgConfigPath
-
 			if _verbosity >= 3
 				info.environmentVariables['MONO_LOG_LEVEL'] = "debug"
 				info.environmentVariables['MONO_LOG_MASK'] = "dll"
@@ -347,7 +346,13 @@ class CobraBindingAddinInstaller
 			for p in _winRefsPartialPaths
 				cobraArgs.append(' -ref:"[progFiles][p]"')
 			
-		else
+		else if CobraCore.isRunningOnMac
+			cobraArgs.append(" -pkg:gtk-sharp-2.0")
+			# on Mac, a bug prevents monodevelop package resolution due to a space in the path
+			for r in _macRefs
+				cobraArgs.append(' -ref:"[r]"')
+		
+		else # Linux
 			for p in _pkgs
 				cobraArgs.append(" -pkg:[p]")
 			

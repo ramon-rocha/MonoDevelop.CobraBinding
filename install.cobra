@@ -102,6 +102,7 @@ class CobraBindingAddinInstaller
 		r"\GtkSharp\2.12\lib\gtk-sharp-2.0\gdk-sharp.dll",
 		r"\GtkSharp\2.12\lib\gtk-sharp-2.0\glib-sharp.dll",
 		r"\GtkSharp\2.12\lib\gtk-sharp-2.0\atk-sharp.dll",
+		r"\GtkSharp\2.12\lib\gtk-sharp-2.0\pango-sharp.dll",
 		r"\GtkSharp\2.12\lib\Mono.Cairo\Mono.Cairo.dll",
 	]
 

@@ -133,6 +133,9 @@ class Parser inherits TypeSystemParser implements IFoldingParser
 			source.add("\t\t\t")
 			source.add("\t\t\tprint 'hello world!'")
 			source.add("")
+			source.add("#region TestRegion")
+			source.add("#endregion")
+			source.add("")
 			source.add("")
 			
 			parser = Parser()
@@ -149,48 +152,80 @@ class Parser inherits TypeSystemParser implements IFoldingParser
 			assert infoList[1].opensDocString == false
 			assert infoList[1].closesDocString == false
 			assert infoList[1].isBlank == true #
+			assert infoList[1].opensRegion == false
+			assert infoList[1].closesRegion == false
 			
 			assert infoList[4].opensComment == false
 			assert infoList[4].closesComment == false
 			assert infoList[4].opensDocString == true #
 			assert infoList[4].closesDocString == false
 			assert infoList[4].isBlank == false
+			assert infoList[4].opensRegion == false
+			assert infoList[4].closesRegion == false
 			
 			assert infoList[5].opensComment == false
 			assert infoList[5].closesComment == false
 			assert infoList[5].opensDocString == false
 			assert infoList[5].closesDocString == false
 			assert infoList[5].isBlank == false
+			assert infoList[5].opensRegion == false
+			assert infoList[5].closesRegion == false
 				
 			assert infoList[6].opensComment == false
 			assert infoList[6].closesComment == false
 			assert infoList[6].opensDocString == false
 			assert infoList[6].closesDocString == true #
 			assert infoList[6].isBlank == false
+			assert infoList[6].opensRegion == false
+			assert infoList[6].closesRegion == false
 			
 			assert infoList[9].opensComment == true #
 			assert infoList[9].closesComment == false
 			assert infoList[9].opensDocString == false
 			assert infoList[9].closesDocString == false
 			assert infoList[9].isBlank == false
+			assert infoList[9].opensRegion == false
+			assert infoList[9].closesRegion == false
 			
 			assert infoList[10].opensComment == false
 			assert infoList[10].closesComment == false
 			assert infoList[10].opensDocString == false
 			assert infoList[10].closesDocString == false
 			assert infoList[10].isBlank == false
+			assert infoList[10].opensRegion == false
+			assert infoList[10].closesRegion == false
 			
 			assert infoList[11].opensComment == false
 			assert infoList[11].closesComment == true #
 			assert infoList[11].opensDocString == false
 			assert infoList[11].closesDocString == false
 			assert infoList[11].isBlank == false
+			assert infoList[11].opensRegion == false
+			assert infoList[11].closesRegion == false
 			
 			assert infoList[12].opensComment == false
 			assert infoList[12].closesComment == false
 			assert infoList[12].opensDocString == false
 			assert infoList[12].closesDocString == false
 			assert infoList[12].isBlank == true #
+			assert infoList[12].opensRegion == false
+			assert infoList[12].closesRegion == false
+
+			assert infoList[15].opensComment == false
+			assert infoList[15].closesComment == false
+			assert infoList[15].opensDocString == false
+			assert infoList[15].closesDocString == false
+			assert infoList[15].isBlank == false
+			assert infoList[15].opensRegion == true #
+			assert infoList[15].closesRegion == false
+
+			assert infoList[16].opensComment == false
+			assert infoList[16].closesComment == false
+			assert infoList[16].opensDocString == false
+			assert infoList[16].closesDocString == false
+			assert infoList[16].isBlank == false
+			assert infoList[16].opensRegion == false
+			assert infoList[16].closesRegion == true #
 		body
 			info as LineInformation? = nil
 			inComment = false
@@ -234,6 +269,9 @@ class Parser inherits TypeSystemParser implements IFoldingParser
 			source.add("\t\tDocstring text")
 			source.add("\t\t'''")
 			source.add("")
+			source.add("#region TestRegion")
+			source.add("#endregion")
+			source.add("")
 			source.add("\t\tdef aMethod")
 			source.add("/#")
 			source.add("\ta comment")
@@ -248,14 +286,16 @@ class Parser inherits TypeSystemParser implements IFoldingParser
 			folds = List<of FoldingRegion>()
 			parser._addFolds(infoList, folds)
 			
-			assert folds.count == 5
+			assert folds.count == 6
 			
 			commentBlockCount = 0
 			for f in folds
 				if f.type == FoldType.Comment
 					commentBlockCount += 1
+				else if f.type == FoldType.UserRegion
+					assert f.region.endLine == 10
 				else
-					assert f.region.endLine == 14
+					assert f.region.endLine == 17
 					
 			assert commentBlockCount == 2
 
@@ -303,6 +343,9 @@ class Parser inherits TypeSystemParser implements IFoldingParser
 			
 			endStack = Stack<of TextLocation>()
 			levelStack = Stack<of int>()
+
+			# keep a stack of region end locations, so we can nest regions as we go
+			regionStack = Stack<of TextLocation>()
 			
 			# go through the list backwards creating folds as we go
 			while curr <> nil
@@ -347,6 +390,16 @@ class Parser inherits TypeSystemParser implements IFoldingParser
 					curr = curr.previous
 					lineNumber -= 1
 					continue
+
+				# if a line closes a region, push the end location onto the region stack
+				if curr.closesRegion
+					regionStack.push(TextLocation(lineNumber, curr.line.length + 1))
+
+				# if a line opens a region and there's > 0 locations on the stack, pop it and make a fold
+				else if curr.opensRegion and regionStack.count > 0
+					startLocation = TextLocation(lineNumber, curr.line.length + 2)
+					endLocation = regionStack.pop
+					folds.add(FoldingRegion(DomRegion(startLocation, endLocation), FoldType.UserRegion))
 				
 				# handle indent blocks (ignore commented lines)
 				trimmedStart = curr.line.trimStart

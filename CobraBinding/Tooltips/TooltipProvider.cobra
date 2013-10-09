@@ -78,8 +78,12 @@ class TooltipProvider inherits Mono.TextEditor.TooltipProvider
 			This change: https://github.com/mono/monodevelop/commit/407aae5a49aea8822e452974c4ae9392465fd2a2
 			seems to have made all our tooltips show up as ellipsis (...) so this function works around that.
 			"""
-			label = window.child to Gtk.Label
-			label.ellipsize = Pango.EllipsizeMode.None
+			try
+				label = window.child to Gtk.Label
+				label.ellipsize = Pango.EllipsizeMode.None
+			catch
+				# on Windows, that cast is invalid
+				pass
 		
 		
 		def createCodeCompletionTooltip(node as INamedNode) as CodeCompletion.TooltipInformation

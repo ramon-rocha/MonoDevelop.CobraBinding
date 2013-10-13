@@ -42,7 +42,8 @@ class ParsedCobraDocument inherits DefaultParsedDocument
 	
 	def add(errors as SourceException*)
 		for err in errors
-			.add(err)
+			if err.fileName == .fileName or err.fileName.length == 0
+				.add(err)
 	
 	def add(err as SourceException)
 		col = err.colNum

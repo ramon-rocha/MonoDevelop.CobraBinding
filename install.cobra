@@ -124,10 +124,25 @@ class CobraBindingAddinInstaller
 			print
 			CobraCore.exit(1)
 		
+		cmdLineArgs = List<of String>(Environment.getCommandLineArgs)
+		executingName = cmdLineArgs[0]
+		cmdLineArgs.removeAt(0)
+		buildMPack = cmdLineArgs.remove("package")
+		compileOnly = cmdLineArgs.remove("compile") or buildMPack
+		displayHelp = cmdLineArgs.remove("/?") or cmdLineArgs.remove("/h") or cmdLineArgs.remove("-h") or cmdLineArgs.remove("--help")
+		
+		if cmdLineArgs.count > 0
+			print "Unknown arguments: [cmdLineArgs]"
+			print
+			.showUsage(executingName)
+			CobraCore.exit(1)
+		
+		if displayHelp
+			.showUsage(executingName)
+			CobraCore.exit(0)
+		
 		outPath = .getAddinPath
 		
-		cmdLineArgs = List<of String>(Environment.getCommandLineArgs)
-		compileOnly = "compile" in cmdLineArgs
 		if compileOnly
 			print "Compiling the Cobra Language Binding addin for MonoDevelop..."
 		else
@@ -170,27 +185,67 @@ class CobraBindingAddinInstaller
 				print "The addin was not installed due to compilation errors."
 				CobraCore.exit(c.exitCode)
 		
-		if compileOnly
+		if buildMPack
+			print "The addin was successfully compiled."
+			print
+			print "Building MonoDevelop package..."
+			
+			print "Copying assemblies..."
+			try
+				.copyAssemblies("Package[__s]")
+				
+				name = "CobraBinding.addin.xml"
+				File.copy("CobraBinding[__s][name]", "Package[__s][name]", true)
+			
+			catch e as Exception
+				print "Failed!"
+				print e.message
+				print
+				print "The addin was compiled but was not packaged due to I/O errors."
+				CobraCore.exit(1)
+			
+			cmd = .getMDToolCmd
+			
+			print "Running [cmd.startInfo.fileName]..."
+			if v >= 1, print "  args: [c.startInfo.arguments]"
+			cmd.start
+			if v >= 1, print ".waitForExit ..."
+			cmd.waitForExit
+			if v >= 1, print "finished .waitForExit"
+			
+			if v
+				pass
+			else if cmd.exitCode <> 0
+				print "Failed!"
+				print "std out:"
+				print cmd.standardOutput.readToEnd
+				print "std err:"
+				print cmd.standardError.readToEnd
+			if c.exitCode <> 0
+				print
+				print "The addin was not packaged due to packaging errors."
+				CobraCore.exit(cmd.exitCode)
+
+			print "Removing temporary files..."
+			try
+				Directory.delete("Package", true)
+			catch e as Exception
+				print "Failed!"
+				print e.message
+				print
+				print "The addin was packaged but temporary files were not cleaned up due to I/O errors."
+				CobraCore.exit(1)
+			
+			print "The MonoDevelop package wass successfully built."
+			CobraCore.exit(0)
+		
+		else if compileOnly
 			print "The addin was successfully compiled."
 			CobraCore.exit(0)
 		
 		print "Copying assemblies..."
 		try
-			if not Directory.exists(outPath)
-				Directory.createDirectory(outPath)
-
-			name = "MonoDevelop.CobraBinding.Gui.dll"
-			File.copy("Gui[__s]bin[__s]Debug[__s][name]", outPath + name, true)
-
-			name = "MonoDevelop.CobraBinding.dll"
-			File.copy("CobraBinding[__s]bin[__s]Debug[__s][name]", outPath + name, true)
-
-			name = "Cobra.Core.dll"
-			File.copy("CobraBinding[__s]bin[__s]Debug[__s][name]", outPath + name, true)
-
-			name = "Cobra.Compiler.dll"
-			File.copy(_getCobraCompilerDllPath, outPath + name, true)
-
+			.copyAssemblies(outPath)
 		catch e as Exception
 			print "Failed!"
 			print e.message
@@ -201,6 +256,35 @@ class CobraBindingAddinInstaller
 		print "The addin has been installed."
 		CobraCore.exit(0)
 			
+	def showUsage(executingPath as String)
+		print "An installation tool for the MonoDevelop Cobra language binding."
+		print
+		print "Usage: [Path.getFileName(executingPath)] \[compile|package\]"
+		print
+		print "Arguments:"
+		print "    compile: Build the addin, but don't install."
+		print "    package: Build the addin and package it into a MonoDevelop package."
+		print
+		print "By default, if neither 'compile' nor 'package' is supplied, it will build and"
+		print "install the addin."
+		print
+	
+	def copyAssemblies(outPath as String)
+		if not Directory.exists(outPath)
+			Directory.createDirectory(outPath)
+		
+		name = "MonoDevelop.CobraBinding.Gui.dll"
+		File.copy("Gui[__s]bin[__s]Debug[__s][name]", outPath + name, true)
+		
+		name = "MonoDevelop.CobraBinding.dll"
+		File.copy("CobraBinding[__s]bin[__s]Debug[__s][name]", outPath + name, true)
+		
+		name = "Cobra.Core.dll"
+		File.copy("CobraBinding[__s]bin[__s]Debug[__s][name]", outPath + name, true)
+		
+		name = "Cobra.Compiler.dll"
+		File.copy(_getCobraCompilerDllPath, outPath + name, true)
+
 	def verifyWorkingDirectory as bool
 		return File.exists("install.cobra") _
 			and Directory.exists("CobraBinding") _
@@ -231,6 +315,33 @@ class CobraBindingAddinInstaller
 					path = "[home]/.local/share"
 			
 			return path + "[__s][app]-4.0[__s]LocalInstall[__s]Addins[__s]CobraBinding[__s]"
+	
+	def getMDToolCmd as Process
+		"""
+		Returns the command that will build the MonoDevelop package.
+		"""
+		body
+			info = _createProcessStartInfo
+			
+			if _isWindows
+				progFiles = Environment.getEnvironmentVariable("PROGRAMFILES")
+				
+				if File.exists(progFiles + r" (x86)\Xamarin Studio\bin\mdtool")
+					# 32-bit on 64-bit Windows
+					progFiles += " (x86)"
+				
+				info.fileName = progFiles + r"\Xamarin Studio\bin\mdtool.exe"
+			
+			else if CobraCore.isRunningOnMac
+				info.fileName = "/Applications/Xamarin Studio.app/Contents/MacOS/mdtool"
+			
+			else
+				info.fileName = "mdtool"
+			
+			info.arguments = "setup pack -d:.. CobraBinding.addin.xml"
+			info.workingDirectory += "Package"
+			
+			return Process(startInfo = info)
 	
 	def getCompilerCmds as List<of Process>
 		"""

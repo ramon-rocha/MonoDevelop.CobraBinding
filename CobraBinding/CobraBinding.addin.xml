@@ -11,10 +11,12 @@
 	category = "Language bindings"
 	version = "0.4">
 	
-	<RunTime>
-		<Import assembly="MonoDevelop.CobraBinding.dll" />
-		<Import assembly="MonoDevelop.CobraBinding.Gui.dll" />
-	</RunTime>
+	<Runtime>
+		<Import assembly="Cobra.Core.dll"/>
+		<Import assembly="Cobra.Compiler.dll"/>
+		<Import assembly="MonoDevelop.CobraBinding.dll"/>
+		<Import assembly="MonoDevelop.CobraBinding.Gui.dll"/>
+	</Runtime>
 	
 	<Dependencies>
 		<Addin id="Core" version="4.0"/>

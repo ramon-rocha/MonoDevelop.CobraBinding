@@ -66,6 +66,7 @@ class GoToDeclarationHandler inherits CommandHandler
 		if info == nil, return
 		
 		_location = nil
+		info.enabled = false
 		
 		try
 			# get the node corresponding to the cursor position
@@ -75,9 +76,14 @@ class GoToDeclarationHandler inherits CommandHandler
 				location = doc.editor.caret.location
 				line, column = location.line, location.column
 				node = parsedDoc.resolveLocationToNode(line, column, doc.editor.document to !)
-				_location = node.goToDefinitionLocation
+				if node <> nil, _location = node.goToDefinitionLocation
 		catch ex as Exception
 			# something was probably nil
 			trace ex
 		
-		info.enabled = _location <> nil
+		if _location == nil, return
+
+		if _location.token <> nil and not _location.token.isEmpty and File.exists(_location.token.fileName)
+			info.enabled = true
+		else if _location.clrNativeType <> nil
+			info.enabled = true

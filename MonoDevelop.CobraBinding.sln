@@ -216,6 +216,6 @@ Global
 		$35.inheritsScope = text/x-csharp
 		$35.scope = text/x-csharp
 		description = This solution provides support for developing programs using the Cobra programming language on MonoDevelop.
-		version = 0.4
+		version = 0.5
 	EndGlobalSection
 EndGlobal

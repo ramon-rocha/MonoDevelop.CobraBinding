@@ -45,7 +45,7 @@ Minimum Requirements
 --------------------
 * .NET Framework 4 or Mono 3.0
 
-* MonoDevelop 4.0 (Linux) or Xamarin Studio 4.0.2 (Windows/Mac)
+* MonoDevelop or Xamarin Studio 4.0.2
 
 * Cobra svn:3039 (post 0.9.4)
 
@@ -265,13 +265,6 @@ just submit a new issue here.
 https://github.com/ramon-rocha/MonoDevelop.CobraBinding/issues
 
 You don't have to worry about tagging it correctly.
-
-### Improve the installer or package the addin
-Enhance install.cobra to be easier to maintain or research "mdtool" and try to package
-the addin so it can published to an addin repository and installed using MonoDevelop's
-built-in addin installation mechanism.  See here for more information:
-
-http://monodevelop.com/Developers/Articles/Publishing_an_Addin
 
 ### Create icons for project and file templates
 Right now, the default generic icons are being used.  Eventually, we'd like to get some custom icons.

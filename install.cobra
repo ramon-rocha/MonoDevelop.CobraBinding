@@ -236,7 +236,7 @@ class CobraBindingAddinInstaller
 				print "The addin was packaged but temporary files were not cleaned up due to I/O errors."
 				CobraCore.exit(1)
 			
-			print "The MonoDevelop package wass successfully built."
+			print "The MonoDevelop package was successfully built."
 			CobraCore.exit(0)
 		
 		else if compileOnly

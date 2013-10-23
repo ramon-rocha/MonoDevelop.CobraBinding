@@ -41,6 +41,7 @@ class CobraBindingAddinInstaller
 		var __s = Path.directorySeparatorChar.toString
 
 	var _verbosity = 0
+	var _version = "0.5"
 
 	var _isWindows = Environment.osVersion.toString.startsWith("Microsoft Windows")
 
@@ -246,6 +247,7 @@ class CobraBindingAddinInstaller
 		print "Copying assemblies..."
 		try
 			.copyAssemblies(outPath)
+			.removeOldVersions(outPath)
 		catch e as Exception
 			print "Failed!"
 			print e.message
@@ -270,6 +272,7 @@ class CobraBindingAddinInstaller
 		print
 	
 	def copyAssemblies(outPath as String)
+		ensure Directory.exists(outPath)
 		if not Directory.exists(outPath)
 			Directory.createDirectory(outPath)
 		
@@ -284,6 +287,22 @@ class CobraBindingAddinInstaller
 		
 		name = "Cobra.Compiler.dll"
 		File.copy(_getCobraCompilerDllPath, outPath + name, true)
+	
+	def removeOldVersions(pathToLatest as String)
+		require Directory.exists(pathToLatest)
+		ensure Directory.exists(pathToLatest)
+		latestDir = DirectoryInfo(pathToLatest)
+		parentDir = latestDir.parent
+		for folder in parentDir.getDirectories("*CobraBinding*")
+			if folder.name == latestDir.name
+				# don't delete the folder we just installed the add-in into
+				continue
+			if folder.name == "CobraBinding" _
+			or folder.name.startsWith("MonoDevelop.CobraBinding.")
+				try
+					folder.delete(true)
+				catch
+					print "Warning! Failed to delete previous version located at: [folder.fullName]"
 
 	def verifyWorkingDirectory as bool
 		return File.exists("install.cobra") _
@@ -314,7 +333,7 @@ class CobraBindingAddinInstaller
 					app = "MonoDevelop"
 					path = "[home]/.local/share"
 			
-			return path + "[__s][app]-4.0[__s]LocalInstall[__s]Addins[__s]CobraBinding[__s]"
+			return path + "[__s][app]-4.0[__s]LocalInstall[__s]Addins[__s]MonoDevelop.CobraBinding.[_version][__s]"
 	
 	def getMDToolCmd as Process
 		"""

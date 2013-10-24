@@ -27,9 +27,7 @@ using MonoDevelop.
 NOTE: If you want to be able to use this addin on Windows 64-bit, you need to:
  * Install (or reinstall) Cobra using the -x86 option
  * Make sure to target your programs for the x86 platform when running
- * Use the .NET runtime if you have .NET 4.5 installed 
 This is due to a limitation of loading some 32-bit dependencies using System.Reflection.
-Alternatively, you can build MonoDevelop from source.
 """
 
 use System.Diagnostics
@@ -41,6 +39,8 @@ class CobraBindingAddinInstaller
 		var __s = Path.directorySeparatorChar.toString
 
 	var _verbosity = 0
+	
+	# needs to match the version defined in CobraBinding.addin.xml
 	var _version = "0.5"
 
 	var _isWindows = Environment.osVersion.toString.startsWith("Microsoft Windows")
@@ -116,7 +116,7 @@ class CobraBindingAddinInstaller
 
 	def main
 		v = _verbosity
-
+	
 		if not .verifyWorkingDirectory
 			print
 			print "========================================================="
@@ -164,7 +164,9 @@ class CobraBindingAddinInstaller
 					print "The addin was not installed."
 					CobraCore.exit(1)
 		
-		cmds = .getCompilerCmds	
+
+		# compile the addin
+		cmds = .getCompilerCmds
 		for c in cmds
 
 			binDir = c.startInfo.workingDirectory + "[__s]bin[__s]Debug"
@@ -176,15 +178,13 @@ class CobraBindingAddinInstaller
 			
 			output = c.runAndCaptureOutput
 			if c.exitCode <> 0
-				# print command output on failure of the command
 				print "Failed!"
-				print 'std out:'
-				print output.standardOutput
-				print 'std err:'
-				print output.errorOutput
+				print "std out:\n[output.standardOutput]"
+				print "std err:\n[output.errorOutput]"
 				print
 				print "The addin was not installed due to compilation errors."
 				CobraCore.exit(c.exitCode)
+		
 		
 		if buildMPack
 			print "The addin was successfully compiled."
@@ -193,11 +193,7 @@ class CobraBindingAddinInstaller
 			
 			print "Copying assemblies..."
 			try
-				.copyAssemblies("Package[__s]")
-				
-				name = "CobraBinding.addin.xml"
-				File.copy("CobraBinding[__s][name]", "Package[__s][name]", true)
-			
+				.copyAddinFiles("Package[__s]")
 			catch e as Exception
 				print "Failed!"
 				print e.message
@@ -208,25 +204,16 @@ class CobraBindingAddinInstaller
 			cmd = .getMDToolCmd
 			
 			print "Running [cmd.startInfo.fileName]..."
-			if v >= 1, print "  args: [c.startInfo.arguments]"
-			cmd.start
-			if v >= 1, print ".waitForExit ..."
-			cmd.waitForExit
-			if v >= 1, print "finished .waitForExit"
-			
-			if v
-				pass
-			else if cmd.exitCode <> 0
+			if v >= 1, print "  args: [cmd.startInfo.arguments]"
+			output = cmd.runAndCaptureOutput
+			if cmd.exitCode <> 0
 				print "Failed!"
-				print "std out:"
-				print cmd.standardOutput.readToEnd
-				print "std err:"
-				print cmd.standardError.readToEnd
-			if c.exitCode <> 0
+				print "std out:\n[output.standardOutput]"
+				print "std err:\n[output.errorOutput]"
 				print
 				print "The addin was not packaged due to packaging errors."
 				CobraCore.exit(cmd.exitCode)
-
+			
 			print "Removing temporary files..."
 			try
 				Directory.delete("Package", true)
@@ -244,10 +231,11 @@ class CobraBindingAddinInstaller
 			print "The addin was successfully compiled."
 			CobraCore.exit(0)
 		
+		# install the addin
 		print "Copying assemblies..."
 		try
-			.copyAssemblies(outPath)
-			.removeOldVersions(outPath)
+			.copyAddinFiles(outPath)
+			.removeOtherVersions(outPath)
 		catch e as Exception
 			print "Failed!"
 			print e.message
@@ -257,7 +245,8 @@ class CobraBindingAddinInstaller
 		
 		print "The addin has been installed."
 		CobraCore.exit(0)
-			
+	
+
 	def showUsage(executingPath as String)
 		print "An installation tool for the MonoDevelop Cobra language binding."
 		print
@@ -271,24 +260,37 @@ class CobraBindingAddinInstaller
 		print "install the addin."
 		print
 	
-	def copyAssemblies(outPath as String)
-		ensure Directory.exists(outPath)
-		if not Directory.exists(outPath)
-			Directory.createDirectory(outPath)
-		
-		name = "MonoDevelop.CobraBinding.Gui.dll"
-		File.copy("Gui[__s]bin[__s]Debug[__s][name]", outPath + name, true)
-		
-		name = "MonoDevelop.CobraBinding.dll"
-		File.copy("CobraBinding[__s]bin[__s]Debug[__s][name]", outPath + name, true)
-		
-		name = "Cobra.Core.dll"
-		File.copy("CobraBinding[__s]bin[__s]Debug[__s][name]", outPath + name, true)
-		
-		name = "Cobra.Compiler.dll"
-		File.copy(_getCobraCompilerDllPath, outPath + name, true)
+
+	def copyAddinFiles(outPath as String)
+		"""
+	    Copies all files required for the addin to function to the specified location
+	    """
+		require
+			outPath.endsWith(__s)
+		ensure
+			Directory.exists(outPath)
+			Directory.getFiles(outPath).length == 5
+		body
+			if not Directory.exists(outPath)
+				Directory.createDirectory(outPath)
+			
+			name = "MonoDevelop.CobraBinding.Gui.dll"
+			File.copy("Gui[__s]bin[__s]Debug[__s][name]", outPath + name, true)
+			
+			name = "MonoDevelop.CobraBinding.dll"
+			File.copy("CobraBinding[__s]bin[__s]Debug[__s][name]", outPath + name, true)
+			
+			name = "Cobra.Core.dll"
+			File.copy("CobraBinding[__s]bin[__s]Debug[__s][name]", outPath + name, true)
+			
+			name = "Cobra.Compiler.dll"
+			File.copy(_getCobraCompilerDllPath, outPath + name, true)
+
+			name = "CobraBinding.addin.xml"
+			File.copy("CobraBinding[__s][name]", outPath + name, true)
 	
-	def removeOldVersions(pathToLatest as String)
+
+	def removeOtherVersions(pathToLatest as String)
 		require Directory.exists(pathToLatest)
 		ensure Directory.exists(pathToLatest)
 		latestDir = DirectoryInfo(pathToLatest)
@@ -302,13 +304,15 @@ class CobraBindingAddinInstaller
 				try
 					folder.delete(true)
 				catch
-					print "Warning! Failed to delete previous version located at: [folder.fullName]"
+					print "Warning! Failed to delete other version located at: [folder.fullName]"
+	
 
 	def verifyWorkingDirectory as bool
 		return File.exists("install.cobra") _
 			and Directory.exists("CobraBinding") _
 			and Directory.exists("Gui")
 	
+
 	def getAddinPath as String
 		"""
 		Returns the path where the assemblies will be copied to.
@@ -335,6 +339,7 @@ class CobraBindingAddinInstaller
 			
 			return path + "[__s][app]-4.0[__s]LocalInstall[__s]Addins[__s]MonoDevelop.CobraBinding.[_version][__s]"
 	
+
 	def getMDToolCmd as Process
 		"""
 		Returns the command that will build the MonoDevelop package.
@@ -362,6 +367,7 @@ class CobraBindingAddinInstaller
 			
 			return Process(startInfo = info)
 	
+
 	def getCompilerCmds as List<of Process>
 		"""
 		Returns the commands that will compile the addin source code.
@@ -401,12 +407,14 @@ class CobraBindingAddinInstaller
 				info.fileName = "xbuild"
 			
 			info.arguments = "Gui.csproj /p:Configuration=Debug"
-			if _verbosity >= 2, info.arguments += " /verbosity:detailed"
+			
+			if _verbosity >= 3, info.arguments += " /verbosity:diagnostic"
+			else if _verbosity >= 2, info.arguments += " /verbosity:detailed"
 			else if _verbosity >= 1, info.arguments += " /verbosity:normal"
-
+			
 			if _isWindows
 				progFiles = Environment.getEnvironmentVariable("PROGRAMFILES")
-				if progFiles.endsWith("(x86)")
+				if Directory.exists(progFiles + " (x86)")
 					# 32-bit on 64-bit Windows
 					info.arguments += " /p:Platform=x86"
 				else
@@ -433,7 +441,8 @@ class CobraBindingAddinInstaller
 			cmds.add(Process(startInfo = info))
 			
 			return cmds
-			
+	
+
 	def _createProcessStartInfo as ProcessStartInfo
 		"""
 		Returns a ProcessStartInfo object that will cause a process to
@@ -443,15 +452,15 @@ class CobraBindingAddinInstaller
 			result.workingDirectory.endsWith(__s)
 		body
 			i = ProcessStartInfo()
-			if _verbosity == 0
-				i.redirectStandardOutput = i.redirectStandardError = true
+			i.redirectStandardOutput = i.redirectStandardError = true
 			i.useShellExecute = false
 			i.createNoWindow = true
 			i.windowStyle = ProcessWindowStyle.Hidden
 			i.workingDirectory = Directory.getCurrentDirectory + __s
 			i.environmentVariables["PATH"] = Environment.getEnvironmentVariable("PATH")
 			return i
-			
+	
+
 	def _getCobraArguments as String
 		"""
 		Returns the arguments that should be passed to the Cobra compiler
@@ -462,9 +471,9 @@ class CobraBindingAddinInstaller
 		)
 		cobraArgs.append(' -turbo:yes')
 		
-		if _verbosity >= 2, cobraArgs.append(' -v -verbosity-ref:2')
-		else if _verbosity >= 1, cobraArgs.append(' -v -verbosity-ref:1')
-
+		if _verbosity > 0
+			cobraArgs.append(' -verbose -verbosity-ref:[_verbosity]')
+		
 		for r in _refs
 			cobraArgs.append(" -ref:[r]")
 		
@@ -504,6 +513,7 @@ class CobraBindingAddinInstaller
 			cobraArgs.append("[fileName] ")
 		
 		return cobraArgs.toString
+	
 
 	def _getCobraCompilerDllPath as String
 		"""

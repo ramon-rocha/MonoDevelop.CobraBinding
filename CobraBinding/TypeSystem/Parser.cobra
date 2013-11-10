@@ -44,30 +44,13 @@ class Parser inherits TypeSystemParser implements IFoldingParser
 		workbench = MonoDevelop.Ide.IdeApp.workbench
 		if workbench == nil, return .parse(fileName, source)
 		if workbench.getDocument(fileName) == nil, return .parse(fileName, source)
-		
-		sourceMap = Dictionary<of String, String>()
-		sourceMap[fileName] = source
-		refs = List<of String>()
 
-		if project <> nil
-			proj = project to DotNetProject #TODO to CobraProject
+		cm = CompilerManager.instance
+		if project == nil
+			parsedDoc = cm.parseAndBind({fileName to ! : source})
+		else
+			parsedDoc = cm.parseAndBind(project to DotNetProject, fileName to !, source)
 
-			# we need to include the paths to any referenced assemblies
-			for projRef in proj.references
-				refs.addRange(projRef.getReferencedFileNames(ConfigurationSelector.default))
-			
-			# to generate a full AST, we need all the Cobra source files in this project
-			for projFile in proj.files
-				
-				if projFile.buildAction <> BuildAction.compile, continue
-				
-				path = projFile.filePath.toString
-				if path == fileName _
-				or not path.endsWith(CobraLanguageBinding.sourceFileExtension), continue
-				
-				sourceMap[path] = StreamReader(path).readToEnd ? ""
-
-		parsedDoc = CompilerManager.instance.parseAndBind(sourceMap, refs, fileName to !)
 		_addFolds(parsedDoc)
 		return parsedDoc
 

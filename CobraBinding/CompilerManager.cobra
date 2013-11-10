@@ -1,5 +1,7 @@
 use Cobra.Compiler
 
+use MonoDevelop.Projects
+
 namespace MonoDevelop.CobraBinding
 
 class CompilerManager
@@ -93,6 +95,50 @@ class CompilerManager
 		Node.typeProvider = compiler
 		
 		return compiler
+	
+	def parseAndBind(project as DotNetProject, fileName as String, source as String) as TypeSystem.ParsedCobraDocument
+		"""
+		Runs select phases of the Cobra compiler on the files in the given project.
+
+		'fileName' is the name of the file to bind and 'source' is the source code contained in that file.
+		"""
+		sourceMap = Dictionary<of String, String>(project.files.count)
+		sourceMap[fileName] = source
+
+		# we need to include the paths to any referenced assemblies
+		# and we'll always reference System.Core and Cobra.Core
+		refs = List<of String>(project.references.count + 2)
+		for projRef in project.references
+			refs.addRange(projRef.getReferencedFileNames(ConfigurationSelector.default))
+		
+		# to generate a full AST, we need all the Cobra source files in this project
+		for projFile in project.files
+			
+			if projFile.buildAction <> BuildAction.compile, continue
+			
+			path = projFile.filePath.toString
+			if path == fileName _
+			or not path.endsWith(CobraLanguageBinding.sourceFileExtension), continue
+
+			doc = MonoDevelop.Ide.IdeApp.workbench.getDocument(path)
+			if doc == nil
+			    # file is not open, read it from disk
+				sourceMap[path] = StreamReader(path).readToEnd ? ""
+			else
+			    # file is open in editor, read it from memory
+				sourceMap[path] = doc.editor.text ? ""
+
+		return .parseAndBind(sourceMap, refs, fileName)
+	
+
+	def parseAndBind(sourceMap as Dictionary<of String, String>) as TypeSystem.ParsedCobraDocument
+		"""
+		Runs select phases of the Cobra compiler.
+		
+		The sourceMap is a dictionary whose values are source file contents keyed
+		by filename.
+		"""
+		return .parseAndBind(sourceMap, sourceMap.first.key)
 	
 	
 	def parseAndBind(sourceMap as Dictionary<of String, String>, fileToBind as String) as TypeSystem.ParsedCobraDocument

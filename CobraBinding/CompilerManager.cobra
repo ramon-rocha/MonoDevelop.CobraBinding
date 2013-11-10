@@ -82,9 +82,12 @@ class CompilerManager
 		compiler = Compiler(0) # verbosity = 0
 		
 		options = OptionValues()
-		options.add("compile", true)
-		options.add("back-end", "clr")
-		options.add("turbo", true)
+		options['compile'] = true
+		options['back-end'] = 'clr'
+		options['contracts'] = 'none'
+		options['include-asserts'] = false
+		options['include-tests'] = false
+		options['include-traces'] = false
 		
 		compiler.options = options
 		compiler.initBackEnd

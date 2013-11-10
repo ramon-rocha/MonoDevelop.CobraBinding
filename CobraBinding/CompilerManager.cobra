@@ -85,7 +85,6 @@ class CompilerManager
 		options.add("compile", true)
 		options.add("back-end", "clr")
 		options.add("turbo", true)
-		options.add("number", "decimal")
 		
 		compiler.options = options
 		compiler.initBackEnd
@@ -128,19 +127,9 @@ class CompilerManager
 			    # file is open in editor, read it from memory
 				sourceMap[path] = doc.editor.text ? ""
 
-		return .parseAndBind(sourceMap, refs, fileName)
+		return _parseAndBind(sourceMap, refs, fileName)
 	
 
-	def parseAndBind(sourceMap as Dictionary<of String, String>) as TypeSystem.ParsedCobraDocument
-		"""
-		Runs select phases of the Cobra compiler.
-		
-		The sourceMap is a dictionary whose values are source file contents keyed
-		by filename.
-		"""
-		return .parseAndBind(sourceMap, sourceMap.first.key)
-	
-	
 	def parseAndBind(sourceMap as Dictionary<of String, String>, fileToBind as String) as TypeSystem.ParsedCobraDocument
 		"""
 		Runs select phases of the Cobra compiler.
@@ -320,11 +309,26 @@ class CompilerManager
 			assert testData.count == astCount == errorCount
 
 		body
-			return .parseAndBind(sourceMap, List<of String>(), fileToBind)
+			return _parseAndBind(sourceMap, List<of String>(), fileToBind)
+	
+
+	def parseAndBind(sourceMap as Dictionary<of String, String>) as TypeSystem.ParsedCobraDocument
+		"""
+		Runs select phases of the Cobra compiler.
+		
+		The sourceMap is a dictionary whose values are source file contents keyed
+		by filename.
+		"""
+		return .parseAndBind(sourceMap, sourceMap.first.key)
 	
 	
-	def parseAndBind(sourceMap as Dictionary<of String, String>, refs as List<of String>,
-			fileToBind as String) as TypeSystem.ParsedCobraDocument
+	def _parseAndBind(
+			sourceMap as Dictionary<of String, String>,
+			refs as List<of String>,
+			fileToBind as String,
+			rootNamespace as String? = nil,
+			numberOption as String = "decimal"
+		) as TypeSystem.ParsedCobraDocument
 		"""
 		Runs select phases of the Cobra compiler.
 		
@@ -341,8 +345,11 @@ class CompilerManager
 		
 		lock _theConch
 			compiler = __createCompiler
-			
 			compiler.options['reference'] = refs
+			compiler.options['number'] = numberOption
+			if rootNamespace <> nil
+				compiler.options['namespace'] = rootNamespace
+			
 			for phaseType in _phaseTypes
 				params.phases.add(phaseType(compiler))
 			params.phases.add(.CustomBindImplementationPhase(compiler, fileToBind))

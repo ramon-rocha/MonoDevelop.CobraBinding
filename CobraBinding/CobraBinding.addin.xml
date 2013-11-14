@@ -26,7 +26,12 @@
 	</Dependencies>	
 	
 	<Extension path = "/MonoDevelop/ProjectModel/MSBuildItemTypes">
-		<DotNetProject language="Cobra" extension="cobraproj" guid="{0A906CA0-EF87-4D08-9CA7-C8380245B3FF}" />
+		<DotNetProject
+			language="Cobra"
+			extension="cobraproj"
+			guid="{0A906CA0-EF87-4D08-9CA7-C8380245B3FF}"
+			import="$(MSBuildExtensionsPath)\Cobra\Cobra.targets"
+		/>
 	</Extension>
 	
 	<Extension path="/MonoDevelop/Core/MimeTypes">

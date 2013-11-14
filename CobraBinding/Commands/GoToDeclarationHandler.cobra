@@ -30,11 +30,15 @@ class GoToDeclarationHandler inherits CommandHandler
 		
 		if _location.token <> nil and File.exists(_location.token.fileName)
 			# declared in source
-			path = FilePath(_location.token.fileName)
+			fileName = _location.token.fileName
+			path = FilePath(fileName)
 			line = _location.token.lineNum
 			column = _location.token.colNum
 			options = OpenDocumentOptions.BringToFront | OpenDocumentOptions.TryToReuseViewer | OpenDocumentOptions.CenterCaretLine
-			workbench.openDocument(path, line, column, options)
+			doc = workbench.getDocument(fileName)
+			project as MonoDevelop.Projects.Project? = nil
+			if doc <> nil, project = doc.project
+			workbench.openDocument(path, project, line, column, options)
 		
 		else if _location.clrNativeType <> nil
 			# declared in assembly reference, show in assembly browser

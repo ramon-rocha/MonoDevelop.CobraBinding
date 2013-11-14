@@ -4,7 +4,7 @@ use MonoDevelop.CobraBinding
 
 use ICSharpCode.NRefactory.TypeSystem
 
-namespace MonoDevelop.CobraBinding.TypeSystem
+namespace TypeSystem
 
 class CobraModuleVisitor inherits Cobra.Core.Visitor
 	"""

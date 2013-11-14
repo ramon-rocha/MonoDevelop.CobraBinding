@@ -1,5 +1,5 @@
 
-namespace MonoDevelop.CobraBinding.Commands
+namespace Commands
 
 enum CommandId
 	GoToDeclaration

@@ -466,8 +466,9 @@ class CobraBindingAddinInstaller
 		Returns the arguments that should be passed to the Cobra compiler
 		to compile the CobraBinding project.
 		"""
+		name = 'MonoDevelop.CobraBinding'
 		cobraArgs = StringBuilder(
-			'-compile -copy-core -target:lib -out:"bin[__s]Debug[__s]MonoDevelop.CobraBinding.dll"'
+			'-compile -copy-core -target:lib -namespace:[name] -out:"bin[__s]Debug[__s][name].dll"'
 		)
 		cobraArgs.append(' -turbo:yes')
 		

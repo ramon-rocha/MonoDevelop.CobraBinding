@@ -4,7 +4,7 @@ use MonoDevelop.Ide.CodeCompletion
 
 use ICSharpCode.NRefactory.Completion
 
-namespace MonoDevelop.CobraBinding.Completion
+namespace Completion
 
 class BoxMembersList inherits CobraCompletionList
 	"""

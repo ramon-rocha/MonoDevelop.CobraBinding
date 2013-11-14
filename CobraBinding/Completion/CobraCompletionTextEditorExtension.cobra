@@ -1,6 +1,6 @@
 use Cobra.Compiler
 
-use MonoDevelop.CobraBinding.TypeSystem
+use TypeSystem
 
 use Mono.TextEditor
 
@@ -15,7 +15,7 @@ use ICSharpCode.NRefactory.Completion
 use ICSharpCode.NRefactory.TypeSystem
 
 
-namespace MonoDevelop.CobraBinding.Completion
+namespace Completion
 
 class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 	"""
@@ -24,7 +24,7 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 
 	#TODO: uncomment in next version of Xamarin Studio
 	#get completionLanguage as String is override
-	#	return MonoDevelop.CobraBinding.CobraLanguageBinding.languageName
+	#	return CobraLanguageBinding.languageName
 	
 	shared
 		/#
@@ -647,8 +647,8 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 			"""
 			This function is only for supporting test methods.
 			"""
-			cm = MonoDevelop.CobraBinding.CompilerManager.instance
-			testData = MonoDevelop.CobraBinding.CompilerManager.readTestData("no_errors")
+			cm = CompilerManager.instance
+			testData = CompilerManager.readTestData("no_errors")
 
 			for filePath, code in testData
 				if filePath.endsWith("ForCompletionTesting.cobra")
@@ -658,7 +658,7 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 			
 			throw FallThroughException()
 
-		class ParserAlias inherits MonoDevelop.CobraBinding.TypeSystem.Parser
+		class ParserAlias inherits TypeSystem.Parser
 			"""
 			This is just to avoid a name conflict with Cobra.Compiler.Parser
 			"""

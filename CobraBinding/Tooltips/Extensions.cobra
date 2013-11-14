@@ -2,7 +2,7 @@ use Cobra.Compiler
 
 use Mono.TextEditor
 
-namespace MonoDevelop.CobraBinding.Tooltips
+namespace Tooltips
 
 extend String
 	def escapeMarkup as String

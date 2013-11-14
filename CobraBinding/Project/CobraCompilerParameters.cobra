@@ -1,7 +1,7 @@
 use MonoDevelop.Projects
 use MonoDevelop.Core.Serialization
 
-namespace MonoDevelop.CobraBinding.Project
+namespace Project
 
 class CobraCompilerParameters inherits ConfigurationParameters
 	"""

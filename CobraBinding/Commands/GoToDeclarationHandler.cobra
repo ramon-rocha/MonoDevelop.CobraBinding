@@ -6,9 +6,9 @@ use MonoDevelop.Components.Commands
 
 use ICSharpCode.NRefactory.TypeSystem
 
-use MonoDevelop.CobraBinding.TypeSystem
+use TypeSystem
 
-namespace MonoDevelop.CobraBinding.Commands
+namespace Commands
 
 class GoToDeclarationHandler inherits CommandHandler
 	

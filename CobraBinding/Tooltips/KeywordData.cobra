@@ -1,6 +1,6 @@
 use Cobra.Compiler
 
-namespace MonoDevelop.CobraBinding.Tooltips
+namespace Tooltips
 
 class KeywordData
 	

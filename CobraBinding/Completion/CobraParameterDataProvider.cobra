@@ -1,9 +1,9 @@
 use Cobra.Compiler
 
 use MonoDevelop.Ide.CodeCompletion
-use MonoDevelop.CobraBinding.Tooltips
+use Tooltips
 
-namespace MonoDevelop.CobraBinding.Completion
+namespace Completion
 
 class CobraParameterDataProvider inherits ParameterDataProvider
 	

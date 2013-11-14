@@ -3,7 +3,7 @@ use Cobra.Compiler
 use MonoDevelop.Core
 use MonoDevelop.Ide
 
-namespace MonoDevelop.CobraBinding.Completion
+namespace Completion
 
 class Icons
 	"""

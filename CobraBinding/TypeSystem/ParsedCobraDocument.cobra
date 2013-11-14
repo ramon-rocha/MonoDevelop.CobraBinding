@@ -6,7 +6,7 @@ use MonoDevelop.Ide.TypeSystem
 
 use ICSharpCode.NRefactory.TypeSystem
 
-namespace MonoDevelop.CobraBinding.TypeSystem
+namespace TypeSystem
 
 class ParsedCobraDocument inherits DefaultParsedDocument
 
@@ -525,7 +525,7 @@ class ParsedCobraDocument inherits DefaultParsedDocument
 			regions.count > 0
 			all for region in regions get nodeMap.containsKey(region)
 		test
-			ast = MonoDevelop.CobraBinding.Completion.CobraCompletionTextEditorExtension.createTestData
+			ast = Completion.CobraCompletionTextEditorExtension.createTestData
 			fakeDoc = ParsedCobraDocument('fake.cobra', 'pass')
 			fakeDoc.add(ast)
 			nodeMap = fakeDoc.createNodeMap to !
@@ -606,6 +606,6 @@ class ParsedCobraDocument inherits DefaultParsedDocument
 				"            body\n" +
 				"                print 'derp'\n" +
 				""
-			cm = MonoDevelop.CobraBinding.CompilerManager.instance
+			cm = CompilerManager.instance
 			doc = cm.parseAndBind({fileName: source}, fileName)
 			return doc

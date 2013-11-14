@@ -1,12 +1,10 @@
 use Cobra.Compiler
 
-use MonoDevelop.CobraBinding
-
 use MonoDevelop.Ide.CodeCompletion
 
 use ICSharpCode.NRefactory.Completion
 
-namespace MonoDevelop.CobraBinding.Completion
+namespace Completion
 
 class KeywordCompletionData inherits CompletionData
 	

@@ -7,9 +7,7 @@ use MonoDevelop.Projects
 use ICSharpCode.NRefactory
 use ICSharpCode.NRefactory.TypeSystem
 
-use MonoDevelop.CobraBinding
-
-namespace MonoDevelop.CobraBinding.TypeSystem
+namespace TypeSystem
 
 class Parser inherits TypeSystemParser implements IFoldingParser
 	"""

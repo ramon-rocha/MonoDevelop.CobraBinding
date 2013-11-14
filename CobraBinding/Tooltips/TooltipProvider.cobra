@@ -1,12 +1,12 @@
 use Cobra.Compiler
 
-use MonoDevelop.CobraBinding.TypeSystem
-use MonoDevelop.CobraBinding.Completion
+use TypeSystem
+use Completion
 
 use Mono.TextEditor
-use MonoDevelop.Ide
+use MonoDevelop
 
-namespace MonoDevelop.CobraBinding.Tooltips
+namespace Tooltips
 
 class TooltipProvider inherits Mono.TextEditor.TooltipProvider
 
@@ -86,12 +86,12 @@ class TooltipProvider inherits Mono.TextEditor.TooltipProvider
 				pass
 		
 		
-		def createCodeCompletionTooltip(node as INamedNode) as CodeCompletion.TooltipInformation
+		def createCodeCompletionTooltip(node as INamedNode) as Ide.CodeCompletion.TooltipInformation
 			"""
 			Create and return a tooltip that will display alongside the completion data
 			entry for the given node.
 			"""
-			info = CodeCompletion.TooltipInformation()
+			info = Ide.CodeCompletion.TooltipInformation()
 			
 			# a node may not have a type if we couldn't bind the types in the AST
 			try
@@ -124,12 +124,12 @@ class TooltipProvider inherits Mono.TextEditor.TooltipProvider
 				# This node doesn't have a doc string
 				return ""
 				
-		def createCodeCompletionTooltip(data as KeywordCompletionData) as CodeCompletion.TooltipInformation
+		def createCodeCompletionTooltip(data as KeywordCompletionData) as Ide.CodeCompletion.TooltipInformation
 			"""
 			Create and return a tooltip that will display alongside the completion data
 			entry for the given keyword.
 			"""
-			info = CodeCompletion.TooltipInformation()
+			info = Ide.CodeCompletion.TooltipInformation()
 			info.signatureMarkup = data.grammar
 			info.summaryMarkup = data.description
 			return info
@@ -147,7 +147,7 @@ class TooltipProvider inherits Mono.TextEditor.TooltipProvider
 		if txtDoc == nil
 			return nil
 		
-		doc = IdeApp.workbench.getDocument(txtDoc.fileName)
+		doc = Ide.IdeApp.workbench.getDocument(txtDoc.fileName)
 		if doc == nil _
 		or doc.parsedDocument == nil _
 		or not doc.parsedDocument inherits ParsedCobraDocument
@@ -161,7 +161,7 @@ class TooltipProvider inherits Mono.TextEditor.TooltipProvider
 		# get the text exactly up to the cursor
 		docLine = txtDoc.getLineByOffset(offset)
 		lineText = txtDoc.getTextBetween(docLine.offset, offset) ? ""
-		if MonoDevelop.CobraBinding.TypeSystem.Parser.isInsideString(lineText, false)
+		if TypeSystem.Parser.isInsideString(lineText, false)
 			return nil
 		
 		node = parsedDoc.resolveOffsetToNode(offset, txtDoc to !)
@@ -208,8 +208,8 @@ class TooltipProvider inherits Mono.TextEditor.TooltipProvider
 			"""
 			This function is only for supporting test methods.
 			"""
-			cm = MonoDevelop.CobraBinding.CompilerManager.instance
-			testData = MonoDevelop.CobraBinding.CompilerManager.readTestData("no_errors")
+			cm = CompilerManager.instance
+			testData = CompilerManager.readTestData("no_errors")
 
 			for filePath, code in testData
 				if filePath.endsWith("ForTooltipTesting.cobra")

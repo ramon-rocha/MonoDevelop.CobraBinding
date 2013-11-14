@@ -2,7 +2,6 @@ use Cobra.Compiler
 
 use MonoDevelop.Projects
 
-namespace MonoDevelop.CobraBinding
 
 class CompilerManager
 	"""

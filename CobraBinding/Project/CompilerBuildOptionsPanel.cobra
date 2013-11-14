@@ -4,7 +4,7 @@ use MonoDevelop.Ide.Gui.Dialogs
 
 use MonoDevelop.CobraBinding.Gui
 
-namespace MonoDevelop.CobraBinding.Project
+namespace Project
 
 class CompilerBuildOptionsPanel inherits MultiConfigItemOptionsPanel
 	"""

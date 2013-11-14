@@ -281,20 +281,22 @@ class DataFactory
 			dataList = CobraCompletionList()
 			
 			topNs = ast.topNameSpace
-			dataList.addRange(NameSpaceDeclsList(topNs))
-			
-			for useStmt in topNs.useDirectives
+			dataList.addRange(.createNameSpaceDeclsList(topNs))
+
+			useDirectives = for ud in topNs.useDirectives get ud
+			if useDirectives.count == 0
+				key = CobraLanguageBinding.AddOnKeys.useDirectives
+				if topNs.addOnValues.containsKey(key)
+					useDirectives = topNs.addOnValues[key] to List<of UseDirective>
+				topNs = topNs.declsInOrder.first to NameSpace
+
+			for useStmt in useDirectives
 				try
 					if not useStmt.didBindUse, useStmt.bindUse
 					ns = useStmt.boundNameSpace
-					if ns <> nil, dataList.addRange(NameSpaceDeclsList(ns))
+					if ns <> nil, dataList.addRange(.createNameSpaceDeclsList(ns))
 				catch ex as Exception
 					trace ex.message
-			
-			key = CobraLanguageBinding.AddOnKeys.globalNameSpace
-			if topNs.addOnValues.containsKey(key)
-				globalNS = topNs.addOnValues[key] to NameSpace
-				dataList.addRange(NameSpaceDeclsList(globalNS))
 			
 			return .uniqueCompletionEntries(dataList)
 			

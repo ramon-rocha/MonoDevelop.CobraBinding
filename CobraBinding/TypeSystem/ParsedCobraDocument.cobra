@@ -383,7 +383,9 @@ class ParsedCobraDocument inherits DefaultParsedDocument
 			if typ implements IContainer
 						
 				if typ inherits NameSpace
+					udCount = 0
 					for useDirective in typ.useDirectives
+						udCount += 1
 						if useDirective.boundNameSpace <> nil
 							nsMember = useDirective.boundNameSpace.memberForName(memberName)
 							if nsMember <> nil
@@ -391,6 +393,12 @@ class ParsedCobraDocument inherits DefaultParsedDocument
 									return _getNodeFromIds(ids[1:], nsMember to ISyntaxNode, containingRegions)
 								catch
 									throw ArgumentException()
+					if udCount == 0 and typ.isRoot
+						# wrapped namespace, go one level deeper with the same data
+						try
+							return _getNodeFromIds(ids, typ.declsInOrder.first, containingRegions)
+						catch
+							throw ArgumentException()
 		
 				m = typ.memberForName(memberName)
 				if m <> nil

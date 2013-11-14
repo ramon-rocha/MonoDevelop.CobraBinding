@@ -40,10 +40,23 @@ class CompilerManager
 						c.recordError(ce)
 					break
 			
-			# this will be used in CobraModuleVisitor when creating the symbol table
-			key = CobraLanguageBinding.AddOnKeys.globalNameSpace
+			# these addOnValues will be used in CobraModuleVisitor when creating the symbol table
 			boundAst = mod to CobraModule
+			topNamespace = boundAst.topNameSpace
+			useDirectives = for ud in topNamespace.useDirectives get ud
+			if useDirectives.count == 0 and topNamespace.declsInOrder.first.token.isEmpty
+				# The -namespace option was used and the topNamespace has been wrapped with an intermediate node.
+				# We need to blow through that node to get to the use directives.
+				topNamespace = topNamespace.declsInOrder.first to NameSpace
+				useDirectives = for ud in topNamespace.useDirectives get ud
+			assert useDirectives.count <> 0
+			
+			key = CobraLanguageBinding.AddOnKeys.useDirectives
+			boundAst.topNameSpace.addOnValues[key] = useDirectives
+
+			key = CobraLanguageBinding.AddOnKeys.globalNameSpace
 			boundAst.topNameSpace.addOnValues[key] = c.globalNS
+
 	
 	shared
 		var _instance as CompilerManager? = nil
@@ -130,7 +143,7 @@ class CompilerManager
 			    # file is open in editor, read it from memory
 				sourceMap[path] = doc.editor.text ? ""
 
-		return _parseAndBind(sourceMap, refs, fileName)
+		return _parseAndBind(sourceMap, refs, fileName, project.defaultNamespace)
 	
 
 	def parseAndBind(sourceMap as Dictionary<of String, String>, fileToBind as String) as TypeSystem.ParsedCobraDocument
@@ -324,6 +337,11 @@ class CompilerManager
 		"""
 		return .parseAndBind(sourceMap, sourceMap.first.key)
 	
+	def parseAndBind(rootNamespace as String?, sourceMap as Dictionary<of String, String>) as TypeSystem.ParsedCobraDocument
+		"""
+		This overload is for supporting test methods
+		"""
+		return _parseAndBind(sourceMap, List<of String>(), sourceMap.keys.first, rootNamespace)
 	
 	def _parseAndBind(
 			sourceMap as Dictionary<of String, String>,
@@ -351,7 +369,8 @@ class CompilerManager
 			compiler.options['reference'] = refs
 			compiler.options['number'] = numberOption
 			if rootNamespace <> nil
-				compiler.options['namespace'] = rootNamespace
+				rootNamespace = rootNamespace.trim
+				if rootNamespace.length <> 0, compiler.options['namespace'] = rootNamespace
 			
 			for phaseType in _phaseTypes
 				params.phases.add(phaseType(compiler))

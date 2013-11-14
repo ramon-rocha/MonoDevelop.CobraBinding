@@ -130,8 +130,64 @@ class CobraModuleVisitor inherits Cobra.Core.Visitor
 		assert bazRegion.isInside(toStringRegion.end)
 		assert visitor.symbolTable[toStringRegion].count == 0
 	
-	var __ast as CobraModule?
+	test rootNamespace
+		# this almost a copy/paste of the previous test
+		# but this time we have used the -namespace compiler option
+		visitor = CobraModuleVisitor()
+		ast = .createTestData3
+		visitor.visit(ast)
+		assert visitor.fileName == ast.fileName
+		
+		wholeFileRegion = visitor.regionMap[ast.topNameSpace]
+		assert wholeFileRegion.beginLine == 1
+		assert wholeFileRegion.beginColumn == 1
+		assert wholeFileRegion.endLine == 34
+		assert wholeFileRegion.endColumn == Int32.maxValue
+		assert visitor.symbolTable[wholeFileRegion].count >= 525 # includes decls from System.Diagnostics
+
+		useDirectives = for ud in ast.topNameSpace.useDirectives get ud
+		assert useDirectives.count == 0
+		assert ast.topNameSpace.declsInOrder.count == 1
+
+		ns = ast.topNameSpace.declsInOrder.first to NameSpace
+		ns = ns.memberForName("Foo") to NameSpace
+		nsRegion = visitor.regionMap[ns]
+		assert nsRegion.beginLine == 3
+		assert nsRegion.endLine == 34
+		
+		barClass = ns.memberForName("Bar") to Class
+		barRegion = visitor.regionMap[barClass]
+		assert barRegion.beginLine == 5
+		assert barRegion.endLine == 13
+		
+		# the class is only visible inside the namespace region
+		assert visitor.symbolTable[nsRegion][barClass.name] is barClass
+		assert not visitor.symbolTable[wholeFileRegion].containsKey(barClass.name)
+		
+		m = barClass.memberForName("main") to Method
+		mainRegion = visitor.regionMap[m]
+		assert mainRegion.beginLine == 6
+		assert mainRegion.endLine == 13
+		assert visitor.symbolTable[mainRegion].count == 3
+		
+		bazClass = ns.memberForName("Baz") to Class
+		bazRegion = visitor.regionMap[bazClass]
+		
+		# reads backwards but this asserts that bazRegion is inside nsRegion
+		assert nsRegion.isInside(bazRegion.begin)
+		assert nsRegion.isInside(bazRegion.end)
+		
+		init2Region = DomRegion(bazRegion.fileName, 27, 6, 31, Int32.maxValue - 1)
+		assert visitor.symbolTable[init2Region].count == 3
+		
+		m = bazClass.memberForName("toString") to Method
+		toStringRegion = visitor.regionMap[m]
+		assert bazRegion.isInside(toStringRegion.begin)
+		assert bazRegion.isInside(toStringRegion.end)
+		assert visitor.symbolTable[toStringRegion].count == 0
 	
+	var __ast as CobraModule?
+
 	var _fileName as String
 	var _regionMap as Dictionary<of ISyntaxNode, DomRegion>
 	var _symbolTable as Dictionary<of DomRegion, Dictionary<of String, INamedNode>>
@@ -157,7 +213,7 @@ class CobraModuleVisitor inherits Cobra.Core.Visitor
 		beginToken = node.token
 		beginLine = beginToken.lineNum
 		beginCol = beginToken.colNum
-		
+
 		endToken = node.endToken
 		endLine = endToken.lineNum
 		endCol = Int32.maxValue - 1
@@ -198,22 +254,50 @@ class CobraModuleVisitor inherits Cobra.Core.Visitor
 		idMap as Dictionary<of String, INamedNode>? = nil
 		
 		if node inherits NameSpace
-			key = CobraLanguageBinding.AddOnKeys.globalNameSpace
-			if node is __ast.topNameSpace and node.addOnValues.containsKey(key)
-				# use the unified global namespace instead of the module's topNameSpace
-				globalNS = node.addOnValues[key] to NameSpace
+			if node is __ast.topNameSpace
+				# use the unified global namespace instead of the module's
+				# topNameSpace for the global namespace
+				key = CobraLanguageBinding.AddOnKeys.globalNameSpace
+				if node.addOnValues.containsKey(key)
+					globalNS = node.addOnValues[key] to NameSpace
+				else if not node.isUnified and node.unifiedNameSpace <> nil
+					globalNS = node.unifiedNameSpace to !
+				else
+					globalNS = node
 				
-				capacity = globalNS.declsInOrder.count
-				for useDirective in node.useDirectives
+				useDirectives = for useDirective in node.useDirectives get useDirective
+				if useDirectives.count == 0
+					# the -namespace option was passed to the compiler
+					topNS = node.declsInOrder.first to NameSpace
+				else
+					topNS = globalNS
+
+				key = CobraLanguageBinding.AddOnKeys.useDirectives
+				if node.addOnValues.containsKey(key)
+					useDirectives = node.addOnValues[key] to List<of UseDirective>
+				else
+					# if we fall into this clause, it means we didn't run all the compiler phases
+					useDirectives = for useDirective in topNS.useDirectives get useDirective
+				assert useDirectives.count <> 0
+				
+				# calculate the intial size of our dictionary so we don't waste time resizing it
+				capacity = topNS.declsInOrder.count
+				if topNS is not globalNS
+					capacity += globalNS.declsInOrder.count
+				for useDirective in useDirectives
 					if useDirective.boundNameSpace <> nil
 						capacity += useDirective.boundNameSpace.declsInOrder.count
 				idMap = Dictionary<of String, INamedNode>(capacity)
 				
-				for nsMember in globalNS.declsInOrder
+				for nsMember in topNS.declsInOrder
 					idMap[nsMember.name] = nsMember
 				
+				if topNS is not globalNS
+					for nsMember in globalNS.declsInOrder
+						idMap[nsMember.name] = nsMember
+				
 				# declarations from used namespaces are visible in this context
-				for useDirective in node.useDirectives
+				for useDirective in useDirectives
 					if useDirective.boundNameSpace <> nil
 						for nsMember in useDirective.boundNameSpace.declsInOrder
 							idMap[nsMember.name] = nsMember
@@ -249,9 +333,9 @@ class CobraModuleVisitor inherits Cobra.Core.Visitor
 		else
 			print "Unkown IContainer: [node.toString] for region [region.toString]"
 			idMap = Dictionary<of String, INamedNode>()
-			
+
 		_symbolTable[region] = idMap to !
-	
+
 	
 	get methodName as String is override
 		return "visit"
@@ -271,6 +355,13 @@ class CobraModuleVisitor inherits Cobra.Core.Visitor
 	def visit(ns as NameSpace)
 		_addRegion(ns)
 		if ns is __ast.topNameSpace
+			if ns.declsInOrder.count == 1
+				useDirectives = for ud in ns.useDirectives get ud
+				if useDirectives.count == 0
+					# the -namespace option was used and our toplevel namespace was wrapped
+					# with an intermediate node.  Blow through this placeholder namespace node.
+					ns = ns.declsInOrder.first to NameSpace
+
 			# regions for namespace decls incorrectly encompass the
 			# entirety of the subnamespaces they declare/contain.
 			# Only visit the "right-most" namespace declaration.
@@ -366,8 +457,11 @@ class CobraModuleVisitor inherits Cobra.Core.Visitor
 
 		def createTestData2 as CobraModule
 			return __createTestData("ForCobraModuleVisitorTesting2.cobra")
+		
+		def createTestData3 as CobraModule
+			return __createTestData("ForCobraModuleVisitorTesting2.cobra", "CompanyName.ProductName")
 
-		def __createTestData(fileName as String) as CobraModule
+		def __createTestData(fileName as String, rootNamespace as String? = nil) as CobraModule
 			cm = CompilerManager.instance
 			testData = CompilerManager.readTestData("no_errors")
 
@@ -375,6 +469,6 @@ class CobraModuleVisitor inherits Cobra.Core.Visitor
 				if filePath.endsWith(fileName)
 					sourceMap = Dictionary<of String, String>()
 					sourceMap[filePath] = code
-					return cm.parseAndBind(sourceMap, filePath).getAst<of CobraModule>
+					return cm.parseAndBind(rootNamespace, sourceMap).getAst<of CobraModule>
 			
 			throw FallThroughException()

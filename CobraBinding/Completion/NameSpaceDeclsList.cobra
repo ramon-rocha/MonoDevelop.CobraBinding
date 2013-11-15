@@ -49,5 +49,7 @@ class NameSpaceDeclsList inherits CobraCompletionList
 		_nameSpace = ns		
 		
 		for d in ns.declsInOrder
-			if ".extension." not in d.name
+			# dots in the name are usually compiler generated
+			# and should not be included in the final list
+			if "." not in d.name
 				.add(NamedNodeData(d))

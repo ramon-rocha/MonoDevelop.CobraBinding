@@ -383,20 +383,13 @@ class ParsedCobraDocument inherits DefaultParsedDocument
 			if typ implements IContainer
 						
 				if typ inherits NameSpace
-					udCount = 0
+					if typ.isWrappingDefaultNamespace, typ = typ.declsInOrder.first to NameSpace
 					for useDirective in typ.useDirectives
-						udCount += 1
-						if useDirective.boundNameSpace <> nil
-							nsMember = useDirective.boundNameSpace.memberForName(memberName)
-							if nsMember <> nil
-								try
-									return _getNodeFromIds(ids[1:], nsMember to ISyntaxNode, containingRegions)
-								catch
-									throw ArgumentException()
-					if udCount == 0 and typ.isRoot
-						# wrapped namespace, go one level deeper with the same data
+						if useDirective.boundNameSpace == nil, continue
+						nsMember = useDirective.boundNameSpace.memberForName(memberName)
+						if nsMember == nil, continue
 						try
-							return _getNodeFromIds(ids, typ.declsInOrder.first, containingRegions)
+							return _getNodeFromIds(ids[1:], nsMember to ISyntaxNode, containingRegions)
 						catch
 							throw ArgumentException()
 		
@@ -405,30 +398,32 @@ class ParsedCobraDocument inherits DefaultParsedDocument
 					return _getNodeFromIds(ids[1:], m to ISyntaxNode, containingRegions)
 				else if typ inherits Box
 					# it might be an extension method
-					# TODO: clean this up a little
-					ast = .getAst<of CobraModule>
 					nodeMap = .createNodeMap
 					if nodeMap == nil, return nil
+
 					ns = .getContainingNameSpace(containingRegions, nodeMap to !)
 					if ns <> nil and ns.unifiedNameSpace <> nil
 						for d in ns.unifiedNameSpace.declsInOrder
 							if d inherits Extension
-								if d.extendedBox <> nil _
-								and typ.isAssignableTo(d.extendedBox to !)
-									m = d.memberForName(memberName)
-									if m <> nil
-										return _getNodeFromIds(ids[1:], m to ISyntaxNode, containingRegions)
+								if d.extendedBox == nil or not typ.isAssignableTo(d.extendedBox to !)
+									continue
+								m = d.memberForName(memberName)
+								if m <> nil
+									return _getNodeFromIds(ids[1:], m to ISyntaxNode, containingRegions)
 					
-					for useDirective in ast.topNameSpace.useDirectives
+					ast as CobraModule = .getAst<of CobraModule>
+					topNs = ast.topNameSpace
+					if topNs.isWrappingDefaultNamespace, topNs = topNs.declsInOrder.first to NameSpace
+					for useDirective in topNs.useDirectives
 						ns = useDirective.boundNameSpace
-						if ns <> nil
-							for d in ns.declsInOrder
-								if d inherits Extension
-									if d.extendedBox <> nil _
-									and typ.isAssignableTo(d.extendedBox to !)
-										m = d.memberForName(memberName)
-										if m <> nil
-											return _getNodeFromIds(ids[1:], m to ISyntaxNode, containingRegions)
+						if ns == nil, continue
+						for d in ns.declsInOrder
+							if d inherits Extension
+								if d.extendedBox == nil or not typ.isAssignableTo(d.extendedBox to !)
+									continue
+								m = d.memberForName(memberName)
+								if m <> nil
+									return _getNodeFromIds(ids[1:], m to ISyntaxNode, containingRegions)
 					
 			else
 				print "[parent.typeForReceiver.name] does not implement IContainer"

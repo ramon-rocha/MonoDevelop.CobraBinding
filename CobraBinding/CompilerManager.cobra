@@ -2,6 +2,27 @@ use Cobra.Compiler
 
 use MonoDevelop.Projects
 
+extend NameSpace
+
+	def getUseDirectives as List<of UseDirective>
+		useDirectives = for ud in .useDirectives get ud
+		return useDirectives
+	
+	def isWrappingDefaultNamespace as bool
+		"""
+		When the -namespace option is passed to the compiler, the current
+		module's toplevelNamespace is wrapped with a new namespace node.
+
+		This extension method returns true if this node is wrapping the
+		default namespace node.
+		"""
+		for ud in .useDirectives
+			# any number of use directives means this node is not a wrapper
+			return false
+		
+		# if the only decl we have has an empty token, then we are a wrapper
+		return .declsInOrder.count == 1 and .declsInOrder.first.token.isEmpty
+
 
 class CompilerManager
 	"""
@@ -39,20 +60,8 @@ class CompilerManager
 						c.recordError(ce)
 					break
 			
-			# these addOnValues will be used in CobraModuleVisitor when creating the symbol table
+			# this addOnValue will be used in CobraModuleVisitor when creating the symbol table
 			boundAst = mod to CobraModule
-			topNamespace = boundAst.topNameSpace
-			useDirectives = for ud in topNamespace.useDirectives get ud
-			if useDirectives.count == 0 and topNamespace.declsInOrder.first.token.isEmpty
-				# The -namespace option was used and the topNamespace has been wrapped with an intermediate node.
-				# We need to blow through that node to get to the use directives.
-				topNamespace = topNamespace.declsInOrder.first to NameSpace
-				useDirectives = for ud in topNamespace.useDirectives get ud
-			assert useDirectives.count <> 0
-			
-			key = CobraLanguageBinding.AddOnKeys.useDirectives
-			boundAst.topNameSpace.addOnValues[key] = useDirectives
-
 			key = CobraLanguageBinding.AddOnKeys.globalNameSpace
 			boundAst.topNameSpace.addOnValues[key] = c.globalNS
 

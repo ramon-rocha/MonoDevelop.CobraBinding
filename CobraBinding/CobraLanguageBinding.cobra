@@ -43,7 +43,6 @@ class CobraLanguageBinding implements IDotNetLanguageBinding
 			base.init
 	
 		const globalNameSpace = "MonoDevelop.CobraBinding.AddOnKeys.globalNameSpace"
-		const useDirectives = "MonoDevelop.CobraBinding.AddOnKeys.useDirectives"
 		
 	var _isWindows as bool
 	var _targetArgs as Dictionary<of CompileTarget, String>

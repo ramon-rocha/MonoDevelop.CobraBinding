@@ -281,12 +281,10 @@ class DataFactory
 			topNs = ast.topNameSpace
 			dataList.addRange(.createNameSpaceDeclsList(topNs))
 
-			useDirectives = for ud in topNs.useDirectives get ud
-			if useDirectives.count == 0
-				key = CobraLanguageBinding.AddOnKeys.useDirectives
-				if topNs.addOnValues.containsKey(key)
-					useDirectives = topNs.addOnValues[key] to List<of UseDirective>
+			if topNs.isWrappingDefaultNamespace
 				topNs = topNs.declsInOrder.first to NameSpace
+			
+			useDirectives = topNs.getUseDirectives
 
 			for useStmt in useDirectives
 				try

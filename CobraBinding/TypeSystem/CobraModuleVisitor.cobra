@@ -145,7 +145,7 @@ class CobraModuleVisitor inherits Cobra.Core.Visitor
 		assert wholeFileRegion.endColumn == Int32.maxValue
 		assert visitor.symbolTable[wholeFileRegion].count >= 525 # includes decls from System.Diagnostics
 
-		useDirectives = for ud in ast.topNameSpace.useDirectives get ud
+		useDirectives = ast.topNameSpace.getUseDirectives
 		assert useDirectives.count == 0
 		assert ast.topNameSpace.declsInOrder.count == 1
 
@@ -265,21 +265,15 @@ class CobraModuleVisitor inherits Cobra.Core.Visitor
 				else
 					globalNS = node
 				
-				useDirectives = for useDirective in node.useDirectives get useDirective
-				if useDirectives.count == 0
-					# the -namespace option was passed to the compiler
+				if node.isWrappingDefaultNamespace
 					topNS = node.declsInOrder.first to NameSpace
+					useDirectives = topNS.getUseDirectives
 				else
 					topNS = globalNS
-
-				key = CobraLanguageBinding.AddOnKeys.useDirectives
-				if node.addOnValues.containsKey(key)
-					useDirectives = node.addOnValues[key] to List<of UseDirective>
-				else
-					# if we fall into this clause, it means we didn't run all the compiler phases
-					useDirectives = for useDirective in topNS.useDirectives get useDirective
-				assert useDirectives.count <> 0
+					useDirectives = node.getUseDirectives
 				
+				assert useDirectives.count <> 0
+
 				# calculate the intial size of our dictionary so we don't waste time resizing it
 				capacity = topNS.declsInOrder.count
 				if topNS is not globalNS
@@ -355,12 +349,8 @@ class CobraModuleVisitor inherits Cobra.Core.Visitor
 	def visit(ns as NameSpace)
 		_addRegion(ns)
 		if ns is __ast.topNameSpace
-			if ns.declsInOrder.count == 1
-				useDirectives = for ud in ns.useDirectives get ud
-				if useDirectives.count == 0
-					# the -namespace option was used and our toplevel namespace was wrapped
-					# with an intermediate node.  Blow through this placeholder namespace node.
-					ns = ns.declsInOrder.first to NameSpace
+			if ns.isWrappingDefaultNamespace
+				ns = ns.declsInOrder.first to NameSpace
 
 			# regions for namespace decls incorrectly encompass the
 			# entirety of the subnamespaces they declare/contain.

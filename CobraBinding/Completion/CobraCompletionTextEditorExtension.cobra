@@ -636,7 +636,13 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 		ns = parsedDoc.getContainingNameSpace(containingRegions, nodeMap)
 		if ns <> nil and ns.unifiedNameSpace <> nil
 			namespaces.add(ns)
-		for useDirective in ast.topNameSpace.useDirectives
+		
+		if ast.topNameSpace.isWrappingDefaultNamespace
+			topNamespace = ast.topNameSpace.declsInOrder.first to NameSpace
+		else
+			topNamespace = ast.topNameSpace
+		
+		for useDirective in topNamespace.useDirectives
 			ns = useDirective.boundNameSpace
 			if ns <> nil, namespaces.add(ns)
 		return namespaces

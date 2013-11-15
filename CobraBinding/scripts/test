@@ -2,5 +2,5 @@
 
 cd "$(dirname "$0")"
 cd refs
-cobra -test -color:yes -pkg:gtk-sharp-2.0 -pkg:monodevelop -ref:System.Core ../../*.cobra ../../Project/*.cobra ../../TypeSystem/*.cobra ../../Completion/*.cobra ../../Tooltips/*.cobra ../../Commands/*.cobra
+cobra -test -namespace:MonoDevelop.CobraBinding -color:yes -pkg:gtk-sharp-2.0 -pkg:monodevelop -ref:System.Core ../../*.cobra ../../Project/*.cobra ../../TypeSystem/*.cobra ../../Completion/*.cobra ../../Tooltips/*.cobra ../../Commands/*.cobra
 rm test-*

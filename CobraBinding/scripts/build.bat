@@ -3,6 +3,7 @@ cd /d %~dp0
 cd refs
 
 cobra -compile -v -timeit -target:lib -out:"..\\..\\bin\\Debug\\MonoDevelop.CobraBinding.dll" ^
+-namespace:MonoDevelop.CobraBinding ^
 -contracts:inline -include-asserts:no -include-nil-checks:no ^
 -include-tests:no -include-traces:yes -optimize ^
 -color:yes -debug:full ^

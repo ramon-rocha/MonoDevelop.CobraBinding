@@ -3,6 +3,7 @@ cd /d %~dp0
 cd refs
 
 cobra -test -clr-platform:x86 -color:yes ^
+-namespace:MonoDevelop.CobraBinding ^
 -ref:atk-sharp.dll ^
 -ref:gdk-sharp.dll ^
 -ref:glib-sharp.dll ^

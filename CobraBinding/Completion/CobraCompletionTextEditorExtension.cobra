@@ -21,10 +21,9 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 	"""
 	Provides support for code completion when editing Cobra source files.
 	"""
-
-	#TODO: uncomment in next version of Xamarin Studio
-	#get completionLanguage as String is override
-	#	return CobraLanguageBinding.languageName
+	
+	get completionLanguage as String is override
+		return CobraLanguageBinding.languageName
 	
 	shared
 		/#

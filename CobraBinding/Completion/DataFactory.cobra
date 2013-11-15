@@ -277,14 +277,8 @@ class DataFactory
 			TODO: Cache completion lists from implict use statements.  They don't change.
 			"""
 			dataList = CobraCompletionList()
-			
-			topNs = ast.topNameSpace
-			dataList.addRange(.createNameSpaceDeclsList(topNs))
-
-			if topNs.isWrappingDefaultNamespace
-				topNs = topNs.declsInOrder.first to NameSpace
-			
-			useDirectives = topNs.getUseDirectives
+			dataList.addRange(.createNameSpaceDeclsList(ast.getGlobalNamespace))
+			useDirectives = ast.getDefaultNamespace.getUseDirectives
 
 			for useStmt in useDirectives
 				try

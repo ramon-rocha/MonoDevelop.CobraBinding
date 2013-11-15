@@ -637,11 +637,7 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 		if ns <> nil and ns.unifiedNameSpace <> nil
 			namespaces.add(ns)
 		
-		if ast.topNameSpace.isWrappingDefaultNamespace
-			topNamespace = ast.topNameSpace.declsInOrder.first to NameSpace
-		else
-			topNamespace = ast.topNameSpace
-		
+		topNamespace = ast.getDefaultNamespace
 		for useDirective in topNamespace.useDirectives
 			ns = useDirective.boundNameSpace
 			if ns <> nil, namespaces.add(ns)

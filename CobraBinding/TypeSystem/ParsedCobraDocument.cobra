@@ -42,8 +42,14 @@ class ParsedCobraDocument inherits DefaultParsedDocument
 	
 	def add(errors as SourceException*)
 		for err in errors
-			if err.fileName == .fileName or err.fileName.length == 0
-				.add(err)
+			try
+				if err.fileName == .fileName _
+				or err.fileName.length == 0
+					.add(err)
+			catch ex as Exception
+				# why does this throw sometimes?
+				trace err.toString
+				print ex.toString
 	
 	def add(err as SourceException)
 		col = err.colNum
@@ -383,7 +389,8 @@ class ParsedCobraDocument inherits DefaultParsedDocument
 			if typ implements IContainer
 						
 				if typ inherits NameSpace
-					if typ.isWrappingDefaultNamespace, typ = typ.declsInOrder.first to NameSpace
+					if typ.isWrappingDefaultNamespace, typ = typ.wrappedNamespace
+					
 					for useDirective in typ.useDirectives
 						if useDirective.boundNameSpace == nil, continue
 						nsMember = useDirective.boundNameSpace.memberForName(memberName)
@@ -396,40 +403,64 @@ class ParsedCobraDocument inherits DefaultParsedDocument
 				m = typ.memberForName(memberName)
 				if m <> nil
 					return _getNodeFromIds(ids[1:], m to ISyntaxNode, containingRegions)
+				
+				# a non-thread safe compiler means this code breaks more often than it works
+				# so we aren't going to use it yet
+				/#
 				else if typ inherits Box
 					# it might be an extension method
 					nodeMap = .createNodeMap
 					if nodeMap == nil, return nil
 
+					# check the current namespace
 					ns = .getContainingNameSpace(containingRegions, nodeMap to !)
-					if ns <> nil and ns.unifiedNameSpace <> nil
-						for d in ns.unifiedNameSpace.declsInOrder
-							if d inherits Extension
-								if d.extendedBox == nil or not typ.isAssignableTo(d.extendedBox to !)
-									continue
-								m = d.memberForName(memberName)
-								if m <> nil
-									return _getNodeFromIds(ids[1:], m to ISyntaxNode, containingRegions)
+					m = _findExtensionMember(ns, typ, memberName)
+					if m <> nil
+						return _getNodeFromIds(ids[1:], m to ISyntaxNode, containingRegions)
 					
+					# check used namespaces
 					ast as CobraModule = .getAst<of CobraModule>
-					topNs = ast.topNameSpace
-					if topNs.isWrappingDefaultNamespace, topNs = topNs.declsInOrder.first to NameSpace
+					topNs = ast.getDefaultNamespace
 					for useDirective in topNs.useDirectives
-						ns = useDirective.boundNameSpace
-						if ns == nil, continue
-						for d in ns.declsInOrder
-							if d inherits Extension
-								if d.extendedBox == nil or not typ.isAssignableTo(d.extendedBox to !)
-									continue
-								m = d.memberForName(memberName)
-								if m <> nil
-									return _getNodeFromIds(ids[1:], m to ISyntaxNode, containingRegions)
+						m = _findExtensionMember(useDirective.boundNameSpace, typ, memberName)
+						if m <> nil
+							return _getNodeFromIds(ids[1:], m to ISyntaxNode, containingRegions)
 					
+					if ns.fullName <> topNs.fullName
+						# check the default namespace
+						m = _findExtensionMember(topNs, typ, memberName)
+						if m <> nil
+							return _getNodeFromIds(ids[1:], m to ISyntaxNode, containingRegions)
+				#/	
 			else
 				print "[parent.typeForReceiver.name] does not implement IContainer"
 				print "Add a case for [parent.typeForReceiver.toString]\n"
 		
 		# no node found
+		return nil
+	
+	def _findExtensionMember(ns as NameSpace?, b as Box, memberName as String) as Cobra.Compiler.IMember?
+		"""
+		Helper method for _getNodeFromIds
+		"""
+		if ns == nil
+			return nil
+		
+		# use the unified namespace unless it's global because then it takes too long
+		if not ns.isUnified and ns.unifiedNameSpace <> nil and ns.fullName <> "global"
+			ns = ns.unifiedNameSpace
+		
+		for d in ns.declsInOrder
+			if not d inherits Extension, continue
+			ext = d to Extension
+			if ext.extendedBox == nil _
+			or not b.isAssignableTo(ext.extendedBox to !)
+				continue
+			
+			m = ext.memberForName(memberName)
+			if m <> nil
+				return m
+		
 		return nil
 		
 	def isInsideComment(offset as int, txtDoc as TextDocument) as bool
@@ -581,6 +612,8 @@ class ParsedCobraDocument inherits DefaultParsedDocument
 						innermostBeginColumn = region.beginColumn
 						containingNS = node
 				i += 1
+			if containingNS.isWrappingDefaultNamespace
+				containingNS = containingNS.wrappedNamespace
 			return containingNS
 
 

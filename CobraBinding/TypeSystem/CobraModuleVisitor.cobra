@@ -255,18 +255,10 @@ class CobraModuleVisitor inherits Cobra.Core.Visitor
 		
 		if node inherits NameSpace
 			if node is __ast.topNameSpace
-				# use the unified global namespace instead of the module's
-				# topNameSpace for the global namespace
-				key = CobraLanguageBinding.AddOnKeys.globalNameSpace
-				if node.addOnValues.containsKey(key)
-					globalNS = node.addOnValues[key] to NameSpace
-				else if not node.isUnified and node.unifiedNameSpace <> nil
-					globalNS = node.unifiedNameSpace to !
-				else
-					globalNS = node
+				globalNS = __ast.getGlobalNamespace
 				
 				if node.isWrappingDefaultNamespace
-					topNS = node.declsInOrder.first to NameSpace
+					topNS = node.wrappedNamespace
 					useDirectives = topNS.getUseDirectives
 				else
 					topNS = globalNS
@@ -349,8 +341,7 @@ class CobraModuleVisitor inherits Cobra.Core.Visitor
 	def visit(ns as NameSpace)
 		_addRegion(ns)
 		if ns is __ast.topNameSpace
-			if ns.isWrappingDefaultNamespace
-				ns = ns.declsInOrder.first to NameSpace
+			ns = __ast.getDefaultNamespace
 
 			# regions for namespace decls incorrectly encompass the
 			# entirety of the subnamespaces they declare/contain.

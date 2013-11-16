@@ -12,7 +12,6 @@
     <AssemblyName>MonoDevelop.CobraBinding</AssemblyName>
     <Description>This project provides the Cobra language binding addin for MonoDevelop.</Description>
     <ReleaseVersion>0.5</ReleaseVersion>
-    <UseMSBuildEngine>False</UseMSBuildEngine>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
@@ -21,6 +20,8 @@
     <ErrorReport>prompt</ErrorReport>
     <ConsolePause>false</ConsolePause>
     <Optimize>false</Optimize>
+    <PerformanceQualityOption>Custom</PerformanceQualityOption>
+    <IncludeTests>false</IncludeTests>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugType>none</DebugType>
@@ -31,7 +32,6 @@
     <IncludeAsserts>false</IncludeAsserts>
     <IncludeNilChecks>false</IncludeNilChecks>
     <IncludeTests>false</IncludeTests>
-    <IncludeTraces>false</IncludeTraces>
     <Turbo>true</Turbo>
     <Contracts>none</Contracts>
     <Debug>off</Debug>
@@ -43,11 +43,8 @@
     <OutputPath>bin\Debug</OutputPath>
     <ErrorReport>prompt</ErrorReport>
     <ConsolePause>false</ConsolePause>
-    <CustomCommands>
-      <CustomCommands>
-        <Command type="AfterBuild" command="scripts/test" workingdir="${ProjectDir}" externalConsole="True" pauseExternalConsole="True" />
-      </CustomCommands>
-    </CustomCommands>
+    <PerformanceQualityOption>Custom</PerformanceQualityOption>
+    <IncludeTests>false</IncludeTests>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|x86' ">
     <DebugType>none</DebugType>
@@ -56,7 +53,6 @@
     <IncludeNilChecks>false</IncludeNilChecks>
     <IncludeAsserts>false</IncludeAsserts>
     <IncludeTests>false</IncludeTests>
-    <IncludeTraces>false</IncludeTraces>
     <Debug>off</Debug>
     <ConsolePause>false</ConsolePause>
     <PerformanceQualityOption>Turbo</PerformanceQualityOption>
@@ -131,7 +127,28 @@
       <Private>False</Private>
       <Package>gtk-sharp-2.0</Package>
     </Reference>
-    <Reference Include="MonoDevelop.Ide, Version=2.6.0.0, Culture=neutral">
+    <Reference Include="ICSharpCode.NRefactory, Version=5.0.0.0, Culture=neutral, PublicKeyToken=d4bfe873e7598c49">
+      <Private>False</Private>
+      <Package>monodevelop</Package>
+    </Reference>
+    <Reference Include="Mono.Cairo" />
+    <Reference Include="gdk-sharp, Version=2.12.0.0, Culture=neutral, PublicKeyToken=35e10195dab3c99f">
+      <Private>False</Private>
+      <Package>gtk-sharp-2.0</Package>
+    </Reference>
+    <Reference Include="glib-sharp, Version=2.12.0.0, Culture=neutral, PublicKeyToken=35e10195dab3c99f">
+      <Private>False</Private>
+      <Package>glib-sharp-2.0</Package>
+    </Reference>
+    <Reference Include="atk-sharp, Version=2.12.0.0, Culture=neutral, PublicKeyToken=35e10195dab3c99f">
+      <Private>False</Private>
+      <Package>gtk-sharp-2.0</Package>
+    </Reference>
+    <Reference Include="pango-sharp, Version=2.12.0.0, Culture=neutral, PublicKeyToken=35e10195dab3c99f">
+      <Private>False</Private>
+      <Package>gtk-sharp-2.0</Package>
+    </Reference>
+    <Reference Include="Mono.TextEditor, Version=1.0.0.0, Culture=neutral">
       <Private>False</Private>
       <Package>monodevelop</Package>
     </Reference>
@@ -139,14 +156,10 @@
       <Private>False</Private>
       <Package>monodevelop</Package>
     </Reference>
-    <Reference Include="ICSharpCode.NRefactory, Version=5.0.0.0, Culture=neutral, PublicKeyToken=d4bfe873e7598c49">
+    <Reference Include="MonoDevelop.Ide, Version=2.6.0.0, Culture=neutral">
       <Private>False</Private>
       <Package>monodevelop</Package>
     </Reference>
-    <Reference Include="Mono.TextEditor, Version=1.0.0.0, Culture=neutral">
-      <Private>False</Private>
-      <Package>monodevelop</Package>
-    </Reference>
-    <Reference Include="Mono.Cairo" />
   </ItemGroup>
+  <Import Project="$(MSBuildExtensionsPath)\Cobra\Cobra.targets" />
 </Project>

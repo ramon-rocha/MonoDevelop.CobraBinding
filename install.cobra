@@ -44,6 +44,11 @@ class CobraBindingAddinInstaller
 	var _version = "0.5"
 
 	var _isWindows = Environment.osVersion.toString.startsWith("Microsoft Windows")
+	
+	# workaround an issue when trying to install from a drive other than C:\
+	var _defaultWindowsPaths = [
+		r"C:\Cobra\bin"
+	]
 
 	var _embeddedResources = [
 		"CobraBinding.addin.xml",
@@ -435,7 +440,7 @@ class CobraBindingAddinInstaller
 				info.fileName = CobraCommand.find.path
 			else
 				# Run the EXE directly
-				info.fileName = CobraCommand.findExe.path
+				info.fileName = CobraCommand.findExe(_defaultWindowsPaths).path
 			info.arguments = _getCobraArguments
 			info.workingDirectory += "CobraBinding"
 			cmds.add(Process(startInfo = info))
@@ -521,8 +526,8 @@ class CobraBindingAddinInstaller
 		Returns the path to Cobra.Compiler.dll
 		"""
 		require
-			CobraCore.findCobraExe <> nil
-			CobraCore.findCobraExe.length > 0
+			CobraCommand.findExe(_defaultWindowsPaths) <> nil
+			CobraCommand.findExe(_defaultWindowsPaths).path.length > 0
 		ensure
 			result.endsWith("Cobra.Compiler.dll")
 		test
@@ -530,6 +535,6 @@ class CobraBindingAddinInstaller
 			path = installer._getCobraCompilerDllPath
 			assert File.exists(path)
 		body
-			cobraExe = CobraCommand.findExe.path
+			cobraExe = CobraCommand.findExe(_defaultWindowsPaths).path
 			cobraDir = Path.getDirectoryName(cobraExe)
 			return cobraDir + __s + "Cobra.Compiler.dll"

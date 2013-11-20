@@ -155,8 +155,7 @@ class CompilerManager
 		sourceMap[fileName] = source
 
 		# we need to include the paths to any referenced assemblies
-		# and we'll always reference System.Core and Cobra.Core
-		refs = List<of String>(project.references.count + 2)
+		refs = List<of String>(project.references.count)
 		for projRef in project.references
 			refs.addRange(projRef.getReferencedFileNames(ConfigurationSelector.default))
 		

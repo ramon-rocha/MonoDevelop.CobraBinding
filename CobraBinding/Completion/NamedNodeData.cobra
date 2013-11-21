@@ -156,7 +156,7 @@ class NamedNodeData inherits CompletionData
 		Appears as the summaryMarkup in the tooltip for this completion entry.
 		"""
 		_description ?= .TooltipProviderAlias.createCodeCompletionSummaryMarkup(_node)
-		return _description to !
+		return _description ? ""
 	
 	
 	get hasOverloads as bool is override

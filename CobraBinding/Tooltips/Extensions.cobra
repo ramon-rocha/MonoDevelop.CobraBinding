@@ -166,19 +166,20 @@ extend INamedNode
 					catch ex as Exception
 						trace ex.message
 						print ex.toString
-				if typ <> nil
-					if node inherits Param
-						if node.isOut
-							return "[node.name] as out [typ.createTooltipMarkup]"
-						else if node.isInOut
-							return "[node.name] as inout [typ.createTooltipMarkup]"
-						else if node.isOptional
-							defaultValue = node.optionalValue.toCobraSource
-							return "[node.name] as [typ.createTooltipMarkup] = [defaultValue]"
-					
-					return "[node.name] as [typ.createTooltipMarkup]"
-				else
+				
+				if typ == nil
 					return "[node.name] as ???"
+				
+				if node inherits Param
+					if node.isOut
+						return "[node.name] as out [typ.createTooltipMarkup]"
+					else if node.isInOut
+						return "[node.name] as inout [typ.createTooltipMarkup]"
+					else if node.isOptional
+						defaultValue = node.optionalValue.toCobraSource
+						return "[node.name] as [typ.createTooltipMarkup] = [defaultValue]"
+				
+				return "[node.name] as [typ.createTooltipMarkup]"
 			
 			else if node inherits EnumMember
 				if node.value == nil

@@ -276,6 +276,7 @@ class CobraCompilerParameters inherits ConfigurationParameters
 		body
 			sb = StringBuilder()
 			sb.append(" -ert:[_embedRunTime]")
+			if not _embedRunTime, sb.append(" -copy-core")
 			sb.append(" -debug:[_debug]")
 			sb.append(" -debugging-tips:[_debuggingTips]")
 			sb.append(" -kif:[_keepIntermediateFiles]")

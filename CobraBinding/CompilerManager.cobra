@@ -186,16 +186,48 @@ class CompilerManager
 		The sourceMap is a dictionary whose values are source file contents keyed
 		by filename.
 		"""
+		return _parseAndBind(sourceMap, List<of String>(), fileToBind)
+	
+
+	def parseAndBind(sourceMap as Dictionary<of String, String>) as TypeSystem.ParsedCobraDocument
+		"""
+		Runs select phases of the Cobra compiler.
+		
+		The sourceMap is a dictionary whose values are source file contents keyed
+		by filename.
+		"""
+		return .parseAndBind(sourceMap, sourceMap.first.key)
+	
+	def parseAndBind(rootNamespace as String?, sourceMap as Dictionary<of String, String>) as TypeSystem.ParsedCobraDocument
+		"""
+		This overload is for supporting test methods
+		"""
+		return _parseAndBind(sourceMap, List<of String>(), sourceMap.keys.first, rootNamespace)
+	
+	def _parseAndBind(
+			sourceMap as Dictionary<of String, String>,
+			refs as List<of String>,
+			fileToBind as String,
+			rootNamespace as String? = nil,
+			numberOption as String = "decimal"
+		) as TypeSystem.ParsedCobraDocument
+		"""
+		Runs select phases of the Cobra compiler.
+		
+		The sourceMap is a dictionary whose values are source file contents keyed
+		by filename.
+		"""
 		test validFiles
 			# Valid files produce fully bound ASTs without any errors.
 			
 			cm = CompilerManager.instance
 			testData = .readTestData("no_errors")
 			astCount = 0
+			refs = List<of String>()
 
 			for filePath, code in testData
 				# process each file individually
-				doc = cm.parseAndBind({filePath: code}, filePath)
+				doc = cm._parseAndBind({filePath: code}, refs, filePath)
 				assert doc.errors.count == 0
 				
 				# validate the AST
@@ -236,24 +268,10 @@ class CompilerManager
 						assert prog.memberForName("calc")
 						assert prog.memberForName("main")
 						
-					on "ForCompletionTesting.cobra"
-						# this gets tested by the CobraCompletionTextEditorExtension class
-						pass
-						
-					on "ForCobraModuleVisitorTesting1.cobra" _
-					or "ForCobraModuleVisitorTesting2.cobra"
-						# these get tested by the CobraModuleVisitor class
-						pass
-					
-					on "ForTooltipTesting.cobra"
-						# this gets tested by the TooltipProvider class
-						pass
-
 					else
-						# unhandled file, a case should be added for it
-						print "******* You need to add a test case for [name]!"
-						assert false
-
+						# ignore other test files
+						pass
+			
 			assert testData.count == astCount
 				
 		test parseErrors
@@ -262,10 +280,11 @@ class CompilerManager
 			cm = CompilerManager.instance
 			testData = .readTestData("parser_errors")
 			errorCount = 0
+			refs = List<of String>()
 
 			for filePath, code in testData
 				# process each file individually
-				doc = cm.parseAndBind({filePath: code}, filePath)
+				doc = cm._parseAndBind({filePath: code}, refs, filePath)
 				assert doc.ast == nil
 				name =  FileInfo(filePath).name
 				assert doc.errors.count == 1
@@ -315,10 +334,11 @@ class CompilerManager
 			cm = CompilerManager.instance
 			testData = .readTestData("binding_errors")
 			astCount = errorCount = 0
+			refs = List<of String>()
 
 			for filePath, code in testData
 				# process each file individually
-				doc = cm.parseAndBind({filePath: code}, filePath)
+				doc = cm._parseAndBind({filePath: code}, refs, filePath)
 				ast = doc.getAst<of CobraModule>
 				astCount += 1
 				name = FileInfo(ast.fileName).name
@@ -356,77 +376,46 @@ class CompilerManager
 						assert false
 					
 			assert testData.count == astCount == errorCount
-
+		
 		body
-			return _parseAndBind(sourceMap, List<of String>(), fileToBind)
+			if sourceMap.count == 0
+				# nothing to do
+				return TypeSystem.ParsedCobraDocument(fileToBind, "")
+				
+			params = CompileParams()
+			for fileName, sourceCode in sourceMap
+				params.files.add(FileSpec(fileName, sourceCode))
+			
+			lock _theConch
+				compiler = __createCompiler
+				compiler.options['reference'] = refs
+				compiler.options['number'] = numberOption
+				if rootNamespace <> nil
+					rootNamespace = rootNamespace.trim
+					if rootNamespace.length <> 0, compiler.options['namespace'] = rootNamespace
+				
+				for phaseType in _phaseTypes
+					params.phases.add(phaseType(compiler))
+				params.phases.add(.CustomBindImplementationPhase(compiler, fileToBind))
+				
+				try
+					compiler.compile(params)
+				catch StopCompilation
+					# source files with errors will throw these
+					# but we just ignore them
+					pass
+				catch ex as Exception
+					print "The compiler crashed trying to compile [fileToBind]"
+					trace ex
+				
+				doc = TypeSystem.ParsedCobraDocument(fileToBind, sourceMap[fileToBind])
+				doc.add(compiler.errors)
 	
-
-	def parseAndBind(sourceMap as Dictionary<of String, String>) as TypeSystem.ParsedCobraDocument
-		"""
-		Runs select phases of the Cobra compiler.
-		
-		The sourceMap is a dictionary whose values are source file contents keyed
-		by filename.
-		"""
-		return .parseAndBind(sourceMap, sourceMap.first.key)
-	
-	def parseAndBind(rootNamespace as String?, sourceMap as Dictionary<of String, String>) as TypeSystem.ParsedCobraDocument
-		"""
-		This overload is for supporting test methods
-		"""
-		return _parseAndBind(sourceMap, List<of String>(), sourceMap.keys.first, rootNamespace)
-	
-	def _parseAndBind(
-			sourceMap as Dictionary<of String, String>,
-			refs as List<of String>,
-			fileToBind as String,
-			rootNamespace as String? = nil,
-			numberOption as String = "decimal"
-		) as TypeSystem.ParsedCobraDocument
-		"""
-		Runs select phases of the Cobra compiler.
-		
-		The sourceMap is a dictionary whose values are source file contents keyed
-		by filename.
-		"""
-		if sourceMap.count == 0
-			# nothing to do
-			return TypeSystem.ParsedCobraDocument(fileToBind, "")
-			
-		params = CompileParams()
-		for fileName, sourceCode in sourceMap
-			params.files.add(FileSpec(fileName, sourceCode))
-		
-		lock _theConch
-			compiler = __createCompiler
-			compiler.options['reference'] = refs
-			compiler.options['number'] = numberOption
-			if rootNamespace <> nil
-				rootNamespace = rootNamespace.trim
-				if rootNamespace.length <> 0, compiler.options['namespace'] = rootNamespace
-			
-			for phaseType in _phaseTypes
-				params.phases.add(phaseType(compiler))
-			params.phases.add(.CustomBindImplementationPhase(compiler, fileToBind))
-			
-			try
-				compiler.compile(params)
-			catch StopCompilation
-				# source files with errors will throw these
-				# but we just ignore them
-				pass
-			catch ex as Exception
-				print "The compiler crashed trying to compile [fileToBind]"
-				trace ex
-			
-			doc = TypeSystem.ParsedCobraDocument(fileToBind, sourceMap[fileToBind])
-			doc.add(compiler.errors)
-
-			for module in compiler.modules
-				if module.fileName == fileToBind
-					doc.add(module to CobraModule)
-			
-		return doc
+				for module in compiler.modules
+					if module.fileName == fileToBind
+						doc.add(module to CobraModule)
+				
+			return doc
 
 
 	shared

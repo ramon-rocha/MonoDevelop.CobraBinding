@@ -16,7 +16,11 @@
 
 	<!-- Template Content -->
 	<Combine name="${ProjectName}" directory = ".">
-		<Project name="${ProjectName}" directory = "."/>
+		<Project name="${ProjectName}" directory = ".">
+			<References>
+				<References type="Package" SpecificVersion="false" refto="System.Core" />
+			</References>
+		</Project>
 	</Combine>
 	
 </Template>

@@ -27,6 +27,11 @@
 		
 		<Project name="${ProjectName}" directory=".">
 			<Options Target="Library" />
+			
+			<References>
+				<References type="Package" SpecificVersion="false" refto="System.Core" />
+			</References>
+			
 			<Files>
 				<File name="Class1.cobra" AddStandardHeader="True"><![CDATA["""
 Replace this text with a description of your library.

@@ -31,13 +31,21 @@ This addin is primarily developed on Ubuntu 13.10 using MonoDevelop.
 However, it will work with Xamarin Studio on OS X using Mono or on Windows 
 using either the .NET Framework or Mono.
 
+Minimum Requirements
+--------------------
+* .NET Framework 4.0 or Mono 3.2.1
+
+* MonoDevelop or Xamarin Studio 4.2
+
+* Cobra 0.9.5
+
 Installing the Precompiled Package
 ----------------------------------
 A MonoDevelop addin repository is available at http://mdrepo.ramonrocha.com
 
 - From the Tools > Add-in Manager window, select the Gallery tab.
 
-- Then select "Manage Repositories..." from the dropdown menu.
+- Select "Manage Repositories..." from the dropdown menu.
 
 - Click Add and then enter the repository Url.
 
@@ -58,22 +66,14 @@ If you just want to compile the addin and not install it, you can execute:
 
     cobra install.cobra -run-args compile
 
-On Windows 64-bit with a 32-bit installation of Xamarin Studio, you'll need 
-to make sure you've installed Cobra using the '-x86' installer option first.  
-See below for more details.
-
-Minimum Requirements
---------------------
-* .NET Framework 4.0 or Mono 3.2.1
-
-* MonoDevelop or Xamarin Studio 4.2
-
-* Cobra 0.9.5
-
 If you are running the latest version of Cobra from subversion and you find
 that the installer from the 'master' branch doesn't work, try to use the
 'cobra-svn' branch instead.  If that still doesn't work, please submit a bug
 report.
+
+On Windows 64-bit with a 32-bit installation of Xamarin Studio, you'll need 
+to make sure you've installed Cobra using the '-x86' installer option first.  
+See below for more details.
 
 Additional Requirements for Windows 64-bit
 --------------------------------------------
@@ -111,6 +111,7 @@ to the x86 platform (the default option in MonoDevelop) when compiling,
 running, and debugging, and you shouldn't have any issues.  If you are trying
 to compile Cobra code from the command line, add the '-clr-platform:x86' option.
 
+
 Status of Code Completion
 =========================
 Code completion is currently supported in a limited number of scenarios.
@@ -120,7 +121,7 @@ What Works?
 -----------
  * Keyword completion (oh boy)
  * Namespaces and types from referenced assemblies and packages
- * Leading .dot and _underscore completion
+ * Leading .dot and _underscore _completion
  * Local variable completion
  * Arbitrary.member.completion
  * Parameter completion
@@ -177,6 +178,7 @@ In the near-term, we can investigate tweaking the stock CobraParser or possibly
 inheriting from it and overriding its behaviors to get better data for completion:
 
 http://cobra-language.com/trac/cobra/browser/cobra/trunk/Source/CobraParser.cobra
+
 
 Contributing
 ============

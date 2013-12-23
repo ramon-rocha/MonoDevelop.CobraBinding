@@ -42,8 +42,6 @@ class CobraBindingAddinInstaller
 	
 	# needs to match the version defined in CobraBinding.addin.xml
 	var _version = "0.5.1"
-
-	var _isWindows = Environment.osVersion.toString.startsWith("Microsoft Windows")
 	
 	# workaround an issue when trying to install from a drive other than C:\
 	var _defaultWindowsPaths = [
@@ -325,7 +323,7 @@ class CobraBindingAddinInstaller
 		ensure
 			result.endsWith(__s)			
 		body
-			if _isWindows
+			if CobraCore.isRunningOnWindows
 				app = "XamarinStudio"
 				path = Environment.getEnvironmentVariable("LOCALAPPDATA")
 				if path == nil
@@ -352,7 +350,7 @@ class CobraBindingAddinInstaller
 		body
 			info = _createProcessStartInfo
 			
-			if _isWindows
+			if CobraCore.isRunningOnWindows
 				progFiles = Environment.getEnvironmentVariable("PROGRAMFILES")
 				
 				if File.exists(progFiles + r" (x86)\Xamarin Studio\bin\mdtool")
@@ -392,7 +390,7 @@ class CobraBindingAddinInstaller
 			
 			info = _createProcessStartInfo
 			
-			if _isWindows
+			if CobraCore.isRunningOnWindows
 				# We'll use msbuild to compile the Gui project
 				info.fileName = "msbuild"
 
@@ -417,7 +415,7 @@ class CobraBindingAddinInstaller
 			else if _verbosity >= 2, info.arguments += " /verbosity:detailed"
 			else if _verbosity >= 1, info.arguments += " /verbosity:normal"
 			
-			if _isWindows
+			if CobraCore.isRunningOnWindows
 				progFiles = Environment.getEnvironmentVariable("PROGRAMFILES")
 				if Directory.exists(progFiles + " (x86)")
 					# 32-bit on 64-bit Windows
@@ -483,7 +481,7 @@ class CobraBindingAddinInstaller
 		for r in _refs
 			cobraArgs.append(" -ref:[r]")
 		
-		if _isWindows
+		if CobraCore.isRunningOnWindows
 			# on windows, we need to specify the full path to the MonoDevelop and Gtk libs
 			progFiles = Environment.getEnvironmentVariable("PROGRAMFILES")
 			

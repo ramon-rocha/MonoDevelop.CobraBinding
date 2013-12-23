@@ -166,19 +166,20 @@ extend INamedNode
 					catch ex as Exception
 						trace ex.message
 						print ex.toString
-				if typ <> nil
-					if node inherits Param
-						if node.isOut
-							return "[node.name] as out [typ.createTooltipMarkup]"
-						else if node.isInOut
-							return "[node.name] as inout [typ.createTooltipMarkup]"
-						else if node.isOptional
-							defaultValue = node.optionalValue.toCobraSource
-							return "[node.name] as [typ.createTooltipMarkup] = [defaultValue]"
-					
-					return "[node.name] as [typ.createTooltipMarkup]"
-				else
+				
+				if typ == nil
 					return "[node.name] as ???"
+				
+				if node inherits Param
+					if node.isOut
+						return "[node.name] as out [typ.createTooltipMarkup]"
+					else if node.isInOut
+						return "[node.name] as inout [typ.createTooltipMarkup]"
+					else if node.isOptional
+						defaultValue = node.optionalValue.toCobraSource
+						return "[node.name] as [typ.createTooltipMarkup] = [defaultValue]"
+				
+				return "[node.name] as [typ.createTooltipMarkup]"
 			
 			else if node inherits EnumMember
 				if node.value == nil
@@ -192,8 +193,14 @@ extend INamedNode
 				typ = node.resultType
 				
 				if node inherits Initializer
-					kw = TooltipProvider.declKeyword[node.parentBox.getType]
-					return "[kw] [node.parentBox.name]([_createParamMarkup])[_createTrailingMarkup]"
+					parentBox = node.parentBox
+					kw = TooltipProvider.declKeyword[parentBox.getType]
+					paramMarkup = _createParamMarkup
+					markup = "[kw] [parentBox.name]([paramMarkup])[_createTrailingMarkup]"
+					if markup.length > 60
+						# too long, break it up into multiple lines
+						markup = markup.replace(paramMarkup, _createWrappedParamMarkup)
+					return markup
 				
 				else if node inherits Method _
 				or node inherits MemberOverload _

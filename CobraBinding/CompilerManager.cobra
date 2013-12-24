@@ -156,7 +156,12 @@ class CompilerManager
 		sourceMap[fileName] = source
 
 		# we need to include the paths to any referenced assemblies
-		configSelector = MonoDevelop.Projects.ConfigurationSelector.default
+		configSelector = MonoDevelop.Ide.IdeApp.workspace.activeConfiguration
+		config = project.getConfiguration(configSelector) to MonoDevelop.Projects.DotNetProjectConfiguration?
+		if config == nil
+			configSelector = MonoDevelop.Projects.ConfigurationSelector.default
+			config = project.defaultConfiguration to MonoDevelop.Projects.DotNetProjectConfiguration?
+		
 		refs = List<of String>(project.references.count)
 		for projRef in project.references
 			refs.addRange(projRef.getReferencedFileNames(configSelector))
@@ -178,11 +183,12 @@ class CompilerManager
 			    # file is open in editor, read it from memory
 				sourceMap[path] = doc.editor.text ? ""
 		
-		# TODO: Don't just get the default configuration, get the active one
-		config = project.defaultConfiguration to MonoDevelop.Projects.DotNetProjectConfiguration
-		params = config.compilationParameters to Project.CobraCompilerParameters
+		numberOption = "decimal"
+		if config <> nil
+			params = config.compilationParameters to Project.CobraCompilerParameters
+			numberOption = params.number
 		
-		return _parseAndBind(sourceMap, refs, fileName, project.defaultNamespace, params.number)
+		return _parseAndBind(sourceMap, refs, fileName, project.defaultNamespace, numberOption)
 	
 
 	def parseAndBind(sourceMap as Dictionary<of String, String>, fileToBind as String) as TypeSystem.ParsedCobraDocument

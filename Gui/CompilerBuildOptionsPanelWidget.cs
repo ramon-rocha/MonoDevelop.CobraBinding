@@ -83,9 +83,9 @@ namespace MonoDevelop.CobraBinding.Gui
 			get { return this.comboDebugInfo; }
 		}
 
-		public Gtk.CheckButton DebugTipsCheckButton
+		public Gtk.ComboBox NumberTypeComboBox
 		{
-			get { return this.checkDebugTips; }
+			get { return this.comboNumberType; }
 		}
 
 		public Gtk.Entry CobraArgsEntry

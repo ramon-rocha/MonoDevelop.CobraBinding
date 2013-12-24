@@ -170,6 +170,10 @@ class CobraLanguageBinding implements IDotNetLanguageBinding
 		rootNamespace = rootNamespace.trim
 		if rootNamespace.length <> 0, argsBuilder.append(' -namespace:[rootNamespace]')
 		
+		# what is the real type for 'number'?
+		compilerParams = configuration.compilationParameters to CobraCompilerParameters
+		argsBuilder.append(' -number:[compilerParams.number]')
+		
 		# what will we call the generated assembly?
 		asmName = configuration.compiledOutputName
 		argsBuilder.append(' -out:"[asmName.fullPath]"')
@@ -191,7 +195,6 @@ class CobraLanguageBinding implements IDotNetLanguageBinding
 					argsBuilder.append(' -native-compiler-arg:"-res:[resourceFileName],[resourceId]"')
 		
 		# add the user specified compiler parameters for this configuration
-		compilerParams = configuration.compilationParameters to CobraCompilerParameters
 		argsBuilder.append(compilerParams.createCmdLineArgs)
 		
 		# add the list of files to compile

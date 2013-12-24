@@ -59,6 +59,12 @@ class CobraCompilerParameters inherits ConfigurationParameters
 		Full
 		PdbOnly
 		Off
+	
+	enum NumberTypeOption
+		Decimal
+		Float
+		Float32
+		Float64
 		
 	enum BackEndOption
 		None
@@ -114,6 +120,9 @@ class CobraCompilerParameters inherits ConfigurationParameters
 		
 	var _debug = "full"
 		has ItemProperty("Debug", defaultValue = "full")
+	
+	var _number = "decimal"
+		has ItemProperty("Number", defaultValue = "decimal")
 		
 	var _debuggingTips = false
 		has ItemProperty("DebuggingTips", defaultValue = false)
@@ -175,6 +184,9 @@ class CobraCompilerParameters inherits ConfigurationParameters
 
 	pro debug from var
 		"""Turn on system debugging information"""
+	
+	pro number from var
+		"""The real numeric type for the "number" type and fractional literals"""
 
 	pro debuggingTips from var
 		"""Display debugging tips when an unhandled exception occurs"""

@@ -124,40 +124,31 @@
   </ItemGroup>
   <ItemGroup>
     <Reference Include="gtk-sharp, Version=2.12.0.0, Culture=neutral, PublicKeyToken=35e10195dab3c99f">
-      <Private>False</Private>
       <Package>gtk-sharp-2.0</Package>
     </Reference>
     <Reference Include="ICSharpCode.NRefactory, Version=5.0.0.0, Culture=neutral, PublicKeyToken=d4bfe873e7598c49">
-      <Private>False</Private>
       <Package>monodevelop</Package>
     </Reference>
     <Reference Include="Mono.Cairo" />
     <Reference Include="gdk-sharp, Version=2.12.0.0, Culture=neutral, PublicKeyToken=35e10195dab3c99f">
-      <Private>False</Private>
       <Package>gtk-sharp-2.0</Package>
     </Reference>
     <Reference Include="glib-sharp, Version=2.12.0.0, Culture=neutral, PublicKeyToken=35e10195dab3c99f">
-      <Private>False</Private>
       <Package>glib-sharp-2.0</Package>
     </Reference>
     <Reference Include="atk-sharp, Version=2.12.0.0, Culture=neutral, PublicKeyToken=35e10195dab3c99f">
-      <Private>False</Private>
       <Package>gtk-sharp-2.0</Package>
     </Reference>
     <Reference Include="pango-sharp, Version=2.12.0.0, Culture=neutral, PublicKeyToken=35e10195dab3c99f">
-      <Private>False</Private>
       <Package>gtk-sharp-2.0</Package>
     </Reference>
     <Reference Include="Mono.TextEditor, Version=1.0.0.0, Culture=neutral">
-      <Private>False</Private>
       <Package>monodevelop</Package>
     </Reference>
     <Reference Include="MonoDevelop.Core, Version=2.6.0.0, Culture=neutral">
-      <Private>False</Private>
       <Package>monodevelop</Package>
     </Reference>
     <Reference Include="MonoDevelop.Ide, Version=2.6.0.0, Culture=neutral">
-      <Private>False</Private>
       <Package>monodevelop</Package>
     </Reference>
   </ItemGroup>

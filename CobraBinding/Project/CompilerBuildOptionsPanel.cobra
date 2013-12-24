@@ -166,8 +166,21 @@ class CompilerBuildOptionsPanel inherits MultiConfigItemOptionsPanel
 			on "off"
 				_widget.debugInfoComboBox.active = _
 					CobraCompilerParameters.DebugOption.Off to int
-				
-		_widget.debugTipsCheckButton.active = compilerParams.debuggingTips
+		
+		branch compilerParams.number
+			on "decimal"
+				_widget.numberTypeComboBox.active = _
+					CobraCompilerParameters.NumberTypeOption.Decimal to int
+			on "float"
+				_widget.numberTypeComboBox.active = _
+					CobraCompilerParameters.NumberTypeOption.Float to int
+			on "float32"
+				_widget.numberTypeComboBox.active = _
+					CobraCompilerParameters.NumberTypeOption.Float32 to int
+			on "float64"
+				_widget.numberTypeComboBox.active = _
+					CobraCompilerParameters.NumberTypeOption.Float64 to int
+		
 		_widget.cobraArgsEntry.text = compilerParams.cobraArgs
 		
 		# backend compiler options
@@ -238,7 +251,7 @@ class CompilerBuildOptionsPanel inherits MultiConfigItemOptionsPanel
 		"""
 		compilerParams.embedRunTime = _widget.embedRunTimeCheckButton.active
 		compilerParams.debug = _widget.debugInfoComboBox.activeText.toLower.replace(' ', nil) #TODO: consistent name
-		compilerParams.debuggingTips = _widget.debugTipsCheckButton.active #TODO: consistent name
+		compilerParams.number = _widget.numberTypeComboBox.activeText.toLower.replace(' (default)', nil)
 		compilerParams.keepIntermediateFiles = _widget.keepIntermediateFilesCheckButton.active
 		compilerParams.cobraArgs = _widget.cobraArgsEntry.text ? ""
 			

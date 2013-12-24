@@ -1,7 +1,5 @@
 use Cobra.Compiler
 
-use MonoDevelop.Projects
-
 extend CobraModule
 
 	def getDefaultNamespace as NameSpace
@@ -145,7 +143,10 @@ class CompilerManager
 		
 		return compiler
 	
-	def parseAndBind(project as DotNetProject, fileName as String, source as String) as TypeSystem.ParsedCobraDocument
+	def parseAndBind(
+			project as MonoDevelop.Projects.DotNetProject,
+			fileName as String, source as String
+		) as TypeSystem.ParsedCobraDocument
 		"""
 		Runs select phases of the Cobra compiler on the files in the given project.
 
@@ -155,14 +156,15 @@ class CompilerManager
 		sourceMap[fileName] = source
 
 		# we need to include the paths to any referenced assemblies
+		configSelector = MonoDevelop.Projects.ConfigurationSelector.default
 		refs = List<of String>(project.references.count)
 		for projRef in project.references
-			refs.addRange(projRef.getReferencedFileNames(ConfigurationSelector.default))
+			refs.addRange(projRef.getReferencedFileNames(configSelector))
 		
 		# to generate a full AST, we need all the Cobra source files in this project
 		for projFile in project.files
 			
-			if projFile.buildAction <> BuildAction.compile, continue
+			if projFile.buildAction <> MonoDevelop.Projects.BuildAction.compile, continue
 			
 			path = projFile.filePath.toString
 			if path == fileName _
@@ -175,8 +177,12 @@ class CompilerManager
 			else
 			    # file is open in editor, read it from memory
 				sourceMap[path] = doc.editor.text ? ""
-
-		return _parseAndBind(sourceMap, refs, fileName, project.defaultNamespace)
+		
+		# TODO: Don't just get the default configuration, get the active one
+		config = project.defaultConfiguration to MonoDevelop.Projects.DotNetProjectConfiguration
+		params = config.compilationParameters to Project.CobraCompilerParameters
+		
+		return _parseAndBind(sourceMap, refs, fileName, project.defaultNamespace, params.number)
 	
 
 	def parseAndBind(sourceMap as Dictionary<of String, String>, fileToBind as String) as TypeSystem.ParsedCobraDocument

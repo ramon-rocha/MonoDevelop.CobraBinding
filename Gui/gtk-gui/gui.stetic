@@ -1,13 +1,13 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <stetic-interface>
   <configuration>
-    <images-root-path>../../Gui</images-root-path>
+    <images-root-path>..</images-root-path>
     <target-gtk-version>2.12</target-gtk-version>
   </configuration>
   <import>
     <widget-library name="../bin/Debug/MonoDevelop.CobraBinding.Gui.dll" internal="true" />
   </import>
-  <widget class="Gtk.Bin" id="MonoDevelop.CobraBinding.Gui.CompilerBuildOptionsPanelWidget" design-size="488 403">
+  <widget class="Gtk.Bin" id="MonoDevelop.CobraBinding.Gui.CompilerBuildOptionsPanelWidget" design-size="521 410">
     <property name="MemberName" />
     <child>
       <widget class="Gtk.VBox" id="vboxTop">
@@ -232,6 +232,7 @@ None</property>
                         <property name="MemberName" />
                         <property name="CanFocus">True</property>
                         <property name="Label" translatable="yes">Custom</property>
+                        <property name="Active">True</property>
                         <property name="DrawIndicator">True</property>
                         <property name="HasLabel">True</property>
                         <property name="UseUnderline">True</property>
@@ -256,7 +257,6 @@ None</property>
                         <property name="MemberName" />
                         <property name="CanFocus">True</property>
                         <property name="Label" translatable="yes">Default</property>
-                        <property name="Active">True</property>
                         <property name="DrawIndicator">True</property>
                         <property name="HasLabel">True</property>
                         <property name="UseUnderline">True</property>
@@ -340,14 +340,10 @@ None</property>
                     <property name="RowSpacing">6</property>
                     <property name="ColumnSpacing">6</property>
                     <child>
-                      <placeholder />
-                    </child>
-                    <child>
-                      <widget class="Gtk.CheckButton" id="checkDebugTips">
+                      <widget class="Gtk.CheckButton" id="checkEmbedRunTime">
                         <property name="MemberName" />
                         <property name="CanFocus">True</property>
-                        <property name="Label" translatable="yes">Debugging Tips</property>
-                        <property name="Active">True</property>
+                        <property name="Label" translatable="yes">Embed Run Time</property>
                         <property name="DrawIndicator">True</property>
                         <property name="HasLabel">True</property>
                         <property name="UseUnderline">True</property>
@@ -360,27 +356,6 @@ None</property>
                         <property name="AutoSize">True</property>
                         <property name="YOptions">Fill</property>
                         <property name="XExpand">True</property>
-                        <property name="XFill">True</property>
-                        <property name="XShrink">False</property>
-                        <property name="YExpand">False</property>
-                        <property name="YFill">True</property>
-                        <property name="YShrink">False</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <widget class="Gtk.CheckButton" id="checkEmbedRunTime">
-                        <property name="MemberName" />
-                        <property name="CanFocus">True</property>
-                        <property name="Label" translatable="yes">Embed Run Time</property>
-                        <property name="DrawIndicator">True</property>
-                        <property name="HasLabel">True</property>
-                        <property name="UseUnderline">True</property>
-                      </widget>
-                      <packing>
-                        <property name="AutoSize">True</property>
-                        <property name="XOptions">Fill</property>
-                        <property name="YOptions">Fill</property>
-                        <property name="XExpand">False</property>
                         <property name="XFill">True</property>
                         <property name="XShrink">False</property>
                         <property name="YExpand">False</property>
@@ -417,6 +392,30 @@ None</property>
                         <property name="Items" translatable="yes">Full
 PDB Only
 Off</property>
+                        <property name="Active">0</property>
+                      </widget>
+                      <packing>
+                        <property name="LeftAttach">1</property>
+                        <property name="RightAttach">2</property>
+                        <property name="AutoSize">True</property>
+                        <property name="XOptions">Fill</property>
+                        <property name="YOptions">Fill</property>
+                        <property name="XExpand">False</property>
+                        <property name="XFill">True</property>
+                        <property name="XShrink">False</property>
+                        <property name="YExpand">False</property>
+                        <property name="YFill">True</property>
+                        <property name="YShrink">False</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <widget class="Gtk.ComboBox" id="comboNumberType">
+                        <property name="MemberName" />
+                        <property name="IsTextCombo">True</property>
+                        <property name="Items" translatable="yes">decimal (default)
+float
+float32
+float64</property>
                         <property name="Active">0</property>
                       </widget>
                       <packing>
@@ -483,6 +482,25 @@ Off</property>
                         <property name="MemberName" />
                         <property name="Xalign">0</property>
                         <property name="LabelProp" translatable="yes">Debug Information:</property>
+                      </widget>
+                      <packing>
+                        <property name="AutoSize">True</property>
+                        <property name="XOptions">Fill</property>
+                        <property name="YOptions">Fill</property>
+                        <property name="XExpand">False</property>
+                        <property name="XFill">True</property>
+                        <property name="XShrink">False</property>
+                        <property name="YExpand">False</property>
+                        <property name="YFill">True</property>
+                        <property name="YShrink">False</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <widget class="Gtk.Label" id="labelNumberType">
+                        <property name="MemberName" />
+                        <property name="Tooltip" translatable="yes" />
+                        <property name="Xalign">0</property>
+                        <property name="LabelProp" translatable="yes">Number Option:</property>
                       </widget>
                       <packing>
                         <property name="TopAttach">1</property>

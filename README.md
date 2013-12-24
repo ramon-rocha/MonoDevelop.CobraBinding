@@ -66,11 +66,6 @@ If you just want to compile the addin and not install it, you can execute:
 
     cobra install.cobra -run-args compile
 
-If you are running the latest version of Cobra from subversion and you find
-that the installer from the 'master' branch doesn't work, try to use the
-'cobra-svn' branch instead.  If that still doesn't work, please submit a bug
-report.
-
 On Windows 64-bit with a 32-bit installation of Xamarin Studio, you'll need 
 to make sure you've installed Cobra using the '-x86' installer option first.  
 See below for more details.

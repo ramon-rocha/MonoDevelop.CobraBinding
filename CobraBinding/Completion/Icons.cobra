@@ -38,7 +38,6 @@ class Icons
 			Property : [Gui.Stock.property, Gui.Stock.protectedProperty, Gui.Stock.privateProperty, Gui.Stock.internalProperty],
 			BoxEvent : [Gui.Stock.event, Gui.Stock.protectedEvent, Gui.Stock.privateEvent, Gui.Stock.internalEvent],			
 			Extension : [Gui.Stock.internalClass],
-			#TODO: AttributeDecl, Mixin, etc.
 		}
 			
 		var _iconKeyword = _icons[Keyword][_defaultIcon]

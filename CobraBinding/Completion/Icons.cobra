@@ -26,6 +26,7 @@ class Icons
 			EnumMember : [Gui.Stock.literal],
 			Struct : [Gui.Stock.struct, Gui.Stock.protectedStruct, Gui.Stock.privateStruct, Gui.Stock.internalStruct],
 			Interface : [Gui.Stock.interface, Gui.Stock.protectedInterface, Gui.Stock.privateInterface, Gui.Stock.internalInterface],
+			Mixin : [Gui.Stock.interface, Gui.Stock.protectedInterface, Gui.Stock.privateInterface, Gui.Stock.internalInterface],
 			Class : [Gui.Stock.class, Gui.Stock.protectedClass, Gui.Stock.privateClass, Gui.Stock.internalClass],
 			BoxVar : [Gui.Stock.field, Gui.Stock.protectedField, Gui.Stock.privateField, Gui.Stock.internalField],
 			BoxConst : [Gui.Stock.literal],

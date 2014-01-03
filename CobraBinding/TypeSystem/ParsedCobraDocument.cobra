@@ -288,6 +288,7 @@ class ParsedCobraDocument inherits DefaultParsedDocument
 			if c.isLetter or c.isNumber or c == c'_'
 				sb.append(c)
 			else
+				#TODO: Don't just break here, we need to handle generic identifiers
 				break
 			i += 1
 		text = sb.toString.trim
@@ -351,6 +352,10 @@ class ParsedCobraDocument inherits DefaultParsedDocument
 			
 			node = doc._getNodeFromIds(["Example", "TestClass", "main"], regions)
 			assert (node to Method).statements[0] inherits PrintStmt
+			
+			node = doc._getNodeFromIds(["List<of>"], regions)
+			assert (node to Box).isGeneric
+			
 		body
 			idMap as Dictionary<of String, INamedNode>? = nil
 			for region in containingRegions

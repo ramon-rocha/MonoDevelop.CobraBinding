@@ -15,7 +15,34 @@ extend String
 		escaped = escaped.replace("<", "&lt;")
 		escaped = escaped.replace(">", "&gt;")
 		return escaped
+
+extend Box
+
+	def createTooltipMarkup as String
+		"""
+		A helper function for creating the markup for the name of a Box node.
+		"""
+		if not .isGeneric
+			return .name.replace(",", ", ").escapeMarkup
+			
+		# fix markup for generics
+		# e.g. turn "<of,>" into "<of T1, T2>"
+		toReplace = StringBuilder("<of")
+		replaceWith = StringBuilder()
+		for gp in .genericParams
+			if replaceWith.length > 0
+				toReplace.append(",")
+				replaceWith.append(", [gp.name]")
+			else
+				replaceWith.append("<of [gp.name]")
+		toReplace.append(">")
+		replaceWith.append(">")
 		
+		r1 = toReplace.toString
+		r2 = replaceWith.toString
+		return .name.replace(r1, r2).escapeMarkup
+		
+
 extend IType
 
 	def createTooltipMarkup as String
@@ -33,30 +60,17 @@ extend IType
 				return "[typ.theWrappedType.createTooltipMarkup][typ.suffix]"
 		
 		if typ inherits Box
-			if not typ.isGeneric
-				return typ.qualifiedName.replace(",", ", ").escapeMarkup
-			
-			# fix markup for generics
-			# e.g. turn "<of,>" into "<of T1, T2>"
-			toReplace = StringBuilder("<of")
-			replaceWith = StringBuilder()
-			for gp in typ.genericParams
-				if replaceWith.length > 0
-					toReplace.append(",")
-					replaceWith.append(", [gp.name]")
-				else
-					replaceWith.append("<of [gp.name]")
-			toReplace.append(">")
-			replaceWith.append(">")
-			
-			r1 = toReplace.toString
-			r2 = replaceWith.toString
-			return typ.qualifiedName.replace(r1, r2).escapeMarkup
+			nameMarkup = typ.createTooltipMarkup
+		else
+			nameMarkup = typ.name
 		
-		if typ.parentNameSpace <> nil
-			return "[typ.parentNameSpace.fullName].[typ.name]"
+		if typ.parentNameSpace <> nil and typ.parentNameSpace.fullName <> "global"
+			return "[typ.parentNameSpace.fullName].[nameMarkup]"
+		else if typ.superNode inherits Box
+			parentBox = typ.superNode to IType
+			return "[parentBox.createTooltipMarkup].[nameMarkup]"
 		
-		return typ.name
+		return nameMarkup
 
 		
 extend INamedNode
@@ -138,6 +152,21 @@ extend INamedNode
 				"\txs as System.Collections.Generic.List&lt;of int&gt;,[CobraCore.newLine]" + _
 				"\tys as System.Collections.Generic.List&lt;of int&gt;[CobraCore.newLine]" + _
 				") as System.Collections.Generic.List&lt;of int&gt;"
+			
+			node = parsedDoc.resolveLocationToNode(40, 9, txtDoc) to INamedNode
+			assert node.name == "combined"
+			assert node.createTooltipMarkup == "combined as System.Collections.Generic.List&lt;of int&gt;"
+			box = node.typeForReceiver to Box
+			node = box.memberForName("cue.init") to INamedNode
+			if node inherits MemberOverload
+				node = node.members[0] to INamedNode
+			assert node.createTooltipMarkup == "class List&lt;of int&gt;()\nis nonvirtual"
+			
+			compiler = Node.typeProvider to Compiler
+			sysNamespace = compiler.globalNS.memberForName("System") to NameSpace
+			node = sysNamespace.memberForName("Tuple<of,,>") to INamedNode
+			assert node.createTooltipMarkup == "class System.Tuple&lt;of T1, T2, T3&gt;"
+		
 		body
 			/#
 			colorScheme = IdeApp.preferences.colorScheme
@@ -196,7 +225,7 @@ extend INamedNode
 					parentBox = node.parentBox
 					kw = TooltipProvider.declKeyword[parentBox.getType]
 					paramMarkup = _createParamMarkup
-					markup = "[kw] [parentBox.name]([paramMarkup])[_createTrailingMarkup]"
+					markup = "[kw] [parentBox.createTooltipMarkup]([paramMarkup])[_createTrailingMarkup]"
 					if markup.length > 60
 						# too long, break it up into multiple lines
 						markup = markup.replace(paramMarkup, _createWrappedParamMarkup)
@@ -207,6 +236,14 @@ extend INamedNode
 				or node inherits MethodSig
 					
 					kw = TooltipProvider.declKeyword[node.getType]
+					nameMarkup = node.name.escapeMarkup
+					
+					if node inherits MethodSig
+						if node.parentNameSpace <> nil and node.parentNameSpace.fullName <> "global"
+							nameMarkup = "[node.parentNameSpace.fullName].[nameMarkup]"
+						else if node.superNode inherits Box
+							superNode = node.superNode to IType
+							nameMarkup = "[superNode.createTooltipMarkup].[nameMarkup]"
 					
 					if typ == nil
 						try
@@ -216,14 +253,14 @@ extend INamedNode
 							trace ex.message
 							print ex.toString
 					if typ == nil
-						return "[kw] [node.name] as ???"
+						return "[kw] [nameMarkup] as ???"
 					
 					paramMarkup = _createParamMarkup
 					typeMarkup = typ.createTooltipMarkup
 					if paramMarkup.length == 0
-						return "[kw] [node.name] as [typeMarkup][_createTrailingMarkup]"
+						return "[kw] [nameMarkup] as [typeMarkup][_createTrailingMarkup]"
 					
-					markup = "[kw] [node.name]([paramMarkup]) as [typeMarkup][_createTrailingMarkup]"
+					markup = "[kw] [nameMarkup]([paramMarkup]) as [typeMarkup][_createTrailingMarkup]"
 					if markup.length > 60
 						# too long, break it up into multiple lines
 						markup = markup.replace(paramMarkup, _createWrappedParamMarkup)
@@ -239,7 +276,7 @@ extend INamedNode
 					else
 						# write-only property
 						kw = "set"
-					return "[kw] [node.name] as [typ.createTooltipMarkup][_createTrailingMarkup]"
+					return "[kw] [node.name.escapeMarkup] as [typ.createTooltipMarkup][_createTrailingMarkup]"
 				
 				else if node inherits Box
 					kw = TooltipProvider.declKeyword[node.getType]
@@ -251,12 +288,12 @@ extend INamedNode
 				
 				else
 					kw = TooltipProvider.declKeyword[node.getType]
-					return "[kw] [node.name] as [typ.createTooltipMarkup][_createTrailingMarkup]"
+					return "[kw] [node.name.escapeMarkup] as [typ.createTooltipMarkup][_createTrailingMarkup]"
 			
 			if typ <> nil
-				return "Unhandled type for [node.name]: [typ.createTooltipMarkup]"
+				return "Unhandled type for [node.name.escapeMarkup]: [typ.createTooltipMarkup]"
 			else
-				return "Unhandled type for [node.name]: ???"
+				return "Unhandled type for [node.name.escapeMarkup]: ???"
 				
 	def _createTrailingMarkup as String
 		"""

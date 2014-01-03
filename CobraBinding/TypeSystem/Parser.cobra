@@ -466,12 +466,29 @@ class Parser inherits TypeSystemParser implements IFoldingParser
 				
 				return false
 		
-		# matches a valid identifier or the string "[]"
+		# matches a valid identifier (with optional trailing generic tags) or the string "[]"
 		var rexIdentifier = RegularExpressions.Regex( _
-			r'[_a-zA-z][_a-zA-z0-9]*|\[\]', _
+			r'[_a-zA-z][_a-zA-z0-9]*(<of,*>)?|\[\]', _
 			RegularExpressions.RegexOptions.Compiled _
 		)
+		
+		var openTags = @[
+			'(',
+			ns'[',
+			'<of'
+		]
+		
+		var closeTags = @[
+			')',
+			']',
+			'>'
+		]
 	
+	const ParenTag = 0
+	const ExprBracketTag = 1
+	const GenericTag = 2
+	
+	shared
 		def getIdsFromText(text as String) as List<of String>
 			"""
 			Given a line of text, returns a list of trailing identifiers.
@@ -479,6 +496,8 @@ class Parser inherits TypeSystemParser implements IFoldingParser
 			For example, given "foo = SomeSharedClass.someProp.", then this
 			method would return ['SomeSharedClass', 'someProp'].
 			"""
+			require
+				.openTags.length == .closeTags.length
 			test basics
 				sampleText = "foo = "
 				ids = .getIdsFromText(sampleText)
@@ -583,49 +602,40 @@ class Parser inherits TypeSystemParser implements IFoldingParser
 				assert ids[2] == "someMethod"
 				assert ids[3] == "aProp"
 				assert ids[4] == ns'[]'
+			test generics
+				sampleText = "foo = List<of "
+				ids = .getIdsFromText(sampleText)
+				assert ids.count == 0
+				
+				sampleText = "foo = List<of String"
+				ids = .getIdsFromText(sampleText)
+				assert ids.count == 1
+				assert ids[0] == "String"
+				
+				sampleText = "foo = List<of String>(bar)."
+				ids = .getIdsFromText(sampleText)
+				assert ids.count == 1
+				assert ids[0] == "List<of>"
+				
+				sampleText = "foo = List<of String>(bar).toString"
+				ids = .getIdsFromText(sampleText)
+				assert ids.count == 2
+				assert ids[0] == "List<of>"
+				assert ids[1] == "toString"
+				
+				sampleText = "foo as IDictionary<of String, int> = Dictionary<of String, int>(bar).toString"
+				ids = .getIdsFromText(sampleText)
+				assert ids.count == 2
+				assert ids[0] == "Dictionary<of,>"
+				assert ids[1] == "toString"
 			body
 				text = text.trim
-				if text.endsWith('(') or text.endsWith(ns'[')
-					# we are in the context of unmatched pair of parenthesis or brackets
-					# ignore all preceeding text
-					return List<of String>()
-				
-				startIndex = 0
-				openIndex = text.indexOf(c'(', startIndex)
-				while openIndex > 0 and openIndex < text.length
-					closeIndex = text.indexOf(c')', openIndex + 1)
-					if closeIndex >= 0
-						# we have a matching pair of parenthesis, remove them and the text they surround
-						removeCount = closeIndex - openIndex + 1
-						text = text.remove(openIndex, removeCount)
-						startIndex = openIndex
-					else if openIndex < text.length - 1
-						# we have an unmatched opening parenthesis with some trailing text, remove the preceeding text
-						text = text.substring(openIndex + 1)
-						startIndex = 0
-					openIndex = text.indexOf(c'(', startIndex)
-				
-				startIndex = 0
-				openIndex = text.indexOf(c'[', startIndex)
-				while openIndex > 0 and openIndex < text.length
-					closeIndex = text.indexOf(c']', openIndex + 1)
-					if closeIndex >= 0
-						# we have a matching pair of brackets, replace them and their contents with ".[]."
-						# that way, it will resolve to the indexer member of the parent correctly
-						removeCount = closeIndex - openIndex + 1
-						textToReplace = text.substring(openIndex, removeCount)
-						if textToReplace == ns'[]'
-							# this can happen if we use the same index variable multiple times in a line
-							# don't do a replacement in this case otherwise we'll enter an infinite loop
-							startIndex = closeIndex + 1
-						else
-							text = text.replace(textToReplace, ns'.[].')
-							startIndex = openIndex + 4
-					else if openIndex < text.length - 1
-						# we have an unmatched opening bracket with some trailing text, remove the preceeding text
-						text = text.substring(openIndex + 1)
-						startIndex = 0
-					openIndex = text.indexOf(c'[', startIndex)
+				for i, openTag in .openTags.numbered
+					if text.endsWith(openTag)
+						# we are in the context of unmatched pair of parenthesis, brackets, or generic params.
+						# ignore all preceeding text
+						return List<of String>()
+					text = _removeTextBetweenTags(text, i)
 				
 				# split the text by whitespace
 				pieces = text.split
@@ -639,6 +649,63 @@ class Parser inherits TypeSystemParser implements IFoldingParser
 					match = match.nextMatch to !
 
 				return ids
+		
+		def _removeTextBetweenTags(text as String, tagIndex as int) as String
+			"""
+			A helper function for .getIdsFromText
+			
+			Removes all substrings appearing in 'text' surrounded by the tags in the .openTags and
+			.closeTags arrays based on the given 'tagIndex'.
+			
+			Depending on the value of 'tagIndex', the substring might be substituted with other
+			text instead of removed.
+			"""
+			require 0 <= tagIndex < .openTags.length
+			
+			openTag, closeTag = .openTags[tagIndex], .closeTags[tagIndex]
+			startIndex = 0
+			openIndex = text.indexOf(openTag, startIndex, StringComparison.Ordinal)
+			
+			while openIndex > 0 and openIndex < text.length
+				
+				closeIndex = text.indexOf(closeTag, openIndex + 1, StringComparison.Ordinal)
+				
+				if closeIndex >= 0
+					# we have a matching pair of tags
+					removeCount = closeIndex - openIndex + 1
+					if tagIndex == .ParenTag
+						text = text.remove(openIndex, removeCount)
+						startIndex = openIndex
+					else
+						textToReplace = text.substring(openIndex, removeCount)
+						if tagIndex == .ExprBracketTag
+							replaceWith = ns'.[].'
+						else # .GenericTag
+							sb = StringBuilder(openTag)
+							for i in textToReplace.count(c',')
+								sb.append(c',')
+							sb.append(closeTag)
+							replaceWith = sb.toString
+						
+						if textToReplace.length < replaceWith.length
+							/# if this happens, it probably means the same index variable or the same generic
+							params were used multiple times in a single line like this: foo[i] = foo[i] + 1
+							which becomes: foo.[]. = foo.[]. + 1
+							i.e. all occurrences of that particular substring have already been replaced.
+							don't do a replacement again in this case otherwise we'll enter an infinite loop #/
+							startIndex = closeIndex + 1
+						else
+							text = text.replace(textToReplace, replaceWith)
+							startIndex = openIndex + replaceWith.length
+					
+				else if openIndex < text.length - 1
+					# we have an unmatched opening tag with some trailing text, remove the preceeding text
+					text = text.substring(openIndex + 1)
+					startIndex = 0
+					
+				openIndex = text.indexOf(openTag, startIndex)
+				
+			return text
 		
 		
 		def isInsideUnfinishedString(text as String) as bool

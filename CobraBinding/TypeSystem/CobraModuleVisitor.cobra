@@ -145,8 +145,8 @@ class CobraModuleVisitor inherits Cobra.Core.Visitor
 		assert wholeFileRegion.endColumn == Int32.maxValue
 		assert visitor.symbolTable[wholeFileRegion].count >= 525 # includes decls from System.Diagnostics
 
-		useDirectives = ast.topNameSpace.getUseDirectives
-		assert useDirectives.count == 0
+		useDirectives = for ud in ast.topNameSpace.useDirectives get ud
+		assert useDirectives.count == 6
 		assert ast.topNameSpace.declsInOrder.count == 1
 
 		ns = ast.topNameSpace.declsInOrder.first to NameSpace
@@ -259,10 +259,10 @@ class CobraModuleVisitor inherits Cobra.Core.Visitor
 				
 				if node.isWrappingDefaultNamespace
 					topNS = node.wrappedNamespace
-					useDirectives = topNS.getUseDirectives
+					useDirectives = for ud in topNS.useDirectives get ud
 				else
 					topNS = globalNS
-					useDirectives = node.getUseDirectives
+					useDirectives = for ud in node.useDirectives get ud
 				
 				assert useDirectives.count <> 0
 
@@ -271,8 +271,8 @@ class CobraModuleVisitor inherits Cobra.Core.Visitor
 				if topNS is not globalNS
 					capacity += globalNS.declsInOrder.count
 				for useDirective in useDirectives
-					if useDirective.boundNameSpace <> nil
-						capacity += useDirective.boundNameSpace.declsInOrder.count
+					ns = useDirective.boundNameSpace
+					if ns <> nil, capacity += ns.declsInOrder.count
 				idMap = Dictionary<of String, INamedNode>(capacity)
 				
 				for nsMember in topNS.declsInOrder
@@ -284,9 +284,10 @@ class CobraModuleVisitor inherits Cobra.Core.Visitor
 				
 				# declarations from used namespaces are visible in this context
 				for useDirective in useDirectives
-					if useDirective.boundNameSpace <> nil
-						for nsMember in useDirective.boundNameSpace.declsInOrder
-							idMap[nsMember.name] = nsMember
+					ns = useDirective.boundNameSpace
+					if ns == nil, continue
+					for nsMember in ns.declsInOrder
+						idMap[nsMember.name] = nsMember
 			
 			else if node.isUnified or node.unifiedNameSpace == nil
 				capacity = node.declsInOrder.count

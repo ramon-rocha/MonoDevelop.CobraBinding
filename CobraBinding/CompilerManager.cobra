@@ -20,10 +20,6 @@ extend CobraModule
 
 
 extend NameSpace
-
-	def getUseDirectives as List<of UseDirective>
-		useDirectives = for ud in .useDirectives get ud
-		return useDirectives
 	
 	def isWrappingDefaultNamespace as bool
 		"""
@@ -36,12 +32,13 @@ extend NameSpace
 		if .fullName <> "global"
 			return false
 		
-		for ud in .useDirectives
-			# any number of use directives means this node is not a wrapper
+		# if the only decl we have is a NameSpace with an empty token, then we are a wrapper
+		if .declsInOrder.count <> 1
 			return false
 		
-		# if the only decl we have has an empty token, then we are a wrapper
-		return .declsInOrder.count == 1 and .declsInOrder.first.token.isEmpty
+		decl = .declsInOrder.first
+		return decl inherits NameSpace and decl.token.isEmpty
+	
 	
 	def wrappedNamespace as NameSpace
 		require .isWrappingDefaultNamespace

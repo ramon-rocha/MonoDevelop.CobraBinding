@@ -278,9 +278,8 @@ class DataFactory
 			"""
 			dataList = CobraCompletionList()
 			dataList.addRange(.createNameSpaceDeclsList(ast.getGlobalNamespace))
-			useDirectives = ast.getDefaultNamespace.getUseDirectives
 
-			for useStmt in useDirectives
+			for useStmt in ast.getDefaultNamespace.useDirectives
 				try
 					if not useStmt.didBindUse, useStmt.bindUse
 					ns = useStmt.boundNameSpace

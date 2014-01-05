@@ -142,7 +142,8 @@ class CompilerManager
 	
 	def parseAndBind(
 			project as MonoDevelop.Projects.DotNetProject,
-			fileName as String, source as String
+			fileName as String,
+			source as String
 		) as TypeSystem.ParsedCobraDocument
 		"""
 		Runs select phases of the Cobra compiler on the files in the given project.

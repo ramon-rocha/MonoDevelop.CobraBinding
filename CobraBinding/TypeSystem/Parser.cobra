@@ -64,7 +64,12 @@ class Parser inherits TypeSystemParser implements IFoldingParser
 		parsedDoc = ParsedCobraDocument(fileName, content)
 		_addFolds(parsedDoc)
 		return parsedDoc
-		
+	
+	sig ClosesDelimitedBlock(info as LineInformation) as bool
+	shared
+		var _commentCloser as ClosesDelimitedBlock? = nil
+		var _docStringCloser as ClosesDelimitedBlock? = nil
+	
 	def _addFolds(doc as ParsedCobraDocument)
 		"""
 		Adds folding regions to the given document.
@@ -237,8 +242,6 @@ class Parser inherits TypeSystemParser implements IFoldingParser
 				
 			return infoList
 
-	sig ClosesDelimitedBlock(info as LineInformation) as bool
-
 	def _addFolds(infoList as List<of LineInformation>, folds as List<of FoldingRegion>)
 		"""
 		Adds folds to the given list of folds using the given list of line information.
@@ -316,10 +319,10 @@ class Parser inherits TypeSystemParser implements IFoldingParser
 				# not enough lines to create a fold
 				return
 			
-			commentCloser as ClosesDelimitedBlock = do(i as LineInformation)
+			_commentCloser ?= do(i as LineInformation)
 				return i.opensComment
 			
-			docStringCloser as ClosesDelimitedBlock = do(i as LineInformation)
+			_docStringCloser ?= do(i as LineInformation)
 				return i.opensDocString
 			
 			lineNumber = infoList.count
@@ -345,14 +348,14 @@ class Parser inherits TypeSystemParser implements IFoldingParser
 				
 				# handle comment blocks and doc strings
 				if curr.closesComment
-					closer = commentCloser
+					closer = _commentCloser
 				else if curr.closesDocString
-					closer = docStringCloser
+					closer = _docStringCloser
 				
 				if closer <> nil
 					endLocation = TextLocation(lineNumber, curr.line.length + 1)
 					
-					if closer == docStringCloser
+					if closer is _docStringCloser
 					
 						level = .getIndentLevel(curr.line)
 						if level > 0
@@ -468,7 +471,8 @@ class Parser inherits TypeSystemParser implements IFoldingParser
 							return true
 				
 				return false
-		
+	
+	shared, readonly
 		# matches a valid identifier (with optional trailing generic tags) or the string "[]"
 		var rexIdentifier = RegularExpressions.Regex( _
 			r'[_a-zA-z][_a-zA-z0-9]*(<of,*>)?|\[\]', _

@@ -28,10 +28,11 @@ class CobraLanguageBinding implements IDotNetLanguageBinding
 		assert binding.isSourceCodeFile(FilePath("test.cobra"))
 		assert not binding.isSourceCodeFile(FilePath("test.cs"))
 	
-	shared
-		var supportedClrVersions as ClrVersion[] = @[ ClrVersion.Net_4_0, ClrVersion.Net_4_5 ]
-		var languageName = "Cobra"
-		var sourceFileExtension = ".cobra"
+	var supportedClrVersions as ClrVersion[] = @[ ClrVersion.Net_4_0, ClrVersion.Net_4_5 ]
+		is shared, readonly
+	
+	const languageName = "Cobra"
+	const sourceFileExtension = ".cobra"
 		
 	class AddOnKeys
 		"""
@@ -261,7 +262,7 @@ class CobraLanguageBinding implements IDotNetLanguageBinding
 	regex testing: http://regexhero.net/tester/
 	or in MonoDevelop go to: Tools > Regex Toolkit...
 	#/
-	shared
+	shared, readonly
 		var compilerOutputRegex = Regex( _
 			r"(?<fileName>[^\(]+)\((?<lineNum>\d+)(,(?<col>\d+))?\):(\s)+(?<msgType>error|warning)(\s)*:(\s)*(?<msg>[^\r]+)", _
 			RegexOptions.Compiled)

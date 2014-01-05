@@ -188,14 +188,11 @@ class CobraModuleVisitor inherits Cobra.Core.Visitor
 	
 	var __ast as CobraModule?
 
-	var _fileName as String
-	var _regionMap as Dictionary<of ISyntaxNode, DomRegion>
-	var _symbolTable as Dictionary<of DomRegion, Dictionary<of String, INamedNode>>
 	const INITIAL_CAPACITY = 32
 
-	get fileName from var
-	get regionMap from var
-	get symbolTable from var
+	get fileName from var as String
+	get regionMap from var as Dictionary<of ISyntaxNode, DomRegion>
+	get symbolTable from var as Dictionary<of DomRegion, Dictionary<of String, INamedNode>>
 
 	cue init
 		base.init
@@ -211,12 +208,10 @@ class CobraModuleVisitor inherits Cobra.Core.Visitor
 		also be a dictionary mapping identifiers to nodes.
 		"""
 		beginToken = node.token
-		beginLine = beginToken.lineNum
-		beginCol = beginToken.colNum
+		beginLine, beginCol = beginToken.lineNum, beginToken.colNum
 
 		endToken = node.endToken
-		endLine = endToken.lineNum
-		endCol = Int32.maxValue - 1
+		endLine, endCol = endToken.lineNum, Int32.maxValue - 1
 		
 		if beginLine == endLine
 			# we don't care about one-line regions...I think

@@ -30,9 +30,7 @@ class BoxMembersList inherits CobraCompletionList
 	# Used to only include some Box members such as "only public" or "only shared".
 	sig MemberFilter(m as IBoxMember) as bool
 	
-	var _box as Box
-	
-	get box from var
+	get box from var as Box
 	
 	# Used to prevent duplicates
 	var _uniqueEntries = HashSet<of String>()

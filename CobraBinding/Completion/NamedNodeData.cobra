@@ -100,7 +100,6 @@ class NamedNodeData inherits CompletionData
 			overloadCount += 1
 		assert overloadCount == 2
 
-	var _node as INamedNode
 	var _description as String? = nil
 	var _tooltipInfo as TooltipInformation? = nil
 	
@@ -127,7 +126,7 @@ class NamedNodeData inherits CompletionData
 		# I think this is for marking some members as obsolete and using a strikethrough font
 		#.displayFlags =
 	
-	get node from var
+	get node from var as INamedNode
 	
 	get completionText as String is override
 		"""

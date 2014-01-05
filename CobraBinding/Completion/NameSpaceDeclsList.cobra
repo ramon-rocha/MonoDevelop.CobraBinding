@@ -40,9 +40,7 @@ class NameSpaceDeclsList inherits CobraCompletionList
 		# TODO: Include decls from a different source file but in the same namespace
 		pass
 	
-	var _nameSpace as NameSpace
-	
-	get nameSpace from var
+	get nameSpace from var as NameSpace
 	
 	cue init(ns as NameSpace)
 		base.init

@@ -8,14 +8,13 @@ namespace Completion
 class CobraParameterDataProvider inherits ParameterDataProvider
 	
 	var _completionExtension as CobraCompletionTextEditorExtension
-	var _method as AbstractMethod
 	
 	cue init(ext as CobraCompletionTextEditorExtension, startOffset as int, m as AbstractMethod)
 		base.init(startOffset)
 		_completionExtension = ext
 		_method = m
 		
-	get method from var
+	get method from var as AbstractMethod
 	
 	get count as int is override
 		"""
@@ -81,7 +80,11 @@ class CobraParameterDataProvider inherits ParameterDataProvider
 			return _method.overloadGroup.members[overload].params.count
 	
 		
-	def createTooltipInformation(overload as int, currentParameter as int, smartWrap as bool) as TooltipInformation is override
+	def createTooltipInformation(
+			overload as int,
+			currentParameter as int,
+			smartWrap as bool
+		) as TooltipInformation is override
 		"""
 		Return the tooltip object to display for the given overload and current parameter indices.
 		"""

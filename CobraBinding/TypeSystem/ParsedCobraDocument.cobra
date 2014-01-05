@@ -23,22 +23,18 @@ class ParsedCobraDocument inherits DefaultParsedDocument
 		nodeMap = doc.createNodeMap
 		assert nodeMap <> nil
 
-	var _content as String
-	var _regionMap as Dictionary<of ISyntaxNode, DomRegion>?
-	var _symbolTable as Dictionary<of DomRegion, Dictionary<of String, INamedNode>>?
-
 	cue init(fileName as String, content as String)
 		base.init(fileName)
 		_content = content
 		_parseErrorCount = 0
 
-	get content from var
+	get content from var as String
 		"""The raw Cobra source code"""
 
-	get regionMap from var
+	get regionMap from var as Dictionary<of ISyntaxNode, DomRegion>?
 		"""Maps nodes to regions in the parsed document"""
 
-	get symbolTable from var
+	get symbolTable from var as Dictionary<of DomRegion, Dictionary<of String, INamedNode>>?
 		"""Maps regions to maps of identifier/node pairs"""
 	
 	get parseErrorCount from var as int
@@ -376,7 +372,11 @@ class ParsedCobraDocument inherits DefaultParsedDocument
 			return nil
 	
 	
-	def _getNodeFromIds(ids as List<of String>, parent as ISyntaxNode, containingRegions as List<of DomRegion>) as ISyntaxNode?
+	def _getNodeFromIds(
+			ids as List<of String>,
+			parent as ISyntaxNode,
+			containingRegions as List<of DomRegion>
+		) as ISyntaxNode?
 		"""
 		Given a list of identifiers, returns the syntax node in the AST, if any,
 		corresponding to the last valid idenfiier.
@@ -597,7 +597,10 @@ class ParsedCobraDocument inherits DefaultParsedDocument
 			return containingBox
 	
 	
-	def getContainingNameSpace(regions as IList<of DomRegion>, nodeMap as Dictionary<of DomRegion, ISyntaxNode>) as NameSpace?
+	def getContainingNameSpace(
+			regions as IList<of DomRegion>,
+			nodeMap as Dictionary<of DomRegion, ISyntaxNode>
+		) as NameSpace?
 		"""
 		Iterates through the given regions and returns the innermost containing NameSpace.
 		

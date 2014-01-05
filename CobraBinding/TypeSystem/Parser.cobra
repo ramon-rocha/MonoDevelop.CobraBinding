@@ -21,9 +21,12 @@ class Parser inherits TypeSystemParser implements IFoldingParser
 	
 	const TYPICAL_LINE_COUNT = 512 # 4 kB
 	
-	def parse(storeAst as bool, fileName as String?, content as TextReader?,
-		project as MonoDevelop.Projects.Project?) as ParsedDocument
-		is override
+	def parse(
+			storeAst as bool,
+			fileName as String?,
+			content as TextReader?,
+			project as MonoDevelop.Projects.Project?
+		) as ParsedDocument is override
 		"""
 		Generates folds and parses the specified file using the Cobra Parser.
 		Always stores the resultant AST in the ParsedDocument regardless of

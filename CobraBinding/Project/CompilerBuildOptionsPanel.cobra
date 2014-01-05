@@ -14,14 +14,20 @@ class CompilerBuildOptionsPanel inherits MultiConfigItemOptionsPanel
 	backend CobraCompilerParameters instance(s).
 	"""
 
-	var _widget as CompilerBuildOptionsPanelWidget
-	
-	get widget from var
-	
+	get widget from var as CompilerBuildOptionsPanelWidget
 	
 	cue init
 		base.init
 		_initialize
+	
+	
+	def createPanelWidget as Gtk.Widget is override
+		"""
+		Creates a new widget using the project provided by the base class.
+		"""
+		_initialize
+		.loadConfigData
+		return _widget
 		
 		
 	def _initialize
@@ -127,15 +133,6 @@ class CompilerBuildOptionsPanel inherits MultiConfigItemOptionsPanel
 		_widget.includeTracesCheckButton.sensitive = true
 
 
-	def createPanelWidget as Gtk.Widget is override
-		"""
-		Creates a new widget using the project provided by the base class.
-		"""
-		_initialize
-		.loadConfigData
-		return _widget
-		
-		
 	def loadConfigData is override
 		"""
 		Load the current compiler/project options for the active configuration.
@@ -198,9 +195,6 @@ class CompilerBuildOptionsPanel inherits MultiConfigItemOptionsPanel
 				_widget.backEndComboBox.active = _
 					CobraCompilerParameters.BackEndOption.ObjC to int
 		
-		trace config.name
-		trace compilerParams.nativeCompiler
-		
 		if compilerParams.nativeCompiler == "auto"
 			_widget.nativeCompilerFileChooser.setFilename(nil)
 		else
@@ -208,10 +202,10 @@ class CompilerBuildOptionsPanel inherits MultiConfigItemOptionsPanel
 				_widget.nativeCompilerFileChooser.setFilename(compilerParams.nativeCompiler)
 			catch
 				_widget.nativeCompilerFileChooser.setFilename(nil)
-
+		
 		_widget.nativeCompilerArgsEntry.text = compilerParams.nativeCompilerArgs
-								
-																
+	
+	
 	def applyChanges is override
 		"""
 		Save the selected options for the current configuration. Does not save to disk.

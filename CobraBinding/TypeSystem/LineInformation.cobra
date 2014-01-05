@@ -144,20 +144,7 @@ class LineInformation
 		assert not info.opensRegion
 		assert not info.closesRegion
 	
-
-	var _line as String
-	var _isBlank as bool
-	var _opensComment as bool
-	var _closesComment as bool
-	var _opensDocString as bool
-	var _closesDocString as bool
-	var _docStringTag as String?
-	var _previous as LineInformation?
-	var _next as LineInformation?
-
-	var _opensRegion as bool
-	var _closesRegion as bool
-
+	
 	cue init(line as String)
 		.init(line, false, false, nil, nil)
 	
@@ -173,8 +160,13 @@ class LineInformation
 	cue init(line as String, inComment as bool, inDocString as bool, docStringTag as String?)
 		.init(line, inComment, inDocString, docStringTag, nil)
 	
-	cue init(line as String, inComment as bool, inDocString as bool,
-				docStringTag as String?, previous as LineInformation?)
+	cue init(
+			line as String,
+			inComment as bool,
+			inDocString as bool,
+			docStringTag as String?,
+			previous as LineInformation?
+		)
 		"""
 		line is a line of source code.
 		inComment should be true if the previous line of code was part of a comment block.
@@ -225,11 +217,12 @@ class LineInformation
 						else if not inComment and not inString and not inDocString
 							if _line.length - _line.trimStart.length == i
 								# the comment is the first thing on the line
-								if String.compare(line, i, "#region", 0, 7) == 0
-									if (length == i + 7) or (length > i + 7 and (line[i+7] == " " or line[i+7] == "\t"))
+								if String.compareOrdinal(line, i, "#region", 0, 7) == 0
+									if (length == i + 7) _
+									or (length > i + 7 and (line[i+7] == " " or line[i+7] == "\t"))
 										# our comment starts with a start-region tag
 										_opensRegion = true
-								else if String.compare(line, i, "#endregion", 0, 10) == 0
+								else if String.compareOrdinal(line, i, "#endregion", 0, 10) == 0
 									# our comment starts with an end-region tag
 									_closesRegion = true
 
@@ -302,37 +295,37 @@ class LineInformation
 			# on to the next character
 			i += 1
 		
-	get line from var
+	get line from var as String
 		"""A line of source code"""
 		
-	get isBlank from var
+	get isBlank from var as bool
 		"""Returns true if this line is just whitespace"""
 		
-	get opensComment from var
+	get opensComment from var as bool
 		"""Returns true if this line opens a comment but does not close it."""
 		
-	get closesComment from var
+	get closesComment from var as bool
 		"""Returns true if this line closes a comment."""
 		
-	get opensDocString from var
+	get opensDocString from var as bool
 		"""Returns true if this line opens a DocString but does not close it."""
 		
-	get closesDocString from var
+	get closesDocString from var as bool
 		"""Returns true if this line closes a DocString."""
 		
-	get docStringTag from var
+	get docStringTag from var as String?
 		"""If this line opens a DocString, this is the tag that was used."""
 
-	get opensRegion from var
+	get opensRegion from var as bool
 		"""Returns true if this line opens a #region."""
 
-	get closesRegion from var
+	get closesRegion from var as bool
 		"""Returns true if this line closes a #region with #endregion."""
 
-	get previous from var
+	get previous from var as LineInformation?
 		"""The line information for the previous line of source code."""
 
-	pro next from var
+	pro next from var as LineInformation?
 		"""
 		The line information for the next line of source code.
 		

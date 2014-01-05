@@ -188,7 +188,10 @@ class CompilerManager
 		return _parseAndBind(sourceMap, refs, fileName, project.defaultNamespace, numberOption)
 	
 
-	def parseAndBind(sourceMap as Dictionary<of String, String>, fileToBind as String) as TypeSystem.ParsedCobraDocument
+	def parseAndBind(
+			sourceMap as Dictionary<of String, String>,
+			fileToBind as String
+		) as TypeSystem.ParsedCobraDocument
 		"""
 		Runs select phases of the Cobra compiler.
 		
@@ -207,7 +210,10 @@ class CompilerManager
 		"""
 		return .parseAndBind(sourceMap, sourceMap.first.key)
 	
-	def parseAndBind(rootNamespace as String?, sourceMap as Dictionary<of String, String>) as TypeSystem.ParsedCobraDocument
+	def parseAndBind(
+			rootNamespace as String?,
+			sourceMap as Dictionary<of String, String>
+		) as TypeSystem.ParsedCobraDocument
 		"""
 		This overload is for supporting test methods
 		"""

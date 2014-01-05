@@ -177,8 +177,12 @@ class TooltipProvider inherits Mono.TextEditor.TooltipProvider
 		return nil
 	
 	
-	def createTooltipWindow(editor as TextEditor?, offset as int,
-				modifierState as Gdk.ModifierType, data as TooltipItem?) as Gtk.Window? is protected, override
+	def createTooltipWindow(
+			editor as TextEditor?,
+			offset as int,
+			modifierState as Gdk.ModifierType,
+			data as TooltipItem?
+		) as Gtk.Window? is protected, override
 		"""
 		Creates the window to display the given tooltip data.
 		"""

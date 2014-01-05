@@ -81,8 +81,12 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 		
 		return cachedDoc
 	
-	def _canHandleCodeCompletion(context as CodeCompletionContext?, completionChar as char,
-								txtDoc as TextDocument?, parsedDoc as ParsedCobraDocument?) as bool
+	def _canHandleCodeCompletion(
+			context as CodeCompletionContext?,
+			completionChar as char,
+			txtDoc as TextDocument?,
+			parsedDoc as ParsedCobraDocument?
+		) as bool
 		"""
 		Returns true if the extension is able to provide completion results in the given
 		context for the given completion character or false otherwise.
@@ -248,8 +252,11 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 		return .handleCodeCompletion(context, completionChar, inout triggerWordLength)
 	
 	
-	def handleCodeCompletion(context as CodeCompletionContext?, completionChar as char,
-							triggerWordLength as inout int) as ICompletionDataList? is override
+	def handleCodeCompletion(
+			context as CodeCompletionContext?,
+			completionChar as char,
+			triggerWordLength as inout int
+		) as ICompletionDataList? is override
 		"""
 		This method is called indirectly by .keyPress or when the user hits Ctrl+Space.
 		"""
@@ -439,8 +446,10 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 		return typ
 	
 		
-	def handleParameterCompletion(context as CodeCompletionContext?, completionChar as char) _
-		as ParameterDataProvider? is override
+	def handleParameterCompletion(
+			context as CodeCompletionContext?,
+			completionChar as char
+		) as ParameterDataProvider? is override
 		"""
 		Return the object that will control the information displayed for
 		method parameters.  In some instances, we won't return anything which
@@ -536,9 +545,7 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 			return text.count(c',') + 1
 	
 		
-	def guessBestMethodOverload(provider as IParameterDataProvider?, currentOverload as int) _
-		as int is override
-		
+	def guessBestMethodOverload(provider as IParameterDataProvider?, currentOverload as int) as int is override
 		if provider <> nil
 			return .guessBestMethodOverload(provider to CobraParameterDataProvider, currentOverload)
 		else
@@ -573,8 +580,13 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 		return ParserAlias.isInsideString(lineText.substring(0, col), false)
 
 
-	def _getCompletionData(region as DomRegion, preceedingText as String, currText as String,
-							nodeMap as Dictionary<of DomRegion, ISyntaxNode>, ast as CobraModule) as ICompletionDataList
+	def _getCompletionData(
+			region as DomRegion,
+			preceedingText as String,
+			currText as String,
+			nodeMap as Dictionary<of DomRegion, ISyntaxNode>,
+			ast as CobraModule
+		) as ICompletionDataList
 		"""
 		Returns completion data in the context of the given DomRegion.
 		"""
@@ -616,9 +628,12 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 		dataList.addRange(DataFactory.createModuleDeclsList(ast))
 		return dataList
 		
-	def _getNameSpaces(parsedDoc as ParsedCobraDocument, ast as CobraModule,
+	def _getNameSpaces(
+			parsedDoc as ParsedCobraDocument,
+			ast as CobraModule,
 			containingRegions as List<of DomRegion>,
-			nodeMap as Dictionary<of DomRegion, ISyntaxNode>) as List<of NameSpace>
+			nodeMap as Dictionary<of DomRegion, ISyntaxNode>
+		) as List<of NameSpace>
 		"""
 		Helper method for finding extension methods.
 		"""

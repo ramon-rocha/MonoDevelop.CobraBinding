@@ -33,7 +33,7 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 		#/
 		var __parsedDocCache = Dictionary<of String, ParsedCobraDocument?>()
 	
-	def _getBestParsedDocument(doc as Document?) as ParsedCobraDocument?
+	def _getBestParsedDocument as ParsedCobraDocument?
 		"""
 		Return the last valid parsed document (if any). Prefer a document
 		with a type-bound AST.
@@ -46,6 +46,7 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 			cachedDoc = __parsedDocCache[fileName]
 			cachedAst = cachedDoc.getAst<of CobraModule?>
 		
+		doc = .document
 		if doc == nil
 			return cachedDoc
 		
@@ -71,20 +72,10 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 					return parsedDoc
 				
 				else
-					# we have two ASTs, prefer the type-bound one
-					if ast.didBindImp and not cachedAst.didBindImp
-						__parsedDocCache[fileName] = parsedDoc
-						return parsedDoc
-						
-					else if not ast.didBindImp and cachedAst.didBindImp
-						# the previous AST had better info
+					# we have two ASTs, prefer the one with less parsing errors
+					if cachedDoc.parseErrorCount < parsedDoc.parseErrorCount
 						return cachedDoc
-						
-					else if ast.didBindImp and cachedAst.didBindImp
-						__parsedDocCache[fileName] = parsedDoc
-						return parsedDoc
 					else
-						# neither AST is bound
 						__parsedDocCache[fileName] = parsedDoc
 						return parsedDoc
 		
@@ -268,8 +259,7 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 			return nil
 		
 		txtDoc = editor.document
-		doc = .document
-		parsedDoc = _getBestParsedDocument(doc)
+		parsedDoc = _getBestParsedDocument
 		if not _canHandleCodeCompletion(context, completionChar, txtDoc, parsedDoc)
 			# not enough information to provide completion results
 			return nil
@@ -481,7 +471,7 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 		or text.trimStart.startsWith("cue init")
 			return nil
 		
-		parsedDoc = _getBestParsedDocument(.document)
+		parsedDoc = _getBestParsedDocument
 		if parsedDoc == nil, return nil
 		if parsedDoc.isInsideComment(endOffset, txtDoc to !)
 			return nil

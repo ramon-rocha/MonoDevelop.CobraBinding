@@ -30,6 +30,7 @@ class ParsedCobraDocument inherits DefaultParsedDocument
 	cue init(fileName as String, content as String)
 		base.init(fileName)
 		_content = content
+		_parseErrorCount = 0
 
 	get content from var
 		"""The raw Cobra source code"""
@@ -39,6 +40,9 @@ class ParsedCobraDocument inherits DefaultParsedDocument
 
 	get symbolTable from var
 		"""Maps regions to maps of identifier/node pairs"""
+	
+	get parseErrorCount from var as int
+		"""The number of ParserExceptions that exist in this document"""
 	
 	def add(errors as SourceException*)
 		for err in errors
@@ -57,6 +61,7 @@ class ParsedCobraDocument inherits DefaultParsedDocument
 		# but just in case...
 		if col > 0, col -= 1
 		.add(Error(ErrorType.Error, err.message, err.lineNum, col))
+		if err inherits ParserException, _parseErrorCount += 1
 		
 	def add(mod as CobraModule)
 		.ast = mod

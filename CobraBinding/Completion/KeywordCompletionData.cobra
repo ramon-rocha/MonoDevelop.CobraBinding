@@ -18,7 +18,7 @@ class KeywordCompletionData inherits CompletionData
 		"""
 		Returns an English description of the keyword.
 		"""
-		_description ?= Tooltips.KeywordData.instance.getDescription(.displayText to !)
+		_description ?= Tooltips.KeywordData.instance.getDescription(.displayText to !) ? ""
 		return _description to !
 		
 	get grammar as String

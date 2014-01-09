@@ -126,9 +126,9 @@ class CompilerManager
 		options = OptionValues()
 		options['compile'] = true
 		options['back-end'] = 'clr'
-		options['contracts'] = 'none'
+		options['contracts'] = 'inline'
 		options['include-asserts'] = false
-		options['include-tests'] = false
+		options['include-tests'] = true
 		options['include-traces'] = false
 		
 		compiler.options = options

@@ -335,7 +335,6 @@ class ParsedCobraDocument inherits DefaultParsedDocument
 		require
 			_symbolTable <> nil
 			ids.count > 0
-			containingRegions.count > 0
 		test
 			doc = .createTestData
 			regions = List<of DomRegion>()
@@ -558,7 +557,6 @@ class ParsedCobraDocument inherits DefaultParsedDocument
 		Returns nil if none of the corresponding nodes inherit from Box.
 		"""
 		require
-			regions.count > 0
 			all for region in regions get nodeMap.containsKey(region)
 		test
 			ast = Completion.CobraCompletionTextEditorExtension.createTestData

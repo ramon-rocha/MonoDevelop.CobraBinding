@@ -18,7 +18,7 @@ extend String
 
 extend Box
 
-	def createTooltipMarkup as String
+	def createBoxNameMarkup as String
 		"""
 		A helper function for creating the markup for the name of a Box node.
 		"""
@@ -45,22 +45,20 @@ extend Box
 
 extend IType
 
-	def createTooltipMarkup as String
+	def createFullNameMarkup as String
 		"""
-		Returns markup suitable for use in a tooltip.
-		
-		Generally, it will be the fully qualified name of this IType instance
+		Returns markup for the fully qualified name of this IType instance
 		such as 'System.String' or 'System.Collections.Generic.List<of int>'.
 		"""
 		typ = this
 		if typ inherits WrappedType
 			if typ inherits VariType
-				return "vari [typ.theWrappedType.createTooltipMarkup]"
+				return "vari [typ.theWrappedType.createFullNameMarkup]"
 			else
-				return "[typ.theWrappedType.createTooltipMarkup][typ.suffix]"
+				return "[typ.theWrappedType.createFullNameMarkup][typ.suffix]"
 		
 		if typ inherits Box
-			nameMarkup = typ.createTooltipMarkup
+			nameMarkup = typ.createBoxNameMarkup
 		else
 			nameMarkup = typ.name
 		
@@ -68,11 +66,11 @@ extend IType
 			return "[typ.parentNameSpace.fullName].[nameMarkup]"
 		else if typ.superNode inherits Box
 			parentBox = typ.superNode to IType
-			return "[parentBox.createTooltipMarkup].[nameMarkup]"
+			return "[parentBox.createFullNameMarkup].[nameMarkup]"
 		
 		return nameMarkup
 
-		
+
 extend INamedNode
 	
 	def createTooltipMarkup as String
@@ -201,14 +199,14 @@ extend INamedNode
 				
 				if node inherits Param
 					if node.isOut
-						return "[node.name] as out [typ.createTooltipMarkup]"
+						return "[node.name] as out [typ.createFullNameMarkup]"
 					else if node.isInOut
-						return "[node.name] as inout [typ.createTooltipMarkup]"
+						return "[node.name] as inout [typ.createFullNameMarkup]"
 					else if node.isOptional
 						defaultValue = node.optionalValue.toCobraSource
-						return "[node.name] as [typ.createTooltipMarkup] = [defaultValue]"
+						return "[node.name] as [typ.createFullNameMarkup] = [defaultValue]"
 				
-				return "[node.name] as [typ.createTooltipMarkup]"
+				return "[node.name] as [typ.createFullNameMarkup]"
 			
 			else if node inherits EnumMember
 				if node.value == nil
@@ -225,7 +223,7 @@ extend INamedNode
 					parentBox = node.parentBox
 					kw = TooltipProvider.declKeyword[parentBox.getType]
 					paramMarkup = _createParamMarkup
-					markup = "[kw] [parentBox.createTooltipMarkup]([paramMarkup])[_createTrailingMarkup]"
+					markup = "[kw] [parentBox.createBoxNameMarkup]([paramMarkup])[_createTrailingMarkup]"
 					if markup.length > 60
 						# too long, break it up into multiple lines
 						markup = markup.replace(paramMarkup, _createWrappedParamMarkup)
@@ -243,7 +241,7 @@ extend INamedNode
 							nameMarkup = "[node.parentNameSpace.fullName].[nameMarkup]"
 						else if node.superNode inherits Box
 							superNode = node.superNode to IType
-							nameMarkup = "[superNode.createTooltipMarkup].[nameMarkup]"
+							nameMarkup = "[superNode.createFullNameMarkup].[nameMarkup]"
 					
 					if typ == nil
 						try
@@ -256,7 +254,7 @@ extend INamedNode
 						return "[kw] [nameMarkup] as ???"
 					
 					paramMarkup = _createParamMarkup
-					typeMarkup = typ.createTooltipMarkup
+					typeMarkup = typ.createFullNameMarkup
 					if paramMarkup.length == 0
 						return "[kw] [nameMarkup] as [typeMarkup][_createTrailingMarkup]"
 					
@@ -276,25 +274,26 @@ extend INamedNode
 					else
 						# write-only property
 						kw = "set"
-					return "[kw] [node.name.escapeMarkup] as [typ.createTooltipMarkup][_createTrailingMarkup]"
+					return "[kw] [node.name.escapeMarkup] as [typ.createFullNameMarkup][_createTrailingMarkup]"
 				
 				else if node inherits Box
 					kw = TooltipProvider.declKeyword[node.getType]
 					typ = node to IType
-					return "[kw] [typ.createTooltipMarkup][_createTrailingMarkup]"
+					return "[kw] [typ.createFullNameMarkup][_createTrailingMarkup]"
 				
 				else if node inherits EnumDecl
 					return "enum [typ.parentNameSpace.fullName].[typ.name]"
 				
 				else
 					kw = TooltipProvider.declKeyword[node.getType]
-					return "[kw] [node.name.escapeMarkup] as [typ.createTooltipMarkup][_createTrailingMarkup]"
+					return "[kw] [node.name.escapeMarkup] as [typ.createFullNameMarkup][_createTrailingMarkup]"
 			
 			if typ <> nil
-				return "Unhandled type for [node.name.escapeMarkup]: [typ.createTooltipMarkup]"
+				return "Unhandled type for [node.name.escapeMarkup]: [typ.createFullNameMarkup]"
 			else
 				return "Unhandled type for [node.name.escapeMarkup]: ???"
-				
+	
+	
 	def _createTrailingMarkup as String
 		"""
 		Return the markup for non-default "is names" and attributes for this node.
@@ -321,7 +320,8 @@ extend INamedNode
 			return "\nhas [attributes.toString]"
 		
 		return "\nis [isNames.toString]\nhas [attributes.toString]"
-		
+	
+	
 	def _createParamMarkup as String
 		"""
 		Returns the markup to be used for the parameters of a method
@@ -334,7 +334,8 @@ extend INamedNode
 			sb.append(p.createTooltipMarkup)
 		
 		return sb.toString
-			
+	
+	
 	def _createWrappedParamMarkup as String
 		"""
 		Returns the markup to be used for the parameters of a method

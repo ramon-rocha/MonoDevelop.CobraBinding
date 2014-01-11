@@ -17,7 +17,6 @@ extend String
 		return escaped
 
 extend Box
-
 	def createBoxNameMarkup as String
 		"""
 		A helper function for creating the markup for the name of a Box node.
@@ -41,10 +40,8 @@ extend Box
 		r1 = toReplace.toString
 		r2 = replaceWith.toString
 		return .name.replace(r1, r2).escapeMarkup
-		
 
 extend IType
-
 	def createFullNameMarkup as String
 		"""
 		Returns markup for the fully qualified name of this IType instance
@@ -70,9 +67,39 @@ extend IType
 		
 		return nameMarkup
 
+extend NameSpace
+	def createDeclarationMarkup as String
+		"""Returns markup for the the declaration signature of this namespace"""
+		return "namespace [.fullName]"
+
+extend AbstractLocalVar
+	def createDeclarationMarkup as String
+		"""Returns markup for the the declaration signature of a method parameter or local variable"""
+		typ as IType? = .type
+		if typ == nil
+			try
+				.bindAll
+				typ = .type
+			catch ex as Exception
+				trace ex.message
+				print ex.toString
+		
+		if typ == nil
+			return "[.name] as ???"
+		
+		node = this
+		if node inherits Param
+			if node.isOut
+				return "[.name] as out [typ.createFullNameMarkup]"
+			else if node.isInOut
+				return "[.name] as inout [typ.createFullNameMarkup]"
+			else if node.isOptional
+				defaultValue = node.optionalValue.toCobraSource
+				return "[.name] as [typ.createFullNameMarkup] = [defaultValue]"
+		
+		return "[.name] as [typ.createFullNameMarkup]"
 
 extend INamedNode
-	
 	def createTooltipMarkup as String
 		"""
 		Returns markup suitable for use in a tooltip.  It will have a format
@@ -181,32 +208,10 @@ extend INamedNode
 			typ as IType? = nil
 			
 			if node inherits NameSpace
-				return "namespace [node.fullName]"
+				return node.createDeclarationMarkup
 			
 			else if node inherits AbstractLocalVar
-				# this could be a method parameter or local variable
-				typ = node.type
-				if typ == nil
-					try
-						node.bindAll
-						typ = node.type
-					catch ex as Exception
-						trace ex.message
-						print ex.toString
-				
-				if typ == nil
-					return "[node.name] as ???"
-				
-				if node inherits Param
-					if node.isOut
-						return "[node.name] as out [typ.createFullNameMarkup]"
-					else if node.isInOut
-						return "[node.name] as inout [typ.createFullNameMarkup]"
-					else if node.isOptional
-						defaultValue = node.optionalValue.toCobraSource
-						return "[node.name] as [typ.createFullNameMarkup] = [defaultValue]"
-				
-				return "[node.name] as [typ.createFullNameMarkup]"
+				return node.createDeclarationMarkup
 			
 			else if node inherits EnumMember
 				if node.value == nil
@@ -217,16 +222,21 @@ extend INamedNode
 			
 			else if node implements Cobra.Compiler.IMember
 				# this is a box/namespace member
+				if node implements IBoxMember
+					paramMarkup = node.createParamMarkup
+					trailingMarkup = node.createTrailingMarkup
+				else
+					paramMarkup = trailingMarkup = ""
+				
 				typ = node.resultType
 				
 				if node inherits Initializer
 					parentBox = node.parentBox
 					kw = TooltipProvider.declKeyword[parentBox.getType]
-					paramMarkup = _createParamMarkup
-					markup = "[kw] [parentBox.createBoxNameMarkup]([paramMarkup])[_createTrailingMarkup]"
-					if markup.length > 60
+					markup = "[kw] [parentBox.createBoxNameMarkup]([paramMarkup])[trailingMarkup]"
+					if paramMarkup.length <> 0 and markup.length > 60
 						# too long, break it up into multiple lines
-						markup = markup.replace(paramMarkup, _createWrappedParamMarkup)
+						markup = markup.replace(paramMarkup, node.createWrappedParamMarkup)
 					return markup
 				
 				else if node inherits Method _
@@ -253,15 +263,14 @@ extend INamedNode
 					if typ == nil
 						return "[kw] [nameMarkup] as ???"
 					
-					paramMarkup = _createParamMarkup
 					typeMarkup = typ.createFullNameMarkup
 					if paramMarkup.length == 0
-						return "[kw] [nameMarkup] as [typeMarkup][_createTrailingMarkup]"
+						return "[kw] [nameMarkup] as [typeMarkup][trailingMarkup]"
 					
-					markup = "[kw] [nameMarkup]([paramMarkup]) as [typeMarkup][_createTrailingMarkup]"
-					if markup.length > 60
+					markup = "[kw] [nameMarkup]([paramMarkup]) as [typeMarkup][trailingMarkup]"
+					if paramMarkup.length <> 0 and markup.length > 60
 						# too long, break it up into multiple lines
-						markup = markup.replace(paramMarkup, _createWrappedParamMarkup)
+						markup = markup.replace(paramMarkup, (node to BoxMember).createWrappedParamMarkup)
 					return markup
 					
 				else if node inherits Property
@@ -274,41 +283,39 @@ extend INamedNode
 					else
 						# write-only property
 						kw = "set"
-					return "[kw] [node.name.escapeMarkup] as [typ.createFullNameMarkup][_createTrailingMarkup]"
+					return "[kw] [node.name.escapeMarkup] as [typ.createFullNameMarkup][trailingMarkup]"
 				
 				else if node inherits Box
 					kw = TooltipProvider.declKeyword[node.getType]
 					typ = node to IType
-					return "[kw] [typ.createFullNameMarkup][_createTrailingMarkup]"
+					return "[kw] [typ.createFullNameMarkup][trailingMarkup]"
 				
 				else if node inherits EnumDecl
 					return "enum [typ.parentNameSpace.fullName].[typ.name]"
 				
 				else
 					kw = TooltipProvider.declKeyword[node.getType]
-					return "[kw] [node.name.escapeMarkup] as [typ.createFullNameMarkup][_createTrailingMarkup]"
+					return "[kw] [node.name.escapeMarkup] as [typ.createFullNameMarkup][trailingMarkup]"
 			
 			if typ <> nil
 				return "Unhandled type for [node.name.escapeMarkup]: [typ.createFullNameMarkup]"
 			else
 				return "Unhandled type for [node.name.escapeMarkup]: ???"
-	
-	
-	def _createTrailingMarkup as String
+
+extend IBoxMember
+	def createTrailingMarkup as String
 		"""
-		Return the markup for non-default "is names" and attributes for this node.
+		Return the markup for non-default "is names" and attributes for this member.
 		"""
-		node = this
 		isNames = StringBuilder()
 		attributes = StringBuilder()
-		if node implements IBoxMember
-			for name in node.isNames
-				if name <> "public" and name <> "virtual"
-					if isNames.length > 0, isNames.append(", ")
-					isNames.append(name)
-			for att in node.attributes
-				if attributes.length > 0, attributes.append(", ")
-				attributes.append(att.name)
+		for name in .isNames
+			if name <> "public" and name <> "virtual"
+				if isNames.length > 0, isNames.append(", ")
+				isNames.append(name)
+		for att in .attributes
+			if attributes.length > 0, attributes.append(", ")
+			attributes.append(att.name)
 		
 		if isNames.length == 0 and attributes.length == 0
 			return ""
@@ -321,54 +328,46 @@ extend INamedNode
 		
 		return "\nis [isNames.toString]\nhas [attributes.toString]"
 	
-	
-	def _createParamMarkup as String
+	def createParamMarkup as String
 		"""
 		Returns the markup to be used for the parameters of a method
 		such as 'x as int, y as int, z as int'
 		"""
 		params = _getParams
+		if params == nil or params.count == 0
+			return ""
+		
 		sb = StringBuilder()
 		for p in params
 			if sb.length > 0, sb.append(', ')
-			sb.append(p.createTooltipMarkup)
-		
+			sb.append(p.createDeclarationMarkup)
 		return sb.toString
 	
-	
-	def _createWrappedParamMarkup as String
+	def createWrappedParamMarkup as String
 		"""
 		Returns the markup to be used for the parameters of a method
 		with each parameter on its own line and indented.
 		"""
 		params = _getParams
+		if params == nil or params.count == 0
+			return ""
+		
 		sb = StringBuilder()
 		for p in params
 			if sb.length > 0, sb.append(',')
 			sb.appendLine
 			sb.append('\t')
-			sb.append(p.createTooltipMarkup)
+			sb.append(p.createDeclarationMarkup)
 		
 		if sb.length > 0, sb.appendLine
 		return sb.toString
 	
-	
-	def _getParams as IList<of Param>
-		"""
-		Return the node's parameters
-		"""
-		require
-			this inherits MemberOverload _
-			or this inherits AbstractMethod _
-			or this inherits MethodSig
-		body
-			node = this
-			if node inherits MemberOverload
-				return node.params
-			else if node inherits AbstractMethod
-				return node.params
-			else if node inherits MethodSig
-				return node.params
-			
-			# contract violation
-			throw FallThroughException()
+	def _getParams as IList<of Param>?
+		node = this
+		if node inherits AbstractMethod
+			return node.params
+		else if node inherits MemberOverload
+			return node.params
+		else if node inherits MethodSig
+			return node.params
+		return nil

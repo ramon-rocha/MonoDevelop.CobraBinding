@@ -233,11 +233,11 @@ extend INamedNode
 				if node inherits Initializer
 					parentBox = node.parentBox
 					kw = TooltipProvider.declKeyword[parentBox.getType]
-					markup = "[kw] [parentBox.createBoxNameMarkup]([paramMarkup])[trailingMarkup]"
-					if paramMarkup.length <> 0 and markup.length > 60
+					markup = "[kw] [parentBox.createBoxNameMarkup]([paramMarkup])"
+					if paramMarkup.length <> 0 and markup.length > 80
 						# too long, break it up into multiple lines
 						markup = markup.replace(paramMarkup, node.createWrappedParamMarkup)
-					return markup
+					return "[markup][trailingMarkup]"
 				
 				else if node inherits Method _
 				or node inherits MemberOverload _
@@ -267,11 +267,11 @@ extend INamedNode
 					if paramMarkup.length == 0
 						return "[kw] [nameMarkup] as [typeMarkup][trailingMarkup]"
 					
-					markup = "[kw] [nameMarkup]([paramMarkup]) as [typeMarkup][trailingMarkup]"
-					if paramMarkup.length <> 0 and markup.length > 60
+					markup = "[kw] [nameMarkup]([paramMarkup]) as [typeMarkup]"
+					if paramMarkup.length <> 0 and markup.length > 80
 						# too long, break it up into multiple lines
 						markup = markup.replace(paramMarkup, (node to BoxMember).createWrappedParamMarkup)
-					return markup
+					return "[markup][trailingMarkup]"
 					
 				else if node inherits Property
 					if node.getPart <> nil and node.setPart <> nil
@@ -302,31 +302,71 @@ extend INamedNode
 			else
 				return "Unhandled type for [node.name.escapeMarkup]: ???"
 
+extend ContractPart
+	def createExpressionListMarkup as String
+		require this inherits RequirePart or this inherits EnsurePart
+		
+		exprs = .exprs
+		if exprs.count == 0, return ""
+		
+		method = .codeMember
+		sb = StringBuilder(16)
+		if this inherits RequirePart
+			if method.isOverride, sb.append("or ")
+			sb.append("require")
+		else
+			if method.isOverride, sb.append("and ")
+			sb.append("ensure")
+		for e in .exprs
+			sb.append("\n\t[e.toCobraSource]")
+		return sb.toString
+
 extend IBoxMember
 	def createTrailingMarkup as String
 		"""
 		Return the markup for non-default "is names" and attributes for this member.
 		"""
 		isNames = StringBuilder()
-		attributes = StringBuilder()
 		for name in .isNames
 			if name <> "public" and name <> "virtual"
 				if isNames.length > 0, isNames.append(", ")
 				isNames.append(name)
+		
+		attributes = StringBuilder()
 		for att in .attributes
 			if attributes.length > 0, attributes.append(", ")
 			attributes.append(att.name)
 		
-		if isNames.length == 0 and attributes.length == 0
+		contractMarkup = .createContractsMarkup
+		
+		isLen, attLen, conLen = isNames.length, attributes.length, contractMarkup.length
+		markup = StringBuilder(isLen + attLen + conLen)
+		if isLen <> 0, markup.append("\nis [isNames.toString]")
+		if attLen <> 0, markup.append("\nhas [attributes.toString]")
+		if conLen <> 0, markup.append("\n[contractMarkup.escapeMarkup]")
+		
+		return markup.toString
+	
+	def createContractsMarkup as String
+		"""
+		Returns the markup to be used for method contracts.
+		"""
+		if not this inherits AbstractMethod, return ""
+		
+		method = this to AbstractMethod
+		requireMarkup = ensureMarkup = ""
+		if method.requirePart <> nil
+			requireMarkup = method.requirePart.createExpressionListMarkup
+		if method.ensurePart <> nil
+			ensureMarkup = method.ensurePart.createExpressionListMarkup
+		requireLength, ensureLength = requireMarkup.length, ensureMarkup.length
+		if requireLength == 0 and ensureLength == 0
 			return ""
-		
-		if attributes.length == 0
-			return "\nis [isNames.toString]"
-		
-		if isNames.length == 0
-			return "\nhas [attributes.toString]"
-		
-		return "\nis [isNames.toString]\nhas [attributes.toString]"
+		else if ensureLength == 0
+			return requireMarkup
+		else if requireLength == 0
+			return ensureMarkup
+		return 	"[requireMarkup]\n[ensureMarkup]"
 	
 	def createParamMarkup as String
 		"""

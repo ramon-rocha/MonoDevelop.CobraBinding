@@ -1,0 +1,39 @@
+
+use MonoDevelop.Core.Serialization
+use MonoDevelop.Projects
+
+namespace Project
+
+class CobraProjectParameters inherits DotNetProjectParameters
+	"""
+	Cobra compiler parameters for a Cobra project file.
+	
+	These parameters are for the entire project regardless of the currently selected configuration
+	(e.g. Debug|x86, Release|AnyCPU, etc.).
+	"""
+	test defaults
+		p = CobraProjectParameters()
+		assert p.mainClass.length == 0
+		assert p.testRunner == "Cobra.Core.CobraCore.runAppTests"
+		assert p.applicationIcon.length == 0
+	
+	var _mainClass as String = ""
+		has ItemProperty("StartupObject", defaultValue = "")
+	
+	var _testRunner as String = "Cobra.Core.CobraCore.runAppTests"
+		has ItemProperty("TestRunner", defaultValue = "Cobra.Core.CobraCore.runAppTests")
+	
+	var _applicationIcon as String = ""
+		has ProjectPathItemProperty("ApplicationIcon", defaultValue = "")
+	
+	pro mainClass from var
+		"""The type containing the main method for this assembly"""
+	
+	pro testRunner from var
+		"""The fully qualified method name that runs unit tests"""
+	
+	pro applicationIcon from var
+		"""The application icon to embed in the assembly"""
+
+	get defaultNamespaceIsImplicit as bool is override
+		return true

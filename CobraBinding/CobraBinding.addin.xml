@@ -64,11 +64,18 @@
 	
 	<Extension path = "/MonoDevelop/ProjectModel/SerializableClasses">
 		<DataType class = "MonoDevelop.CobraBinding.Project.CobraCompilerParameters" />
+		<DataType class = "MonoDevelop.CobraBinding.Project.CobraProjectParameters" />
 	</Extension>
 	
 	<Extension path = "/MonoDevelop/ProjectModel/Gui/ItemOptionPanels/Build/Compiler">
 		<Condition id="ActiveLanguage" value="Cobra">
 			<Panel id="CompilerBuildOptionsPanel" _label="Compiler" class="MonoDevelop.CobraBinding.Project.CompilerBuildOptionsPanel" />
+		</Condition>
+	</Extension>
+
+	<Extension path = "/MonoDevelop/ProjectModel/Gui/ItemOptionPanels/Build/General">
+		<Condition id="ActiveLanguage" value="Cobra">
+			<Panel id="GeneralBuildOptionsPanel" _label="General" class="MonoDevelop.CobraBinding.Project.GeneralBuildOptionsPanel" />
 		</Condition>
 	</Extension>
 

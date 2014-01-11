@@ -7,6 +7,8 @@ class CobraCompilerParameters inherits ConfigurationParameters
 	"""
 	This class is the backend to the controls displayed for the
 	Project Options window under the Build > Compiler section.
+	
+	These parameters are specific to a particular configuration.
 	"""
 	test defaults
 		p = CobraCompilerParameters()
@@ -77,6 +79,7 @@ class CobraCompilerParameters inherits ConfigurationParameters
 	these but they are abstract in the base class so we need to
 	implement them.
 	#/
+	#region unused
 	def addDefineSymbol(symbol as String?) is override
 		pass
 	
@@ -85,11 +88,14 @@ class CobraCompilerParameters inherits ConfigurationParameters
 
 	def hasDefineSymbol(symbol as String?) as bool is override
 		return false
+	#endregion unused
+	
+	
 
 	# TODO: non-boolean option values should come from local
 	# vars/constants instead of hardcoded literals
 
-	# Performance and Quality Options
+	#region Performance and Quality Options
 	var _performanceQualityOption = PerfQualOption.Default
 		has ItemProperty("PerformanceQualityOption", defaultValue = PerfQualOption.Default)
 	
@@ -113,8 +119,9 @@ class CobraCompilerParameters inherits ConfigurationParameters
 		
 	var _optimize = true
 		has ItemProperty("Optimize", defaultValue = true)
+	#endregion Performance and Quality Options
 
-	#Development and Deployment Options
+	#region Development and Deployment Options
 	var _embedRunTime = false
 		has ItemProperty("EmbedRunTime", defaultValue = false)
 		
@@ -132,8 +139,9 @@ class CobraCompilerParameters inherits ConfigurationParameters
 		
 	var _cobraArgs = ""
 		has ItemProperty("CobraArgs", defaultValue = "")
+	#endregion Development and Deployment Options
 
-	# Back-end Native Compiler Options
+	#region Back-end Native Compiler Options
 	var _backEndCompiler = "none"
 		has ItemProperty("BackEnd", defaultValue = "none")
 	
@@ -142,7 +150,7 @@ class CobraCompilerParameters inherits ConfigurationParameters
 	
 	var _nativeCompilerArgs = ""
 		has ItemProperty("NativeCompilerArgs", defaultValue = "")
-
+	#endregion Back-end Native Compiler Options
 
 	pro performanceQualityOption
 		"""Which radio button is selected for the 'Performance and Quality' section"""

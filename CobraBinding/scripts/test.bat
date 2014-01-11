@@ -21,7 +21,9 @@ cobra -test -clr-platform:x86 -color:yes ^
 ..\..\CobraLanguageBinding.cobra ^
 ..\..\CompilerManager.cobra ^
 ..\..\Project\CobraCompilerParameters.cobra ^
+..\..\Project\CobraProjectParameters.cobra ^
 ..\..\Project\CompilerBuildOptionsPanel.cobra ^
+..\..\Project\GeneralBuildOptionsPanel.cobra ^
 ..\..\TypeSystem\CobraModuleVisitor.cobra ^
 ..\..\TypeSystem\LineInformation.cobra ^
 ..\..\TypeSystem\ParsedCobraDocument.cobra ^

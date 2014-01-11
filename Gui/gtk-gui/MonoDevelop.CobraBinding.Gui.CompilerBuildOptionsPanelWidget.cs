@@ -193,6 +193,7 @@ namespace MonoDevelop.CobraBinding.Gui
 			this.radioPerfQualCustom = new global::Gtk.RadioButton (global::Mono.Unix.Catalog.GetString ("Custom"));
 			this.radioPerfQualCustom.CanFocus = true;
 			this.radioPerfQualCustom.Name = "radioPerfQualCustom";
+			this.radioPerfQualCustom.Active = true;
 			this.radioPerfQualCustom.DrawIndicator = true;
 			this.radioPerfQualCustom.UseUnderline = true;
 			this.radioPerfQualCustom.Group = new global::GLib.SList (global::System.IntPtr.Zero);

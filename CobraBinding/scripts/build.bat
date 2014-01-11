@@ -25,7 +25,9 @@ cobra -compile -v -timeit -target:lib -out:"..\\..\\bin\\Debug\\MonoDevelop.Cobr
 ..\..\CobraLanguageBinding.cobra ^
 ..\..\CompilerManager.cobra ^
 ..\..\Project\CobraCompilerParameters.cobra ^
+..\..\Project\CobraProjectParameters.cobra ^
 ..\..\Project\CompilerBuildOptionsPanel.cobra ^
+..\..\Project\GeneralBuildOptionsPanel.cobra ^
 ..\..\TypeSystem\CobraModuleVisitor.cobra ^
 ..\..\TypeSystem\LineInformation.cobra ^
 ..\..\TypeSystem\ParsedCobraDocument.cobra ^

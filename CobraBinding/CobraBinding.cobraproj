@@ -115,6 +115,8 @@
     <Compile Include="Tooltips\Extensions.cobra" />
     <Compile Include="Commands\CommandId.cobra" />
     <Compile Include="Commands\GoToDeclarationHandler.cobra" />
+    <Compile Include="Project\GeneralBuildOptionsPanel.cobra" />
+    <Compile Include="Project\CobraProjectParameters.cobra" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Gui\Gui.csproj">

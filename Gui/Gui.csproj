@@ -65,6 +65,8 @@
     <Compile Include="gtk-gui\generated.cs" />
     <Compile Include="CompilerBuildOptionsPanelWidget.cs" />
     <Compile Include="gtk-gui\MonoDevelop.CobraBinding.Gui.CompilerBuildOptionsPanelWidget.cs" />
+    <Compile Include="GeneralBuildOptionsPanelWidget.cs" />
+    <Compile Include="gtk-gui\MonoDevelop.CobraBinding.Gui.GeneralBuildOptionsPanelWidget.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ItemGroup>

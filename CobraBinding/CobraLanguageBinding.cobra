@@ -149,6 +149,19 @@ class CobraLanguageBinding implements IDotNetLanguageBinding
 		# what kind of assembly will we generate?
 		argsBuilder.append(_targetArgs[configuration.compileTarget])
 		
+		# are we creating an 'exe' and are there any relevant properties?
+		if configuration.compileTarget in @[CompileTarget.Exe, CompileTarget.WinExe]
+			projectParams = proj.languageParameters to CobraProjectParameters
+			
+			mainClass = projectParams.mainClass.trim
+			if mainClass.length <> 0, argsBuilder.append(' -main:[mainClass]')
+			
+			appIcon = projectParams.applicationIcon.trim
+			if appIcon.length <> 0
+				if appIcon.contains(' ') and not appIcon.startsWith('\\"')
+					appIcon = '\\"[appIcon]\\"'
+				argsBuilder.append(' -native-compiler-arg:"-win32icon:[appIcon]"')
+		
 		# are we targetting a specific platform?
 		if configuration.platform <> nil and configuration.platform.length > 0
 			argsBuilder.append(" -clr-platform:[configuration.platform]")
@@ -400,7 +413,13 @@ class CobraLanguageBinding implements IDotNetLanguageBinding
 			return CobraCompilerParameters()
 		
 	def createProjectParameters(projectOptions as XmlElement?) as ProjectParameters
-		return ProjectParameters()
+		test
+			binding = CobraLanguageBinding()
+			projectParams = binding.createProjectParameters(nil)
+			assert projectParams.getType == CobraProjectParameters
+			assert (projectParams to CobraProjectParameters).testRunner == "Cobra.Core.CobraCore.runAppTests"
+		body
+			return CobraProjectParameters()
 	
 	#TODO
 	def getCodeDomProvider as CodeDomProvider?

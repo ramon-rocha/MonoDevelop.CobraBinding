@@ -1,0 +1,140 @@
+use MonoDevelop.Projects
+use MonoDevelop.Ide
+use MonoDevelop.Ide.Gui.Dialogs
+
+use MonoDevelop.CobraBinding.Gui
+
+namespace Project
+
+class GeneralBuildOptionsPanel inherits ItemOptionsPanel
+	"""
+	This class is responsible for creating and setting up the
+	panel widget for the Project > Options > Build > General
+	panel.  It also saves and loads the data to and from the
+	backend CobraCompilerParameters instance(s).
+	"""
+	
+	shared
+		var _targets = [
+			"Console Application",
+			"Library",
+			"GUI Application",
+			"Module"
+		]
+		
+		var _defaultTestRunners = [
+			"Cobra.Core.CobraCore.runAppTests",
+			"Cobra.Core.CobraCore.runAllTests"
+		]
+	
+	var _widget as GeneralBuildOptionsPanelWidget?
+	
+	cue init
+		base.init
+	
+	def createPanelWidget as Gtk.Widget is override
+		"""
+		Creates a new widget using the project provided by the base class.
+		"""
+		test
+			if CobraCore.isRunningOnUnix
+				# On Ubuntu 13.10 I am getting the following exception:
+				#   System.DllNotFoundException: libglib-2.0-0.dll
+				# After adding symlink named libglib-2.0-0.so, I'm getting the same
+				# message regarding libgtk-win32-2.0-0.dll.  I need to find the
+				# correct file to link to for this library.
+				print "\t\tSkipping this test: Fails on Ubuntu 13.10."
+				return
+			Gtk.Application.init
+			panel = GeneralBuildOptionsPanel()
+			w = panel.createPanelWidget to GeneralBuildOptionsPanelWidget
+			values = w.compileTargetComboBox.model to Gtk.ListStore
+			assert values.iterNChildren == _targets.count
+			assert w.compileTargetComboBox.active == CompileTarget.Exe to int
+			assert w.mainClassComboBoxEntry.sensitive
+			assert w.mainClassLabel.sensitive
+			w.compileTargetComboBox.active = CompileTarget.Library to int
+			assert not w.mainClassComboBoxEntry.sensitive
+			assert not w.mainClassLabel.sensitive
+			w.compileTargetComboBox.active = CompileTarget.WinExe to int
+			assert w.mainClassComboBoxEntry.sensitive
+			assert w.mainClassLabel.sensitive
+			
+			values = w.testRunnerComboBoxEntry.model to Gtk.ListStore
+			assert values.iterNChildren == _defaultTestRunners.count
+			assert w.testRunnerComboBoxEntry.activeText == _defaultTestRunners[0]
+		body
+			_widget = GeneralBuildOptionsPanelWidget()
+			proj = .configuredProject to DotNetProject?
+			
+			# if the values of CompileTarget enum ever changes this will break
+			targetComboBox = _widget.compileTargetComboBox
+			targetValues = Gtk.ListStore(String)
+			for target in _targets
+				targetValues.appendValues(target)
+			targetComboBox.model = targetValues
+			listen targetComboBox.changed, ref _onChangedCompileTarget
+			targetComboBox.active = if(proj, proj.compileTarget to int, 0)
+			
+			testRunnerValues = Gtk.ListStore(String)
+			for testRunner in _defaultTestRunners
+				testRunnerValues.appendValues(testRunner)
+			_widget.testRunnerComboBoxEntry.model = testRunnerValues
+			if proj == nil
+				_widget.testRunnerComboBoxEntry.active = 0
+			else
+				params = proj.languageParameters to CobraProjectParameters?
+				if params.testRunner in _defaultTestRunners
+					_widget.testRunnerComboBoxEntry.active = _defaultTestRunners.indexOf(params.testRunner)
+				else
+					_widget.testRunnerComboBoxEntry.appendText(params.testRunner)
+					_widget.testRunnerComboBoxEntry.active = _widget.testRunnerComboBoxEntry.model.iterNChildren - 1
+				
+				if params.mainClass.trim.length <> 0
+					_widget.mainClassComboBoxEntry.appendText(params.mainClass)
+					_widget.mainClassComboBoxEntry.active = 0
+			
+			filter = Gtk.FileFilter(name = "Icon files (*.ico)")
+			filter.addPattern("*.ico")
+			_widget.applicationIconFileChooser.addFilter(filter)
+			filter = Gtk.FileFilter(name = "All files (*.*)")
+			filter.addPattern("*.*")
+			_widget.applicationIconFileChooser.addFilter(filter)
+			
+			if params <> nil and params.applicationIcon.length <> 0
+				_widget.applicationIconFileChooser.setFilename(params.applicationIcon)
+			
+			return _widget to !
+	
+	def _onChangedCompileTarget(sender as Object, args as EventArgs)
+		# only allow selection of main class and application icon when project is executable
+		require _widget <> nil
+		_disableExeParams
+	
+	def _disableExeParams
+		require _widget <> nil
+		target = _widget.compileTargetComboBox.active to CompileTarget
+		isExe = target == CompileTarget.Exe or target == CompileTarget.WinExe
+		# TODO: Somehow indicate that the current text/selected file will not be used.
+		# Just disabling them might be confusing since the current values are not cleared.
+		label, comboEntry = _widget.mainClassLabel, _widget.mainClassComboBoxEntry
+		label.sensitive = comboEntry.sensitive = isExe
+		label, chooser = _widget.applicationIconLabel, _widget.applicationIconFileChooser
+		label.sensitive = chooser.sensitive = isExe
+	
+	def applyChanges is override
+		"""
+		Save the selected options in the GUI to the project object in memory.
+		"""
+		or require _widget <> nil
+		proj = .configuredProject to DotNetProject?
+		if proj == nil, return
+		proj.compileTarget = _widget.compileTargetComboBox.active to CompileTarget
+		params = proj.languageParameters to CobraProjectParameters
+		if _widget.mainClassComboBoxEntry.sensitive
+			params.mainClass = _widget.mainClassComboBoxEntry.activeText ? ""
+			params.mainClass = params.mainClass.trim
+			params.applicationIcon = _widget.applicationIconFileChooser.filename ? ""
+		else
+			params.mainClass = ""
+		params.testRunner = _widget.testRunnerComboBoxEntry.activeText ? ""

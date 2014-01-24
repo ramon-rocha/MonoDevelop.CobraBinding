@@ -17,12 +17,12 @@ class MethodVarsList inherits CobraCompletionList
 		ns = ns.memberForName("ThirdLevelNameSpace") to NameSpace
 		program = ns.memberForName("Program") to Class		
 		
-		mainMethod = program.memberForName("main") to AbstractMethod
+		mainMethod = program.lookupMember("main") to AbstractMethod
 		completionData = MethodVarsList(mainMethod)
 		assert completionData.count == 6
 		
 		first = ns.memberForName("First") to Class
-		m1 = first.memberForName("methodNoVars") to AbstractMethod
+		m1 = first.lookupMember("methodNoVars") to AbstractMethod
 		completionData = MethodVarsList(m1)
 		assert completionData.count == 0
 		
@@ -41,12 +41,12 @@ class MethodVarsList inherits CobraCompletionList
 		assert completionData.count == 1
 		
 		second = ns.memberForName("Second") to Class
-		third = second.memberForName("Third") to Class
-		init1 = third.memberForName("cue.init") to AbstractMethod
+		third = second.lookupMember("Third") to Class
+		init1 = third.lookupMember("cue.init") to AbstractMethod
 		completionData = MethodVarsList(init1)
 		assert completionData.count == 1
 		fourth = second.memberForName("Fourth") to Class
-		init2 = fourth.memberForName("cue.init") to AbstractMethod
+		init2 = fourth.lookupMember("cue.init") to AbstractMethod
 		completionData = MethodVarsList(init2)
 		assert completionData.count == 2
 		

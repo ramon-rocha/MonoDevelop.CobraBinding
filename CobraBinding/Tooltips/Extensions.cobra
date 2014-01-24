@@ -182,7 +182,7 @@ extend INamedNode
 			assert node.name == "combined"
 			assert node.createTooltipMarkup == "combined as System.Collections.Generic.List&lt;of int&gt;"
 			box = node.typeForReceiver to Box
-			node = box.memberForName("cue.init") to INamedNode
+			node = box.lookupMember("cue.init") to INamedNode
 			if node inherits MemberOverload
 				node = node.members[0] to INamedNode
 			assert node.createTooltipMarkup == "class List&lt;of int&gt;()\nis nonvirtual"

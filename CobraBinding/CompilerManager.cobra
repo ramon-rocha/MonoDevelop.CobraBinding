@@ -1,5 +1,39 @@
 use Cobra.Compiler
 
+extend Box
+	
+	def mostMembers as IList<of IBoxMember>
+		"""
+		Returns .allMembers if possible, returns .declsInOrder otherwise.
+		"""
+		box = this
+		if box inherits Class
+			if box.baseClass is box
+				# prevent cyclic inheritance from blowing the stack
+				return .declsInOrder
+		
+		try
+			if .didBindInh
+				return .allMembers
+			
+			.bindAll
+			return .allMembers
+		catch
+			return .declsInOrder
+
+	def lookupMember(name as String) as IMember?
+		"""
+		Returns the member of the current box with the given name.
+		"""
+		c = this
+		if c inherits Class
+			for m in c.mostMembers
+				if m.name == name, return m
+			return nil
+		
+		return c.memberForName(name)
+
+
 extend CobraModule
 
 	def getDefaultNamespace as NameSpace
@@ -258,15 +292,15 @@ class CompilerManager
 				branch name
 					on "Point.cobra"
 						pointClass = ast.topNameSpace.memberForName("Point") to Class
-						assert pointClass.memberForName("toString")
-						assert pointClass.memberForName("getHashCode")
+						assert pointClass.lookupMember("toString")
+						assert pointClass.lookupMember("getHashCode")
 						assert pointClass.name == "Point"
 						assert pointClass.typeForReceiver is pointClass
 						assert pointClass.testMethods.count == 1
-						p = pointClass.memberForName("x")
+						p = pointClass.lookupMember("x")
 						assert p.getType == Property
 						assert p.typeForReceiver inherits IntType
-						m = pointClass.memberForName("movedBy")
+						m = pointClass.lookupMember("movedBy")
 						assert m.getType == Method
 						assert m.typeForReceiver is pointClass
 
@@ -278,11 +312,11 @@ class CompilerManager
 
 					on "FractalBenchmark.cobra"
 						prog = ast.topNameSpace.memberForName("Program") to Class
-						assert prog.memberForName("bailOut")
-						assert prog.memberForName("maxIterations")
-						assert prog.memberForName("mandelbrot")
-						assert prog.memberForName("calc")
-						assert prog.memberForName("main")
+						assert prog.lookupMember("bailOut")
+						assert prog.lookupMember("maxIterations")
+						assert prog.lookupMember("mandelbrot")
+						assert prog.lookupMember("calc")
+						assert prog.lookupMember("main")
 						
 					else
 						# ignore other test files
@@ -368,7 +402,7 @@ class CompilerManager
 						assert err.message == 'Cannot find "Fake".'
 						
 						c = ast.topNameSpace.memberForName("CannotFindType") to Class
-						assert c.memberForName("method")
+						assert c.lookupMember("method")
 						
 					on "NilError.cobra"
 						assert err.region.beginLine == 5
@@ -376,8 +410,8 @@ class CompilerManager
 						assert err.message == 'Cannot return String? because "method" is declared to return a String.'
 						
 						c = ast.topNameSpace.memberForName("NilError") to Class
-						assert c.memberForName("a")
-						assert c.memberForName("method")
+						assert c.lookupMember("a")
+						assert c.lookupMember("method")
 						
 					on "TypeMismatch.cobra"
 						assert err.region.beginLine == 4
@@ -385,7 +419,7 @@ class CompilerManager
 						assert err.message == 'Incompatible types. Cannot assign value of type int on the right to String on the left.'
 
 						c = ast.topNameSpace.memberForName("TypeMismatch") to Class
-						assert c.memberForName("method")
+						assert c.lookupMember("method")
 					else
 						# unhandled file, a case should be added for it
 						print "******* You need to add a test case for [name]!"

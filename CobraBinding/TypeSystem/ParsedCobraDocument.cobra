@@ -345,7 +345,7 @@ class ParsedCobraDocument inherits DefaultParsedDocument
 			assert node == nil
 			
 			node = doc._getNodeFromIds(["Object"], regions)
-			assert (node to Box).memberForName("toString") <> nil
+			assert (node to Box).lookupMember("toString") <> nil
 			
 			node = doc._getNodeFromIds(["String", "copy"], regions)
 			assert (node to Method).resultType.name == "String?"
@@ -408,8 +408,12 @@ class ParsedCobraDocument inherits DefaultParsedDocument
 							return _getNodeFromIds(ids[1:], nsMember to ISyntaxNode, containingRegions)
 						catch
 							throw ArgumentException()
-		
-				m = typ.memberForName(memberName)
+				
+				if typ inherits Class
+					m = typ.lookupMember(memberName)
+				else
+					m = typ.memberForName(memberName)
+				
 				if m <> nil
 					return _getNodeFromIds(ids[1:], m to ISyntaxNode, containingRegions)
 				

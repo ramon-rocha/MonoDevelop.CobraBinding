@@ -762,11 +762,20 @@ class Parser inherits TypeSystemParser implements IFoldingParser
 				assert not .isInsideString(ns's = "a [b]"', false) # s = "a [b]"
 				assert .isInsideString(ns's = "a [b', true) # s = "a [b
 				assert not .isInsideString(ns's = "a [b', false) # s = "a [b
-			test nonSubString
+			test nonSubAndRawStrings
 				assert .isInsideString(ns's = ns"a [b', true) # s = ns"a [b
 				assert .isInsideString(ns's = ns"a [b', false) # s = ns"a [b
+				assert .isInsideString(ns"s = ns'a [b", true) # s = ns'a [b
+				assert .isInsideString(ns"s = ns'a [b", false) # s = ns'a [b
 				assert not .isInsideString(ns's = ns"a [b]"', true) # s = ns"a [b]"
 				assert not .isInsideString(ns's = ns"a [b]"', false) # s = ns"a [b]"
+				
+				assert .isInsideString(ns's = r"a [b', true) # s = r"a [b
+				assert .isInsideString(ns's = r"a [b', false) # s = r"a [b
+				assert .isInsideString(ns"s = r'a [b", true) # s = r'a [b
+				assert .isInsideString(ns"s = r'a [b", false) # s = r'a [b
+				assert not .isInsideString(ns's = r"a [b]"', true) # s = r"a [b]"
+				assert not .isInsideString(ns's = r"a [b]"', false) # s = r"a [b]"
 			test escapedQuotes
 				assert .isInsideString(ns's = "a [b] \\"c', true) # s = "a [b] \"c
 				assert .isInsideString(ns's = "a [b] \\"c', false) # s = "a [b] \"c
@@ -798,6 +807,13 @@ class Parser inherits TypeSystemParser implements IFoldingParser
 								inString = true
 								inNonSubString = true
 								i += 2
+						else if character == c'r' and i + 1 < text.length
+							if text[i+1] in quotes
+								# raw string opening tag
+								tag = text[i+1]
+								inString = true
+								inNonSubString = true
+								i += 1
 					else
 						if character == tag and prevCharacter <> c'\\'
 							# string closing tag

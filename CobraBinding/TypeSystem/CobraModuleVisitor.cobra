@@ -52,12 +52,12 @@ class CobraModuleVisitor inherits Cobra.Core.Visitor
 		for name, node in idMap
 			assert node inherits AbstractMethod
 			try
-				assert node is c.lookupMember(name)
+				assert node is c.memberForName(name)
 			catch
 				am = node to AbstractMethod
 				assert node to IOverloadable in am.overloadGroup.members
 		
-		m = c.lookupMember("main") to Method
+		m = c.memberForName("main") to Method
 		mainRegion = visitor.regionMap[m]
 		assert mainRegion.beginLine == 3
 		assert mainRegion.beginColumn == 9
@@ -65,14 +65,14 @@ class CobraModuleVisitor inherits Cobra.Core.Visitor
 		assert mainRegion.endColumn == Int32.maxValue - 1
 		assert visitor.symbolTable[mainRegion].count == 0
 		
-		m = c.lookupMember("basics") to Method
+		m = c.memberForName("basics") to Method
 		basicsRegion = visitor.regionMap[m]
 		assert basicsRegion.beginLine == 11
 		assert basicsRegion.endLine == 40
 		assert visitor.symbolTable[basicsRegion].count == 1
 		assert visitor.symbolTable[basicsRegion]["ints"] is m.locals[0]
 		
-		m = c.lookupMember("looping") to Method
+		m = c.memberForName("looping") to Method
 		loopingRegion = visitor.regionMap[m]
 		assert loopingRegion.beginLine == 42
 		assert loopingRegion.endLine == 86
@@ -108,7 +108,7 @@ class CobraModuleVisitor inherits Cobra.Core.Visitor
 		assert visitor.symbolTable[nsRegion][barClass.name] is barClass
 		assert not visitor.symbolTable[wholeFileRegion].containsKey(barClass.name)
 		
-		m = barClass.lookupMember("main") to Method
+		m = barClass.memberForName("main") to Method
 		mainRegion = visitor.regionMap[m]
 		assert mainRegion.beginLine == 6
 		assert mainRegion.endLine == 13
@@ -124,7 +124,7 @@ class CobraModuleVisitor inherits Cobra.Core.Visitor
 		init2Region = DomRegion(bazRegion.fileName, 27, 6, 31, Int32.maxValue - 1)
 		assert visitor.symbolTable[init2Region].count == 3
 		
-		m = bazClass.lookupMember("toString") to Method
+		m = bazClass.memberForName("toString") to Method
 		toStringRegion = visitor.regionMap[m]
 		assert bazRegion.isInside(toStringRegion.begin)
 		assert bazRegion.isInside(toStringRegion.end)
@@ -164,7 +164,7 @@ class CobraModuleVisitor inherits Cobra.Core.Visitor
 		assert visitor.symbolTable[nsRegion][barClass.name] is barClass
 		assert not visitor.symbolTable[wholeFileRegion].containsKey(barClass.name)
 		
-		m = barClass.lookupMember("main") to Method
+		m = barClass.memberForName("main") to Method
 		mainRegion = visitor.regionMap[m]
 		assert mainRegion.beginLine == 6
 		assert mainRegion.endLine == 13
@@ -180,7 +180,7 @@ class CobraModuleVisitor inherits Cobra.Core.Visitor
 		init2Region = DomRegion(bazRegion.fileName, 27, 6, 31, Int32.maxValue - 1)
 		assert visitor.symbolTable[init2Region].count == 3
 		
-		m = bazClass.lookupMember("toString") to Method
+		m = bazClass.memberForName("toString") to Method
 		toStringRegion = visitor.regionMap[m]
 		assert bazRegion.isInside(toStringRegion.begin)
 		assert bazRegion.isInside(toStringRegion.end)
@@ -297,7 +297,7 @@ class CobraModuleVisitor inherits Cobra.Core.Visitor
 					idMap[nsMember.name] = nsMember
 
 		else if node inherits Box
-			members = node.mostMembers
+			members = node.allMembers
 			capacity = members.count
 			idMap = Dictionary<of String, INamedNode>(capacity)
 			for boxMember in members

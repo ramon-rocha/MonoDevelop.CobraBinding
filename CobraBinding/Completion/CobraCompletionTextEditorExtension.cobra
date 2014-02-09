@@ -511,7 +511,7 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 		
 		if node inherits ClassOrStruct
 			try
-				node = node.lookupMember('cue.init') to ISyntaxNode
+				node = node.memberForName('cue.init') to ISyntaxNode
 			catch
 				# probably an invalid compiler state
 				return nil

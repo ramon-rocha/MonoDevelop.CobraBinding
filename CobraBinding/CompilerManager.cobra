@@ -1,39 +1,5 @@
 use Cobra.Compiler
 
-extend Box
-	
-	def mostMembers as IList<of IBoxMember>
-		"""
-		Returns .allMembers if possible, returns .declsInOrder otherwise.
-		"""
-		box = this
-		if box inherits Class
-			if box.baseClass is box
-				# prevent cyclic inheritance from blowing the stack
-				return .declsInOrder
-		
-		try
-			if .didBindInh
-				return .allMembers
-			
-			.bindAll
-			return .allMembers
-		catch
-			return .declsInOrder
-
-	def lookupMember(name as String) as IMember?
-		"""
-		Returns the member of the current box with the given name.
-		"""
-		c = this
-		if c inherits Class
-			for m in c.mostMembers
-				if m.name == name, return m
-			return nil
-		
-		return c.memberForName(name)
-
-
 extend CobraModule
 
 	def getDefaultNamespace as NameSpace
@@ -292,15 +258,15 @@ class CompilerManager
 				branch name
 					on "Point.cobra"
 						pointClass = ast.topNameSpace.memberForName("Point") to Class
-						assert pointClass.lookupMember("toString")
-						assert pointClass.lookupMember("getHashCode")
+						assert pointClass.memberForName("toString")
+						assert pointClass.memberForName("getHashCode")
 						assert pointClass.name == "Point"
 						assert pointClass.typeForReceiver is pointClass
 						assert pointClass.testMethods.count == 1
-						p = pointClass.lookupMember("x")
+						p = pointClass.memberForName("x")
 						assert p.getType == Property
 						assert p.typeForReceiver inherits IntType
-						m = pointClass.lookupMember("movedBy")
+						m = pointClass.memberForName("movedBy")
 						assert m.getType == Method
 						assert m.typeForReceiver is pointClass
 
@@ -312,11 +278,11 @@ class CompilerManager
 
 					on "FractalBenchmark.cobra"
 						prog = ast.topNameSpace.memberForName("Program") to Class
-						assert prog.lookupMember("bailOut")
-						assert prog.lookupMember("maxIterations")
-						assert prog.lookupMember("mandelbrot")
-						assert prog.lookupMember("calc")
-						assert prog.lookupMember("main")
+						assert prog.memberForName("bailOut")
+						assert prog.memberForName("maxIterations")
+						assert prog.memberForName("mandelbrot")
+						assert prog.memberForName("calc")
+						assert prog.memberForName("main")
 						
 					else
 						# ignore other test files
@@ -392,7 +358,7 @@ class CompilerManager
 				ast = doc.getAst<of CobraModule>
 				astCount += 1
 				name = FileInfo(ast.fileName).name
-				assert doc.errors.count == 1
+				assert doc.errors.count >= 1
 				err = doc.errors[0]
 				errorCount += 1
 				branch name
@@ -402,7 +368,7 @@ class CompilerManager
 						assert err.message == 'Cannot find "Fake".'
 						
 						c = ast.topNameSpace.memberForName("CannotFindType") to Class
-						assert c.lookupMember("method")
+						assert c.memberForName("method")
 						
 					on "NilError.cobra"
 						assert err.region.beginLine == 5
@@ -410,8 +376,8 @@ class CompilerManager
 						assert err.message == 'Cannot return String? because "method" is declared to return a String.'
 						
 						c = ast.topNameSpace.memberForName("NilError") to Class
-						assert c.lookupMember("a")
-						assert c.lookupMember("method")
+						assert c.memberForName("a")
+						assert c.memberForName("method")
 						
 					on "TypeMismatch.cobra"
 						assert err.region.beginLine == 4
@@ -419,13 +385,71 @@ class CompilerManager
 						assert err.message == 'Incompatible types. Cannot assign value of type int on the right to String on the left.'
 
 						c = ast.topNameSpace.memberForName("TypeMismatch") to Class
-						assert c.lookupMember("method")
+						assert c.memberForName("method")
+					
+					on "CyclicalInheritance1.cobra"
+						assert err.region.beginLine == 15
+						assert err.region.beginColumn == 0
+						assert err.message == 'Cyclical inheritance for "C" with ancestor types A, B and back to C.'
+						
+						c = ast.topNameSpace.memberForName("A") to Class
+						assert c.baseClass is ast.topNameSpace.memberForName("B")
+						assert not c.didBindInh
+						assert c.allMembers.count
+						assert c.memberForName('x')
+						
+						c = ast.topNameSpace.memberForName("B") to Class
+						assert c.baseClass is ast.topNameSpace.memberForName("C")
+						assert not c.didBindInh
+						assert c.allMembers.count
+						assert c.memberForName('y')
+						
+						c = ast.topNameSpace.memberForName("C") to Class
+						assert c.baseClass == nil
+						assert not c.didBindInh
+						assert c.allMembers.count
+						assert c.memberForName('z')
+					
+					on "CyclicalInheritance2.cobra"
+						assert doc.errors.count == 2
+						assert doc.errors[0].region.beginLine == 12
+						assert doc.errors[0].region.beginColumn == 0
+						assert doc.errors[0].message == 'Cyclical inheritance for "IFooBar" with ancestor types IFoo and back to IFooBar.'
+						assert doc.errors[1].region.beginLine == 9
+						assert doc.errors[1].region.beginColumn == 0
+						assert doc.errors[1].message == 'Cyclical inheritance for "IBar" with ancestor types IFoo, IFooBar and back to IBar.'
+						
+						i = ast.topNameSpace.memberForName("IFoo") to Interface
+						assert i.baseInterfaces.count == 1
+						assert i.baseInterfaces[0] is ast.topNameSpace.memberForName("IFooBar")
+						assert i.allMembers.count
+						assert i.memberForName('f')
+						
+						i = ast.topNameSpace.memberForName("IBar") to Interface
+						assert i.baseInterfaces.count == 0
+						assert i.allMembers.count
+						assert i.memberForName('b')
+						
+						i = ast.topNameSpace.memberForName("IFooBar") to Interface
+						assert i.baseInterfaces.count == 1
+						assert i.baseInterfaces[0] is ast.topNameSpace.memberForName("IBar")
+						assert i.allMembers.count
+						assert i.memberForName('b')
+						
+						c = ast.topNameSpace.memberForName("FooBar") to Class
+						assert c.didBindInh
+						assert c.baseInterfaces.count == 1
+						assert c.baseInterfaces[0] is i
+						assert c.allMembers.count
+						assert c.memberForName('toString')
+					
 					else
 						# unhandled file, a case should be added for it
 						print "******* You need to add a test case for [name]!"
 						assert false
 					
-			assert testData.count == astCount == errorCount
+			assert testData.count == astCount
+			assert errorCount >= testData.count
 		
 		body
 			if sourceMap.count == 0

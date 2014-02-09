@@ -1,0 +1,16 @@
+class Program
+	def main
+		a = A()
+		b = B()
+		c = C()
+
+		print a, b, c
+
+class A inherits B
+	var x as int
+
+class B inherits C
+	var y as int
+
+class C inherits A
+	var z as int

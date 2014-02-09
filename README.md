@@ -37,7 +37,7 @@ Minimum Requirements
 
 * MonoDevelop or Xamarin Studio 4.2
 
-* Cobra 0.9.6
+* Cobra svn:3012 (post 0.9.6)
 
 Installing the Precompiled Package
 ----------------------------------

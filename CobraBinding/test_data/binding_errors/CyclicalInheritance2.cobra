@@ -1,0 +1,16 @@
+class Program
+	def main
+		foobar = FooBar()
+		print foobar
+
+interface IFoo inherits IFooBar
+	var f as int
+
+interface IBar inherits IFoo
+	var b as int
+
+interface IFooBar inherits IFoo, IBar
+	pass
+
+class FooBar implements IFooBar
+	pass

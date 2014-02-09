@@ -1,10 +1,8 @@
 <SyntaxMode name="Cobra" mimeTypes="text/x-cobra;text/x-plain">
 
 	<Property name="LineComment">#</Property>
-	<Property name="BlockCommentStart">"""</Property>
-	<Property name="BlockCommentEnd">"""</Property>
-	<Property name="BlockCommentStart">'''</Property>
-	<Property name="BlockCommentEnd">'''</Property>
+	<Property name="BlockCommentStart">/#</Property>
+	<Property name="BlockCommentEnd">#/</Property>
 	<Property name="StringQuote">"</Property>
 	<Property name="StringQuote">'</Property>
 
@@ -47,13 +45,24 @@
 	</Span>
 	
 	<!-- Non-substituted Strings -->
-	<Span color="String" escape="\'">
+	<Span color="String" escape="\'|\\">
 		<Begin>ns'</Begin>
 		<End>'</End>
 	</Span>
 	
-	<Span color="String" escape='\"'>
+	<Span color="String" escape='\"|\\'>
 		<Begin>ns"</Begin>
+		<End>"</End>
+	</Span>
+	
+	<!-- Raw Strings -->
+	<Span color="String">
+		<Begin>r'</Begin>
+		<End>'</End>
+	</Span>
+	
+	<Span color="String">
+		<Begin>r"</Begin>
 		<End>"</End>
 	</Span>
 	
@@ -65,24 +74,13 @@
 		</Span>
 	</Rule>
 	
-	<!-- Raw Strings -->
-	<Span color="String" rule="StringExpr">
-		<Begin>r'</Begin>
-		<End>'</End>
-	</Span>
-	
-	<Span color="String" rule="StringExpr">
-		<Begin>r"</Begin>
-		<End>"</End>
-	</Span>
-	
 	<!-- Normal Strings -->
-	<Span color="String" rule="StringExpr" escape='\"'>
+	<Span color="String" rule="StringExpr" escape='\"|\\'>
 		<Begin>"</Begin>
 		<End>"</End>
 	</Span>
 	
-	<Span color="String" rule="StringExpr" escape="\'">
+	<Span color="String" rule="StringExpr" escape="\'|\\">
 		<Begin>'</Begin>
 		<End>'</End>
 	</Span>

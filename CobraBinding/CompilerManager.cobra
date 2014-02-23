@@ -51,6 +51,8 @@ extend Box
 		A helper method to work around race conditions that can occur when calling .allMembers
 		"""
 		try
+			if not .didBindImp
+				.bindAll
 			return .allMembers
 		catch
 			return .declsInOrder
@@ -263,7 +265,12 @@ class CompilerManager
 				assert ast.didBindImp
 				key = CobraLanguageBinding.AddOnKeys.globalNameSpace
 				assert ast.topNameSpace.addOnValues.containsKey(key)
-
+				
+				sysNamespace = ast.getGlobalNamespace.memberForName("System") to NameSpace
+				ioNamespace = sysNamespace.memberForName("IO") to NameSpace
+				fileClass = ioNamespace.memberForName("File") to Class
+				assert fileClass.tryAllMembers.count > 0
+				
 				name =  FileInfo(filePath).name
 				branch name
 					on "Point.cobra"

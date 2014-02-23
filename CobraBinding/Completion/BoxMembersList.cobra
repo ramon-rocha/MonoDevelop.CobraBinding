@@ -46,7 +46,7 @@ class BoxMembersList inherits CobraCompletionList
 		so they are not included in the final list #/
 		_uniqueEntries.add("cue.init")
 		_uniqueEntries.add(ns'[]')
-		_addMembers(b.allMembers, filter)
+		_addMembers(b.tryAllMembers, filter)
 		
 		if b inherits Extension
 			# include the public members from the extended box
@@ -58,7 +58,7 @@ class BoxMembersList inherits CobraCompletionList
 			else
 				publicOnly = do(m as IBoxMember)
 					return "public" in m.isNames
-			_addMembers(b.extendedBox.allMembers, publicOnly)
+			_addMembers(b.extendedBox.tryAllMembers, publicOnly)
 		
 	def _addMembers(members as IBoxMember*, filter as MemberFilter?)
 		"""

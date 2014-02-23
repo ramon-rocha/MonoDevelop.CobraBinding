@@ -297,7 +297,7 @@ class CobraModuleVisitor inherits Cobra.Core.Visitor
 					idMap[nsMember.name] = nsMember
 
 		else if node inherits Box
-			members = node.allMembers
+			members = node.tryAllMembers
 			capacity = members.count
 			idMap = Dictionary<of String, INamedNode>(capacity)
 			for boxMember in members

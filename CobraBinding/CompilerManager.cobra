@@ -44,6 +44,16 @@ extend NameSpace
 		require .isWrappingDefaultNamespace
 		return .declsInOrder.first to NameSpace
 
+extend Box
+	
+	def tryAllMembers as IList<of IBoxMember>
+		"""
+		A helper method to work around race conditions that can occur when calling .allMembers
+		"""
+		try
+			return .allMembers
+		catch
+			return .declsInOrder
 
 class CompilerManager
 	"""

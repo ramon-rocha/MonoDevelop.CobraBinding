@@ -14,7 +14,7 @@ class GeneralBuildOptionsPanel inherits ItemOptionsPanel
 	backend CobraCompilerParameters instance(s).
 	"""
 	
-	shared
+	readonly, shared
 		var _targets = [
 			"Console Application",
 			"Library",

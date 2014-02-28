@@ -101,22 +101,22 @@ class CobraCompilerParameters inherits ConfigurationParameters
 	
 	var _turbo = false
 		has ItemProperty("Turbo", defaultValue = false)
-			
+	
 	var _contracts = "inline"
 		has ItemProperty("Contracts", defaultValue = "inline")
-		
+	
 	var _includeAsserts = true
 		has ItemProperty("IncludeAsserts", defaultValue = true)
-		
+	
 	var _includeNilChecks = true
 		has ItemProperty("IncludeNilChecks", defaultValue = true)
-		
+	
 	var _includeTests = true
 		has ItemProperty("IncludeTests", defaultValue = true)
-		
+	
 	var _includeTraces = true
 		has ItemProperty("IncludeTraces", defaultValue = true)
-		
+	
 	var _optimize = true
 		has ItemProperty("Optimize", defaultValue = true)
 	#endregion Performance and Quality Options
@@ -124,19 +124,19 @@ class CobraCompilerParameters inherits ConfigurationParameters
 	#region Development and Deployment Options
 	var _embedRunTime = false
 		has ItemProperty("EmbedRunTime", defaultValue = false)
-		
+	
 	var _debug = "full"
 		has ItemProperty("Debug", defaultValue = "full")
 	
 	var _number = "decimal"
 		has ItemProperty("Number", defaultValue = "decimal")
-		
+	
 	var _debuggingTips = false
 		has ItemProperty("DebuggingTips", defaultValue = false)
-		
+	
 	var _keepIntermediateFiles = false
 		has ItemProperty("KeepIntermediateFiles", defaultValue = false)
-		
+	
 	var _cobraArgs = ""
 		has ItemProperty("CobraArgs", defaultValue = "")
 	#endregion Development and Deployment Options

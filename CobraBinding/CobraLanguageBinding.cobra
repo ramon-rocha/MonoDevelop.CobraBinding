@@ -28,8 +28,14 @@ class CobraLanguageBinding implements IDotNetLanguageBinding
 		assert binding.isSourceCodeFile(FilePath("test.cobra"))
 		assert not binding.isSourceCodeFile(FilePath("test.cs"))
 	
-	var supportedClrVersions as ClrVersion[] = @[ ClrVersion.Net_4_0, ClrVersion.Net_4_5 ]
-		is shared, readonly
+	readonly, shared
+		var _supportedClrVersions = @[ClrVersion.Net_4_0, ClrVersion.Net_4_5]
+		var _targetArgs = {
+			CompileTarget.Exe : " -target:exe",
+			CompileTarget.Library : " -target:lib",
+			CompileTarget.WinExe : " -target:winexe",
+			CompileTarget.Module : " -target:module"
+		}
 	
 	const languageName = "Cobra"
 	const sourceFileExtension = ".cobra"
@@ -46,17 +52,6 @@ class CobraLanguageBinding implements IDotNetLanguageBinding
 	
 		const globalNameSpace = "MonoDevelop.CobraBinding.AddOnKeys.globalNameSpace"
 		
-	var _targetArgs as Dictionary<of CompileTarget, String>
-	
-	cue init
-		base.init
-		_targetArgs = {
-			CompileTarget.Exe : " -target:exe",
-			CompileTarget.Library : " -target:lib",
-			CompileTarget.WinExe : " -target:winexe",
-			CompileTarget.Module : " -target:module"
-		}
-	
 	get language as String
 		return CobraLanguageBinding.languageName
 		
@@ -73,7 +68,7 @@ class CobraLanguageBinding implements IDotNetLanguageBinding
 		return "md-project"
 		
 	def getSupportedClrVersions as ClrVersion[]
-		return CobraLanguageBinding.supportedClrVersions
+		return _supportedClrVersions
 					
 	def getFileName(fileNameWithoutExtension as FilePath) as FilePath
 		return fileNameWithoutExtension.changeExtension(CobraLanguageBinding.sourceFileExtension)
@@ -275,10 +270,9 @@ class CobraLanguageBinding implements IDotNetLanguageBinding
 	regex testing: http://regexhero.net/tester/
 	or in MonoDevelop go to: Tools > Regex Toolkit...
 	#/
-	shared, readonly
-		var compilerOutputRegex = Regex( _
-			r"(?<fileName>[^\(]+)\((?<lineNum>\d+)(,(?<col>\d+))?\):(\s)+(?<msgType>error|warning)(\s)*:(\s)*(?<msg>[^\r]+)", _
-			RegexOptions.Compiled)
+	var compilerOutputRegex is readonly, shared = Regex( _
+		r"(?<fileName>[^\(]+)\((?<lineNum>\d+)(,(?<col>\d+))?\):(\s)+(?<msgType>error|warning)(\s)*:(\s)*(?<msg>[^\r]+)", _
+		RegexOptions.Compiled)
 
 	def _parseCompilerOutput(compilerOutput as List<of String>) as BuildResult
 		"""

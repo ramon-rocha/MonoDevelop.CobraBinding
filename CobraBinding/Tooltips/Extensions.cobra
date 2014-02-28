@@ -270,7 +270,7 @@ extend INamedNode
 					markup = "[kw] [nameMarkup]([paramMarkup]) as [typeMarkup]"
 					if paramMarkup.length <> 0 and markup.length > 80
 						# too long, break it up into multiple lines
-						markup = markup.replace(paramMarkup, (node to BoxMember).createWrappedParamMarkup)
+						markup = markup.replace(paramMarkup, (node to IBoxMember).createWrappedParamMarkup)
 					return "[markup][trailingMarkup]"
 					
 				else if node inherits Property

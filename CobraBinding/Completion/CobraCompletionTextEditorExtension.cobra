@@ -25,19 +25,109 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 	get completionLanguage as String is override
 		return CobraLanguageBinding.languageName
 	
+	#region cachingSupport
 	shared
-		/#
-		This is used when the current parsed document has errors or
-		the previous parsed document has better information for
-		completion (i.e. bound vs unbound types). It is keyed by fileName.
-		#/
 		var __parsedDocCache = Dictionary<of String, ParsedCobraDocument?>()
+			"""
+			This is used when the current parsed document has errors or
+			the previous parsed document has better information for
+			completion (i.e. bound vs unbound types). It is keyed by fileName.
+			"""
+		
+		get _mdCobraBigProjects as String
+			"""
+			The value of the MD_COBRA_BIG_PROJECTS environment variable or an empty string if not defined
+			"""
+			return Environment.getEnvironmentVariable('MD_COBRA_BIG_PROJECTS') ? ""
+		
+		var __bigProjects as IList<of FilePath>? = nil
+		get _bigProjects as IList<of FilePath>
+			"""
+			The paths to user-defined "big" projects.  Cobra files contained in these
+			projects have special performance considerations.
+			"""
+			ensure
+				__bigProjects <> nil
+				all for path in __bigProjects get path.toString == path.canonicalPath.toString
+			test
+				original = Environment.getEnvironmentVariable('MD_COBRA_BIG_PROJECTS')
+				Environment.setEnvironmentVariable('MD_COBRA_BIG_PROJECTS', nil)
+				__bigProjects = nil
+				assert _bigProjects.count == 0
+
+				# The following should be recongized as a valid path on all platforms I think.  This
+				# keeps our test platform-independent which is always nice.
+				Environment.setEnvironmentVariable('MD_COBRA_BIG_PROJECTS', '/users/nerdzero/documents/projects/Bar.cobraproj')
+				__bigProjects = nil
+				assert _bigProjects.count == 1
+				Environment.setEnvironmentVariable('MD_COBRA_BIG_PROJECTS', original)
+				assert Environment.getEnvironmentVariable('MD_COBRA_BIG_PROJECTS') == original
+			body
+				if __bigProjects == nil
+					__bigProjects = List<of FilePath>()
+					for projectPath in _mdCobraBigProjects.split(Path.pathSeparator)
+						if projectPath.length
+							path = FilePath(projectPath).canonicalPath
+							__bigProjects.add(path)
+				return __bigProjects to !
+	
+		def _isCacheDisabled(projectFilePath as FilePath) as bool
+			"""
+			Returns true if the parsed document cache is disabled for the given project.
+			"""
+			test enabledCache
+				original = Environment.getEnvironmentVariable('MD_COBRA_BIG_PROJECTS')
+				Environment.setEnvironmentVariable('MD_COBRA_BIG_PROJECTS', nil)
+				__bigProjects = nil
+				assert _bigProjects.count == 0
+
+				Environment.setEnvironmentVariable('MD_COBRA_BIG_PROJECTS', nil)
+				__bigProjects = nil
+				assert not _isCacheDisabled(FilePath.empty)
+
+				__bigProjects = nil
+				assert not _isCacheDisabled(FilePath('/users/nerdzero/documents/projects/Foo.cobraproj'))
+
+				Environment.setEnvironmentVariable('MD_COBRA_BIG_PROJECTS', '/users/nerdzero/documents/projects/Bar.cobraproj')
+				__bigProjects = nil
+				assert _bigProjects.count == 1
+				assert not _isCacheDisabled(FilePath('/users/nerdzero/documents/projects/Foo.cobraproj'))
+
+				Environment.setEnvironmentVariable('MD_COBRA_BIG_PROJECTS', original)
+				assert Environment.getEnvironmentVariable('MD_COBRA_BIG_PROJECTS') == original
+			test disabledCache
+				original = Environment.getEnvironmentVariable('MD_COBRA_BIG_PROJECTS')
+				Environment.setEnvironmentVariable('MD_COBRA_BIG_PROJECTS', nil)
+				__bigProjects = nil
+				assert _bigProjects.count == 0
+
+				Environment.setEnvironmentVariable('MD_COBRA_BIG_PROJECTS', '/users/nerdzero/documents/projects/Foo.cobraproj')
+				Environment.setEnvironmentVariable('MD_COBRA_BIG_PROJECTS', "[_mdCobraBigProjects][Path.pathSeparator]/temp/Bar.cobraproj")
+				Environment.setEnvironmentVariable('MD_COBRA_BIG_PROJECTS', "[_mdCobraBigProjects][Path.pathSeparator]/archive/FooBar.cobraproj")
+				__bigProjects = nil
+				assert _bigProjects.count == 3
+				assert _isCacheDisabled(FilePath('/users/nerdzero/documents/projects/Foo.cobraproj'))
+				assert _isCacheDisabled(FilePath('/temp/Bar.cobraproj'))
+				assert _isCacheDisabled(FilePath('/archive/FooBar.cobraproj'))
+				assert not _isCacheDisabled(FilePath('/users/nerdzero/documents/small_projects/Foo.cobraproj'))
+
+				Environment.setEnvironmentVariable('MD_COBRA_BIG_PROJECTS', original)
+				assert Environment.getEnvironmentVariable('MD_COBRA_BIG_PROJECTS') == original
+			body
+				if _bigProjects.count == 0, return false
+				return projectFilePath.canonicalPath in _bigProjects
+	#endregion cachingSupport
 	
 	def _getBestParsedDocument as ParsedCobraDocument?
 		"""
 		Return the last valid parsed document (if any). Prefer a document
 		with a type-bound AST.
 		"""
+		doc = .document
+		if doc <> nil, proj = doc.project
+		if proj <> nil and _isCacheDisabled(proj.fileName)
+			return doc.parsedDocument to ParsedCobraDocument?
+		
 		fileName = .fileName.toString
 		
 		cachedDoc as ParsedCobraDocument? = nil
@@ -46,40 +136,35 @@ class CobraCompletionTextEditorExtension inherits CompletionTextEditorExtension
 			cachedDoc = __parsedDocCache[fileName]
 			cachedAst = cachedDoc.getAst<of CobraModule?>
 		
-		doc = .document
-		if doc == nil
-			return cachedDoc
-		
+		if doc == nil, return cachedDoc
 		parsedDoc = doc.parsedDocument to ParsedCobraDocument?
-		if parsedDoc <> nil
-			if cachedDoc == nil
+		if parsedDoc == nil, return cachedDoc
+		if cachedDoc == nil
+			__parsedDocCache[fileName] = parsedDoc
+			return parsedDoc
+		else
+			# We have a cached document and a current document.
+			# Return the one with a more complete AST.
+			ast = parsedDoc.getAst<of CobraModule?>
+			
+			if ast == nil and cachedAst == nil
 				__parsedDocCache[fileName] = parsedDoc
 				return parsedDoc
+			
+			else if ast == nil and cachedAst <> nil
+				return cachedDoc
+				
+			else if ast <> nil and cachedAst == nil
+				__parsedDocCache[fileName] = parsedDoc
+				return parsedDoc
+			
 			else
-				# We have a cached document and a current document.
-				# Return the one with a more complete AST.
-				ast = parsedDoc.getAst<of CobraModule?>
-				
-				if ast == nil and cachedAst == nil
-					__parsedDocCache[fileName] = parsedDoc
-					return parsedDoc
-				
-				else if ast == nil and cachedAst <> nil
+				# we have two ASTs, prefer the one with less parsing errors
+				if cachedDoc.parseErrorCount < parsedDoc.parseErrorCount
 					return cachedDoc
-					
-				else if ast <> nil and cachedAst == nil
+				else
 					__parsedDocCache[fileName] = parsedDoc
 					return parsedDoc
-				
-				else
-					# we have two ASTs, prefer the one with less parsing errors
-					if cachedDoc.parseErrorCount < parsedDoc.parseErrorCount
-						return cachedDoc
-					else
-						__parsedDocCache[fileName] = parsedDoc
-						return parsedDoc
-		
-		return cachedDoc
 	
 	def _canHandleCodeCompletion(
 			context as CodeCompletionContext?,

@@ -500,7 +500,11 @@ class CompilerManager
 					trace ex
 				
 				doc = TypeSystem.ParsedCobraDocument(fileToBind, sourceMap[fileToBind])
-				doc.add(compiler.errors)
+				if compiler.errors.count <> 0
+					# try to copy the errors to a new list so concurrent operations that don't lock _theConch
+					# (like calls to .bindImp) don't modify the list while we iterate over it in doc.add
+					errors = compiler.errors.toArray to !
+					doc.add(errors)
 	
 				for module in compiler.modules
 					if module.fileName == fileToBind

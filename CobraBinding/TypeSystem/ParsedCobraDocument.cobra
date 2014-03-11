@@ -41,15 +41,14 @@ class ParsedCobraDocument inherits DefaultParsedDocument
 		"""The number of ParserExceptions that exist in this document"""
 	
 	def add(errors as SourceException*)
-		for err in errors
-			try
+		try
+			for err in errors
 				if err.fileName == .fileName _
 				or err.fileName.length == 0
 					.add(err)
-			catch ex as Exception
-				# why does this throw sometimes?
-				trace err.toString
-				print ex.toString
+		catch ex as Exception
+			trace err.toString
+			print ex.toString
 	
 	def add(err as SourceException)
 		col = err.colNum

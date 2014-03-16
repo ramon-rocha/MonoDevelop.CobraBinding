@@ -51,11 +51,22 @@ extend Box
 		A helper method to work around race conditions that can occur when calling .allMembers
 		"""
 		try
-			if not .didBindImp
-				.bindAll
+			if not .didBindImp, .bindAll
 			return .allMembers
 		catch
 			return .declsInOrder
+
+extend IContainer
+	
+	def tryMemberForName(name as String) as IMember?
+		"""
+		A helper method to work around race conditions that can occur when calling .memberForName
+		"""
+		try
+			if not .didBindImp, .bindAll
+			return .memberForName(name)
+		catch
+			return nil
 
 class CompilerManager
 	"""

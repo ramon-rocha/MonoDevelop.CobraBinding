@@ -401,14 +401,14 @@ class ParsedCobraDocument inherits DefaultParsedDocument
 					
 					for useDirective in typ.useDirectives
 						if useDirective.boundNameSpace == nil, continue
-						nsMember = useDirective.boundNameSpace.memberForName(memberName)
+						nsMember = useDirective.boundNameSpace.tryMemberForName(memberName)
 						if nsMember == nil, continue
 						try
 							return _getNodeFromIds(ids[1:], nsMember to ISyntaxNode, containingRegions)
 						catch
 							throw ArgumentException()
 				
-				m = typ.memberForName(memberName)
+				m = typ.tryMemberForName(memberName)
 				if m <> nil
 					return _getNodeFromIds(ids[1:], m to ISyntaxNode, containingRegions)
 				

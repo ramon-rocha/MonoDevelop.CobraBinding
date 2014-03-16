@@ -476,6 +476,7 @@ class CobraBindingAddinInstaller
 			'-compile -copy-core -target:lib -namespace:[name] -out:"bin[__s]Debug[__s][name].dll"'
 		)
 		cobraArgs.append(' -turbo:yes')
+		cobraArgs.append(' -debug:pdbonly')
 		
 		if _verbosity > 0
 			cobraArgs.append(' -verbose -verbosity-ref:[_verbosity]')

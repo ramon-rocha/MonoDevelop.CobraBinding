@@ -51,8 +51,11 @@ class Parser inherits TypeSystemParser implements IFoldingParser
 			parsedDoc = cm.parseAndBind({fileName to ! : source})
 		else
 			parsedDoc = cm.parseAndBind(project to DotNetProject, fileName to !, source)
-
-		_addFolds(parsedDoc)
+		
+		if parsedDoc.errors.count == 0
+			# MonoDevelop doesn't update the folding regions if errors are present in the document
+			_addFolds(parsedDoc)
+		
 		return parsedDoc
 
 	def parse(fileName as String?, content as String?) as ParsedDocument

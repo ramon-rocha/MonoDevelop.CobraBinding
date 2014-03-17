@@ -19,6 +19,7 @@ cobra -test -clr-platform:x86 -color:yes ^
 -ref:pango-sharp.dll ^
 -ref:System.Core ^
 ..\..\CobraLanguageBinding.cobra ^
+..\..\CacheManager.cobra ^
 ..\..\CompilerManager.cobra ^
 ..\..\Project\CobraCompilerParameters.cobra ^
 ..\..\Project\CobraProjectParameters.cobra ^

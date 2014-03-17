@@ -100,6 +100,7 @@
     <Compile Include="Completion\CobraCompletionTextEditorExtension.cobra" />
     <Compile Include="TypeSystem\CobraModuleVisitor.cobra" />
     <Compile Include="TypeSystem\ParsedCobraDocument.cobra" />
+    <Compile Include="CacheManager.cobra" />
     <Compile Include="CompilerManager.cobra" />
     <Compile Include="Completion\Icons.cobra" />
     <Compile Include="Completion\DataFactory.cobra" />

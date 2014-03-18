@@ -63,7 +63,8 @@ extend IContainer
 		A helper method to work around race conditions that can occur when calling .memberForName
 		"""
 		try
-			if not .didBindImp, .bindAll
+			if this inherits Box and not .didBindImp
+				.bindAll
 			return .memberForName(name)
 		catch
 			return nil

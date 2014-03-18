@@ -198,10 +198,11 @@ class CompilerManager
 
 			doc = MonoDevelop.Ide.IdeApp.workbench.getDocument(path)
 			if doc == nil
-			    # file is not open, read it from disk
-				sourceMap[path] = StreamReader(path).readToEnd ? ""
+				# file is not open, read it from disk
+				using reader = StreamReader(path)
+					sourceMap[path] = reader.readToEnd ? ""
 			else
-			    # file is open in editor, read it from memory
+				# file is open in editor, read it from memory
 				sourceMap[path] = doc.editor.text ? ""
 		
 		numberOption = "decimal"

@@ -134,8 +134,7 @@ class CompilerManager
 
 			if doc == nil
 				# file is not open, read it from disk
-				using reader = StreamReader(path)
-					sourceMap[path] = reader.readToEnd ? ""
+				sourceMap[path] = File.readAllText(path)
 			else
 				# file is open in editor, read it from memory
 				sourceMap[path] = doc.editor.text ? ""

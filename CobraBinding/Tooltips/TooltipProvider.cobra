@@ -140,20 +140,16 @@ class TooltipProvider inherits Mono.TextEditor.TooltipProvider
 		"""
 		Returns data to be used to create a tooltip for the given document position.
 		"""
-		if editor == nil
-			return nil
+		if editor == nil, return nil
 		
 		txtDoc = editor.document
-		if txtDoc == nil
-			return nil
+		if txtDoc == nil, return nil
 		
 		doc = Ide.IdeApp.workbench.getDocument(txtDoc.fileName)
-		if doc == nil _
-		or doc.parsedDocument == nil _
-		or not doc.parsedDocument inherits ParsedCobraDocument
-			return nil
+		if doc == nil, return nil
 		
-		parsedDoc = doc.parsedDocument to ParsedCobraDocument
+		parsedDoc = doc.getBestParsedDocument
+		if parsedDoc == nil, return nil
 		
 		if parsedDoc.isInsideComment(offset, txtDoc to !)
 			return nil

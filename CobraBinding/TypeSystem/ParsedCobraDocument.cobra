@@ -411,35 +411,6 @@ class ParsedCobraDocument inherits DefaultParsedDocument
 				m = typ.tryMemberForName(memberName)
 				if m <> nil
 					return _getNodeFromIds(ids[1:], m to ISyntaxNode, containingRegions)
-				
-				# a non-thread safe compiler means this code breaks more often than it works
-				# so we aren't going to use it yet
-				/#
-				else if typ inherits Box
-					# it might be an extension method
-					nodeMap = .createNodeMap
-					if nodeMap == nil, return nil
-
-					# check the current namespace
-					ns = .getContainingNameSpace(containingRegions, nodeMap to !)
-					m = _findExtensionMember(ns, typ, memberName)
-					if m <> nil
-						return _getNodeFromIds(ids[1:], m to ISyntaxNode, containingRegions)
-					
-					# check used namespaces
-					ast as CobraModule = .getAst<of CobraModule>
-					topNs = ast.getDefaultNamespace
-					for useDirective in topNs.useDirectives
-						m = _findExtensionMember(useDirective.boundNameSpace, typ, memberName)
-						if m <> nil
-							return _getNodeFromIds(ids[1:], m to ISyntaxNode, containingRegions)
-					
-					if ns.fullName <> topNs.fullName
-						# check the default namespace
-						m = _findExtensionMember(topNs, typ, memberName)
-						if m <> nil
-							return _getNodeFromIds(ids[1:], m to ISyntaxNode, containingRegions)
-				#/	
 			else
 				print "[parent.typeForReceiver.name] does not implement IContainer"
 				print "Add a case for [parent.typeForReceiver.toString]\n"
@@ -447,29 +418,6 @@ class ParsedCobraDocument inherits DefaultParsedDocument
 		# no node found
 		return nil
 	
-	def _findExtensionMember(ns as NameSpace?, b as Box, memberName as String) as Cobra.Compiler.IMember?
-		"""
-		Helper method for _getNodeFromIds
-		"""
-		if ns == nil
-			return nil
-		
-		# use the unified namespace unless it's global because then it takes too long
-		if not ns.isUnified and ns.unifiedNameSpace <> nil and ns.fullName <> "global"
-			ns = ns.unifiedNameSpace
-		
-		for d in ns.declsInOrder
-			if not d inherits Extension, continue
-			ext = d to Extension
-			if ext.extendedBox == nil _
-			or not b.isAssignableTo(ext.extendedBox to !)
-				continue
-			
-			m = ext.memberForName(memberName)
-			if m <> nil
-				return m
-		
-		return nil
 		
 	def isInsideComment(offset as int, txtDoc as TextDocument) as bool
 		"""

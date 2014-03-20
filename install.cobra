@@ -63,6 +63,7 @@ class CobraBindingAddinInstaller
 		"CobraLanguageBinding.cobra",
 		"CacheManager.cobra",
 		"CompilerManager.cobra",
+		"Extensions.cobra",
 		"Project[__s]CobraCompilerParameters.cobra",
 		"Project[__s]CobraProjectParameters.cobra",
 		"Project[__s]CompilerBuildOptionsPanel.cobra",

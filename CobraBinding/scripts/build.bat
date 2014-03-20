@@ -25,6 +25,7 @@ cobra -compile -v -timeit -target:lib -out:"..\\..\\bin\\Debug\\MonoDevelop.Cobr
 ..\..\CobraLanguageBinding.cobra ^
 ..\..\CacheManager.cobra ^
 ..\..\CompilerManager.cobra ^
+..\..\Extensions.cobra ^
 ..\..\Project\CobraCompilerParameters.cobra ^
 ..\..\Project\CobraProjectParameters.cobra ^
 ..\..\Project\CompilerBuildOptionsPanel.cobra ^

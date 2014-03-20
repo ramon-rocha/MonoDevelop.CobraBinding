@@ -1,0 +1,70 @@
+﻿use Cobra.Compiler
+
+extend CobraModule
+
+	def getDefaultNamespace as NameSpace
+		"""
+		If the -namespace option was used, then returns the node for that
+		namespace.  Otherwise, the non-unified global namespace is returned.
+		"""
+		if .topNameSpace.isWrappingDefaultNamespace
+			return .topNameSpace.wrappedNamespace
+		return .topNameSpace
+
+	def getGlobalNamespace as NameSpace
+		ns = .topNameSpace
+		key = CobraLanguageBinding.AddOnKeys.globalNameSpace
+		if ns.addOnValues.containsKey(key)
+			return ns.addOnValues[key] to NameSpace
+		return ns.unifiedNameSpace ? ns
+
+
+extend NameSpace
+	
+	def isWrappingDefaultNamespace as bool
+		"""
+		When the -namespace option is passed to the compiler, the current
+		module's toplevelNamespace is wrapped with a new namespace node.
+
+		This extension method returns true if this node is wrapping the
+		default namespace node.
+		"""
+		if .fullName <> "global"
+			return false
+		
+		# if the only decl we have is a NameSpace with an empty token, then we are a wrapper
+		if .declsInOrder.count <> 1
+			return false
+		
+		decl = .declsInOrder.first
+		return decl inherits NameSpace and decl.token.isEmpty
+	
+	
+	def wrappedNamespace as NameSpace
+		require .isWrappingDefaultNamespace
+		return .declsInOrder.first to NameSpace
+
+extend Box
+	
+	def tryAllMembers as IList<of IBoxMember>
+		"""
+		A helper method to work around race conditions that can occur when calling .allMembers
+		"""
+		try
+			if not .didBindImp, .bindAll
+			return .allMembers
+		catch
+			return .declsInOrder
+
+extend IContainer
+	
+	def tryMemberForName(name as String) as IMember?
+		"""
+		A helper method to work around race conditions that can occur when calling .memberForName
+		"""
+		try
+			if this inherits Box and not .didBindImp
+				.bindAll
+			return .memberForName(name)
+		catch
+			return nil

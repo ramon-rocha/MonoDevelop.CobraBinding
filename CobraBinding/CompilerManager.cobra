@@ -194,10 +194,13 @@ class CompilerManager
 			if projFile.buildAction <> MonoDevelop.Projects.BuildAction.compile, continue
 			
 			path = projFile.filePath.toString
-			if path == fileName _
-			or not path.endsWith(CobraLanguageBinding.sourceFileExtension), continue
+			if not path.endsWith(CobraLanguageBinding.sourceFileExtension), continue
 
 			doc = MonoDevelop.Ide.IdeApp.workbench.getDocument(path)
+			if path == fileName
+				docToParse = doc
+				continue
+
 			if doc == nil
 				# file is not open, read it from disk
 				using reader = StreamReader(path)
@@ -211,7 +214,7 @@ class CompilerManager
 			params = config.compilationParameters to Project.CobraCompilerParameters
 			numberOption = params.number
 		
-		return _parseAndBind(sourceMap, refs, fileName, project.defaultNamespace, numberOption)
+		return _parseAndBind(sourceMap, refs, fileName, project.defaultNamespace, numberOption, docToParse)
 	
 
 	def parseAndBind(
@@ -250,7 +253,8 @@ class CompilerManager
 			refs as List<of String>,
 			fileToBind as String,
 			rootNamespace as String? = nil,
-			numberOption as String = "decimal"
+			numberOption as String = "decimal",
+			documentToParse as MonoDevelop.Ide.Gui.Document? = nil
 		) as TypeSystem.ParsedCobraDocument
 		"""
 		Runs select phases of the Cobra compiler.
@@ -258,6 +262,10 @@ class CompilerManager
 		The sourceMap is a dictionary whose values are source file contents keyed
 		by filename.
 		"""
+		require
+			documentToParse <> nil implies documentToParse.fileName.toString == fileToBind
+			documentToParse <> nil and documentToParse.parsedDocument <> nil implies _
+				documentToParse.parsedDocument inherits TypeSystem.ParsedCobraDocument
 		test validFiles
 			# Valid files produce fully bound ASTs without any errors.
 			
@@ -491,6 +499,16 @@ class CompilerManager
 				params.files.add(FileSpec(fileName, sourceCode))
 			
 			lock _theConch
+				if documentToParse <> nil
+					activeDocument = MonoDevelop.Ide.IdeApp.workbench.activeDocument
+					if documentToParse is not activeDocument
+						# the user has changed tabs or no documents are open, don't bother parsing this document
+						alreadyParsedDoc = documentToParse.parsedDocument to TypeSystem.ParsedCobraDocument?
+						if alreadyParsedDoc <> nil
+							return alreadyParsedDoc
+						else
+							return TypeSystem.ParsedCobraDocument(fileToBind, sourceMap[fileToBind])
+				
 				compiler = __createCompiler
 				compiler.options['reference'] = refs
 				compiler.options['number'] = numberOption
@@ -518,7 +536,7 @@ class CompilerManager
 					# (like calls to .bindImp) don't modify the list while we iterate over it in doc.add
 					errors = compiler.errors.toArray to !
 					doc.add(errors)
-	
+				
 				for module in compiler.modules
 					if module.fileName == fileToBind
 						doc.add(module to CobraModule)

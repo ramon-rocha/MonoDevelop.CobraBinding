@@ -50,8 +50,16 @@ class CompilerManager
 				_instance = CompilerManager()
 			return _instance to !
 			
-		# only the thread holding the conch can use the compiler
-		var _theConch = Object()
+		var _compilerAccess = Object()
+			"""
+			Lock on this object to sequence parse/bind requests and prevent
+			different instances of the Cobra compiler from interferring with
+			each other.
+			
+			NOTE: Never talk to CacheManager in any method of this class
+			unless you have locked on this object, otherwise you are inviting
+			deadlocks.
+			"""
 		
 		# the compiler phases we want to run for all files
 		var _phaseTypes = @[
@@ -74,7 +82,7 @@ class CompilerManager
 		"""
 		Returns a fresh instance of the compiler.
 		
-		Should only be called if we have _theConch.
+		Should only be called if we have _compilerAccess.
 		"""
 		compiler = Compiler(0) # verbosity = 0
 		
@@ -105,46 +113,47 @@ class CompilerManager
 
 		'fileName' is the name of the file to bind and 'source' is the source code contained in that file.
 		"""
-		sourceMap = Dictionary<of String, String>(project.files.count)
-		sourceMap[fileName] = source
-
-		# we need to include the paths to any referenced assemblies
-		configSelector = MonoDevelop.Ide.IdeApp.workspace.activeConfiguration
-		config = project.getConfiguration(configSelector) to MonoDevelop.Projects.DotNetProjectConfiguration?
-		if config == nil
-			configSelector = MonoDevelop.Projects.ConfigurationSelector.default
-			config = project.defaultConfiguration to MonoDevelop.Projects.DotNetProjectConfiguration?
-		
-		refs = List<of String>(project.references.count)
-		for projRef in project.references
-			refs.addRange(projRef.getReferencedFileNames(configSelector))
-		
-		# to generate a full AST, we need all the Cobra source files in this project
-		for projFile in project.files
+		lock _compilerAccess
+			sourceMap = Dictionary<of String, String>(project.files.count)
+			sourceMap[fileName] = source
+	
+			# we need to include the paths to any referenced assemblies
+			configSelector = MonoDevelop.Ide.IdeApp.workspace.activeConfiguration
+			config = project.getConfiguration(configSelector) to MonoDevelop.Projects.DotNetProjectConfiguration?
+			if config == nil
+				configSelector = MonoDevelop.Projects.ConfigurationSelector.default
+				config = project.defaultConfiguration to MonoDevelop.Projects.DotNetProjectConfiguration?
 			
-			if projFile.buildAction <> MonoDevelop.Projects.BuildAction.compile, continue
+			refs = List<of String>(project.references.count)
+			for projRef in project.references
+				refs.addRange(projRef.getReferencedFileNames(configSelector))
 			
-			path = projFile.filePath.toString
-			if not path.endsWith(CobraLanguageBinding.sourceFileExtension), continue
-
-			doc = MonoDevelop.Ide.IdeApp.workbench.getDocument(path)
-			if path == fileName
-				docToParse = doc
-				continue
-
-			if doc == nil
-				# file is not open, read it from disk
-				sourceMap[path] = File.readAllText(path)
-			else
-				# file is open in editor, read it from memory
-				sourceMap[path] = doc.editor.text ? ""
-		
-		numberOption = "decimal"
-		if config <> nil
-			params = config.compilationParameters to Project.CobraCompilerParameters
-			numberOption = params.number
-		
-		return _parseAndBind(sourceMap, refs, fileName, project.defaultNamespace, numberOption, docToParse)
+			# to generate a full AST, we need all the Cobra source files in this project
+			for projFile in project.files
+				
+				if projFile.buildAction <> MonoDevelop.Projects.BuildAction.compile, continue
+				
+				path = projFile.filePath.toString
+				if not path.endsWith(CobraLanguageBinding.sourceFileExtension), continue
+	
+				doc = MonoDevelop.Ide.IdeApp.workbench.getDocument(path)
+				if path == fileName
+					docToParse = doc
+					continue
+	
+				if doc == nil
+					# file is not open, read it from disk
+					sourceMap[path] = File.readAllText(path)
+				else
+					# file is open in editor, read it from memory
+					sourceMap[path] = doc.editor.text ? ""
+			
+			numberOption = "decimal"
+			if config <> nil
+				params = config.compilationParameters to Project.CobraCompilerParameters
+				numberOption = params.number
+			
+			return _parseAndBind(sourceMap, refs, fileName, project.defaultNamespace, numberOption, docToParse)
 	
 
 	def parseAndBind(
@@ -157,7 +166,8 @@ class CompilerManager
 		The sourceMap is a dictionary whose values are source file contents keyed
 		by filename.
 		"""
-		return _parseAndBind(sourceMap, List<of String>(), fileToBind)
+		lock _compilerAccess
+			return _parseAndBind(sourceMap, List<of String>(), fileToBind)
 	
 
 	def parseAndBind(sourceMap as Dictionary<of String, String>) as TypeSystem.ParsedCobraDocument
@@ -167,7 +177,8 @@ class CompilerManager
 		The sourceMap is a dictionary whose values are source file contents keyed
 		by filename.
 		"""
-		return .parseAndBind(sourceMap, sourceMap.first.key)
+		lock _compilerAccess
+			return .parseAndBind(sourceMap, sourceMap.first.key)
 	
 	def parseAndBind(
 			rootNamespace as String?,
@@ -176,7 +187,8 @@ class CompilerManager
 		"""
 		This overload is for supporting test methods
 		"""
-		return _parseAndBind(sourceMap, List<of String>(), sourceMap.keys.first, rootNamespace)
+		lock _compilerAccess
+			return _parseAndBind(sourceMap, List<of String>(), sourceMap.keys.first, rootNamespace)
 	
 	def _parseAndBind(
 			sourceMap as Dictionary<of String, String>,
@@ -420,15 +432,15 @@ class CompilerManager
 			assert errorCount >= testData.count
 		
 		body
-			if sourceMap.count == 0
-				# nothing to do
-				return TypeSystem.ParsedCobraDocument(fileToBind, "")
+			lock _compilerAccess
+				if sourceMap.count == 0
+					# nothing to do
+					return TypeSystem.ParsedCobraDocument(fileToBind, "")
+					
+				params = CompileParams()
+				for fileName, sourceCode in sourceMap
+					params.files.add(FileSpec(fileName, sourceCode))
 				
-			params = CompileParams()
-			for fileName, sourceCode in sourceMap
-				params.files.add(FileSpec(fileName, sourceCode))
-			
-			lock _theConch
 				if documentToParse <> nil
 					activeDocument = MonoDevelop.Ide.IdeApp.workbench.activeDocument
 					if documentToParse is not activeDocument
@@ -450,6 +462,12 @@ class CompilerManager
 					params.phases.add(phaseType(compiler))
 				params.phases.add(.CustomBindImplementationPhase(compiler, fileToBind))
 				
+				# Before we start compiling, check to see if we are using
+				# too much memory and need to help out the garbage collector.
+				# Otherwise we may run of out of memory for large projects
+				# with many documents open.
+				if _isAboveMemoryThreshold, _clearParsedDocuments
+				
 				try
 					compiler.compile(params)
 				catch StopCompilation
@@ -462,7 +480,7 @@ class CompilerManager
 				
 				doc = TypeSystem.ParsedCobraDocument(fileToBind, sourceMap[fileToBind])
 				if compiler.errors.count <> 0
-					# try to copy the errors to a new list so concurrent operations that don't lock _theConch
+					# try to copy the errors to a new list so concurrent operations that don't lock _compilerAccess
 					# (like calls to .bindImp) don't modify the list while we iterate over it in doc.add
 					errors = compiler.errors.toArray to !
 					doc.add(errors)
@@ -471,7 +489,38 @@ class CompilerManager
 					if module.fileName == fileToBind
 						doc.add(module to CobraModule)
 				
-			return doc
+				if doc.errors.count == 0
+					CacheManager.addCachedDocument(doc)
+				
+				return doc
+	
+	
+	def _isAboveMemoryThreshold as bool
+		# arrived at somewhat arbitrary value of 768 after some manual testing.
+		# lower value was too agressive and a higher value caused Out-of-memory exceptions.
+		mb = 1024 * 1024
+		return GC.getTotalMemory(false) > 768 * mb
+	
+	
+	def _clearParsedDocuments
+		"""
+		Manually release inactive ASTs and other info; then manually invoke the garbage collector.
+		
+		Send hate mail to ra.rocha.jr@gmail.com but only if you have a better solution kthxbai
+		"""
+		try
+			workbench = MonoDevelop.Ide.IdeApp.workbench
+			activeDocument = workbench.activeDocument
+			documents = workbench.documents.toList
+			for openDocument in documents
+				if openDocument is activeDocument, continue
+				parsedDoc = openDocument.parsedDocument to TypeSystem.ParsedCobraDocument?
+				if parsedDoc <> nil, parsedDoc.clear
+		catch ex as Exception
+			trace ex
+		finally
+			GC.collect
+			GC.waitForPendingFinalizers
 
 
 	shared

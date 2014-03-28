@@ -573,8 +573,21 @@ class ParsedCobraDocument inherits DefaultParsedDocument
 			if containingNS.isWrappingDefaultNamespace
 				containingNS = containingNS.wrappedNamespace
 			return containingNS
-
-
+	
+	def clear
+		"""
+		Wipe all internal data structures
+		"""
+		# calling this method is probably a good way to break other threads...
+		_regionMap = nil
+		_symbolTable = nil
+		.ast = nil
+		foldings = .foldings
+		if foldings implements IList<of FoldingRegion>
+			foldings.clear
+		if .errors, .errors.clear
+		if .comments, .comments.clear
+		
 
 	shared
 		def createTestData as ParsedCobraDocument

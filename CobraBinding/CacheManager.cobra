@@ -1,8 +1,6 @@
 ﻿
 use Cobra.Compiler
 
-use System.Collections.Concurrent
-
 use TypeSystem
 
 use MonoDevelop.Core
@@ -15,39 +13,34 @@ extend Document
 		Return the last valid parsed document (if any). Prefer a document
 		with a type-bound AST.
 		"""
-		if CacheManager.isCacheDisabled(this)
-			return .parsedDocument to ParsedCobraDocument?
-		
 		fileName = .fileName.toString
-		
 		cachedDoc as ParsedCobraDocument? = CacheManager.getCachedDocument(fileName)
 		cachedAst as CobraModule? = nil
 		if cachedDoc <> nil, cachedAst = cachedDoc.getAst<of CobraModule?>
 		
 		parsedDoc = .parsedDocument to ParsedCobraDocument?
 		if parsedDoc == nil, return cachedDoc
-		if cachedDoc == nil
+		if cachedDoc == nil, return CacheManager.addCachedDocument(parsedDoc to !)
+		
+		# We have a cached document and a current document.
+		# Return the one with a more complete AST.
+		ast = parsedDoc.getAst<of CobraModule?>
+		
+		if ast == nil and cachedAst == nil
 			return CacheManager.addCachedDocument(parsedDoc to !)
+		
+		else if ast == nil and cachedAst <> nil
+			return cachedDoc
+			
+		else if ast <> nil and cachedAst == nil
+			return CacheManager.addCachedDocument(parsedDoc to !)
+		
+		# we have two ASTs, prefer the one with less parsing errors
+		if cachedDoc.parseErrorCount < parsedDoc.parseErrorCount
+			return cachedDoc
 		else
-			# We have a cached document and a current document.
-			# Return the one with a more complete AST.
-			ast = parsedDoc.getAst<of CobraModule?>
-			
-			if ast == nil and cachedAst == nil
-				return CacheManager.addCachedDocument(parsedDoc to !)
-			
-			else if ast == nil and cachedAst <> nil
-				return cachedDoc
-				
-			else if ast <> nil and cachedAst == nil
-				return CacheManager.addCachedDocument(parsedDoc to !)
-			
-			else
-				# we have two ASTs, prefer the one with less parsing errors
-				if cachedDoc.parseErrorCount < parsedDoc.parseErrorCount
-					return cachedDoc
-				else
-					return CacheManager.addCachedDocument(parsedDoc to !)
+			return CacheManager.addCachedDocument(parsedDoc to !)
+
 
 class CacheManager
 
@@ -55,106 +48,71 @@ class CacheManager
 		base.init
 
 	shared
-		var __parsedDocCache = ConcurrentDictionary<of String, ParsedCobraDocument?>()
+		var _cacheAccess = Object()
 			"""
-			This can be used when the current parsed document has errors or
-			the previous parsed document has better information for
-			completion (i.e. bound vs unbound types). It is keyed by fileName.
+			Lock on this object before accessing _docs.
+			
+			NOTE: Never talk to CompilerManager from any method
+			in this class after locking on this object. This could
+			result in a deadlock.
+			"""
+		
+		var _docs = Dictionary<of String, ParsedCobraDocument>(3)
+			"""
+			The two documents that were most recently parsed by the compiler.
 			"""
 		
 		def getCachedDocument(filename as String) as ParsedCobraDocument?
-			document as ParsedCobraDocument? = nil
-			__parsedDocCache.tryGetValue(filename, out document)
-			return document
+			lock _cacheAccess
+				document as ParsedCobraDocument? = nil
+				_docs.tryGetValue(filename, out document)
+				return document
 		
 		def addCachedDocument(document as ParsedCobraDocument) as ParsedCobraDocument
-			__parsedDocCache[document.fileName] = document
-			return document
+			ensure _docs.count <= 2
+			lock _cacheAccess
+				_docs[document.fileName] = document
+				if _docs.count > 2, _removeOldestDocument
+				return document
 		
-		get _mdCobraBigProjects as String
-			"""
-			The value of the MD_COBRA_BIG_PROJECTS environment variable or an empty string if not defined
-			"""
-			return Environment.getEnvironmentVariable('MD_COBRA_BIG_PROJECTS') ? ""
-		
-		var __bigProjects as IList<of FilePath>? = nil
-		get _bigProjects as IList<of FilePath>
-			"""
-			The paths to user-defined "big" projects.  Cobra files contained in these
-			projects have special performance considerations.
-			"""
+		def _removeOldestDocument
+			require
+				_docs.count > 2
 			ensure
-				__bigProjects <> nil
-				all for path in __bigProjects get path.toString == path.canonicalPath.toString
+				_docs.count == 2
 			test
-				original = Environment.getEnvironmentVariable('MD_COBRA_BIG_PROJECTS')
-				Environment.setEnvironmentVariable('MD_COBRA_BIG_PROJECTS', nil)
-				__bigProjects = nil
-				assert _bigProjects.count == 0
-	
-				# The following should be recongized as a valid path on all platforms I think.  This
-				# keeps our test platform-independent which is always nice.
-				Environment.setEnvironmentVariable('MD_COBRA_BIG_PROJECTS', '/users/nerdzero/documents/projects/Bar.cobraproj')
-				__bigProjects = nil
-				assert _bigProjects.count == 1
-				Environment.setEnvironmentVariable('MD_COBRA_BIG_PROJECTS', original)
-				assert Environment.getEnvironmentVariable('MD_COBRA_BIG_PROJECTS') == original
+				CacheManager.addCachedDocument(ParsedCobraDocument("foo", "old"))
+				CacheManager.addCachedDocument(ParsedCobraDocument("bar", "old"))
+				CacheManager.addCachedDocument(ParsedCobraDocument("foo", "new"))
+				assert CacheManager.getCachedDocument("bar").content == "old"
+				assert CacheManager.getCachedDocument("foo").content == "new"
+				
+				CacheManager.addCachedDocument(ParsedCobraDocument("bar", "new"))
+				assert CacheManager.getCachedDocument("foo").content == "new"
+				assert CacheManager.getCachedDocument("bar").content == "new"
+				
+				CacheManager.addCachedDocument(ParsedCobraDocument("somethingElse", "old"))
+				CacheManager.addCachedDocument(ParsedCobraDocument("somethingElse", "new"))
+				assert CacheManager.getCachedDocument("somethingElse").content == "new"
+				assert CacheManager.getCachedDocument("bar").content == "new"
+				assert CacheManager.getCachedDocument("foo") == nil
 			body
-				if __bigProjects == nil
-					__bigProjects = List<of FilePath>()
-					for projectPath in _mdCobraBigProjects.split(Path.pathSeparator)
-						if projectPath.length
-							path = FilePath(projectPath).canonicalPath
-							__bigProjects.add(path)
-				return __bigProjects to !
+				docs = for kv in _docs get kv.value
+				oldestDoc = docs.first
+				for d in docs
+					if d.lastWriteTimeUtc < oldestDoc.lastWriteTimeUtc
+						oldestDoc = d
+				_docs.remove(oldestDoc.fileName)
 		
-		def isCacheDisabled(doc as MonoDevelop.Ide.Gui.Document?) as bool
-			if doc == nil, return false
-			proj = doc.project
-			return proj <> nil and .isCacheDisabled(proj.fileName)
-	
-		def isCacheDisabled(projectFilePath as FilePath) as bool
-			"""
-			Returns true if the parsed document cache is disabled for the given project.
-			"""
-			test enabledCache
-				original = Environment.getEnvironmentVariable('MD_COBRA_BIG_PROJECTS')
-				Environment.setEnvironmentVariable('MD_COBRA_BIG_PROJECTS', nil)
-				__bigProjects = nil
-				assert _bigProjects.count == 0
-	
-				Environment.setEnvironmentVariable('MD_COBRA_BIG_PROJECTS', nil)
-				__bigProjects = nil
-				assert not .isCacheDisabled(FilePath.empty)
-	
-				__bigProjects = nil
-				assert not .isCacheDisabled(FilePath('/users/nerdzero/documents/projects/Foo.cobraproj'))
-	
-				Environment.setEnvironmentVariable('MD_COBRA_BIG_PROJECTS', '/users/nerdzero/documents/projects/Bar.cobraproj')
-				__bigProjects = nil
-				assert _bigProjects.count == 1
-				assert not .isCacheDisabled(FilePath('/users/nerdzero/documents/projects/Foo.cobraproj'))
-	
-				Environment.setEnvironmentVariable('MD_COBRA_BIG_PROJECTS', original)
-				assert Environment.getEnvironmentVariable('MD_COBRA_BIG_PROJECTS') == original
-			test disabledCache
-				original = Environment.getEnvironmentVariable('MD_COBRA_BIG_PROJECTS')
-				Environment.setEnvironmentVariable('MD_COBRA_BIG_PROJECTS', nil)
-				__bigProjects = nil
-				assert _bigProjects.count == 0
-	
-				Environment.setEnvironmentVariable('MD_COBRA_BIG_PROJECTS', '/users/nerdzero/documents/projects/Foo.cobraproj')
-				Environment.setEnvironmentVariable('MD_COBRA_BIG_PROJECTS', "[_mdCobraBigProjects][Path.pathSeparator]/temp/Bar.cobraproj")
-				Environment.setEnvironmentVariable('MD_COBRA_BIG_PROJECTS', "[_mdCobraBigProjects][Path.pathSeparator]/archive/FooBar.cobraproj")
-				__bigProjects = nil
-				assert _bigProjects.count == 3
-				assert .isCacheDisabled(FilePath('/users/nerdzero/documents/projects/Foo.cobraproj'))
-				assert .isCacheDisabled(FilePath('/temp/Bar.cobraproj'))
-				assert .isCacheDisabled(FilePath('/archive/FooBar.cobraproj'))
-				assert not .isCacheDisabled(FilePath('/users/nerdzero/documents/small_projects/Foo.cobraproj'))
-	
-				Environment.setEnvironmentVariable('MD_COBRA_BIG_PROJECTS', original)
-				assert Environment.getEnvironmentVariable('MD_COBRA_BIG_PROJECTS') == original
-			body
-				if _bigProjects.count == 0, return false
-				return projectFilePath.canonicalPath in _bigProjects
+		def clear
+			CacheManager.addCachedDocument(ParsedCobraDocument("a", "A"))
+			CacheManager.addCachedDocument(ParsedCobraDocument("b", "B"))
+			assert CacheManager.getCachedDocument("a") <> nil
+			assert CacheManager.getCachedDocument("b") <> nil
+			assert CacheManager.getCachedDocument("c") == nil
+			CacheManager.clear
+			assert CacheManager.getCachedDocument("a") == nil
+			assert CacheManager.getCachedDocument("b") == nil
+			assert CacheManager.getCachedDocument("c") == nil
+			lock _cacheAccess
+				_docs.clear

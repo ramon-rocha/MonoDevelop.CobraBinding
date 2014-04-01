@@ -583,7 +583,7 @@ class ParsedCobraDocument inherits DefaultParsedDocument
 		_symbolTable = nil
 		.ast = nil
 		foldings = .foldings
-		if foldings implements IList<of FoldingRegion>
+		if foldings inherits List<of FoldingRegion>
 			foldings.clear
 		if .errors, .errors.clear
 		if .comments, .comments.clear

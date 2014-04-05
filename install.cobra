@@ -75,6 +75,7 @@ class CobraBindingAddinInstaller
 		"Tooltips[__s]Extensions.cobra",
 		"Tooltips[__s]TooltipProvider.cobra",
 		"Tooltips[__s]KeywordData.cobra",
+		"Formatting[__s]CobraIndentationTextEditorExtension.cobra",
 		"Completion[__s]CobraCompletionList.cobra",
 		"Completion[__s]CobraCompletionTextEditorExtension.cobra",
 		"Completion[__s]CobraParameterDataProvider.cobra",

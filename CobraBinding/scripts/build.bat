@@ -34,6 +34,7 @@ cobra -compile -v -timeit -target:lib -out:"..\\..\\bin\\Debug\\MonoDevelop.Cobr
 ..\..\TypeSystem\LineInformation.cobra ^
 ..\..\TypeSystem\ParsedCobraDocument.cobra ^
 ..\..\TypeSystem\Parser.cobra ^
+..\..\Formatting\CobraIndentationTextEditorExtension.cobra ^
 ..\..\Completion\BoxMembersList.cobra ^
 ..\..\Completion\CobraCompletionList.cobra ^
 ..\..\Completion\CobraCompletionTextEditorExtension.cobra ^

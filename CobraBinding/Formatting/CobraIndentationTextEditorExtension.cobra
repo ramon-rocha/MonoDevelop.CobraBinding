@@ -1,0 +1,70 @@
+﻿
+use Mono.TextEditor
+
+use MonoDevelop.Ide.Gui.Content
+use MonoDevelop.Ide.CodeCompletion
+
+namespace Formatting
+
+class CobraIndentationTextEditorExtension inherits TextEditorExtension
+	"""
+	Processes key presses and determines whether or not to indent the current line of code.
+	"""
+	
+	sig BoolClosure as bool
+	
+	def keyPress(key as Gdk.Key, keyChar as char, modifier as Gdk.ModifierType) as bool is override
+		
+		defaultAction as BoolClosure = do
+			return base.keyPress(key, keyChar, modifier)
+		
+		# for now, we'll only have special behavior for the Tab key
+		if key <> Gdk.Key.Tab
+			return defaultAction.invoke
+		
+		# beyond this point we can be assured that the Tab key has been pressed
+		
+		if CompletionWindowManager.isVisible
+			return defaultAction.invoke
+		
+		textEditorData = .editor
+		options = textEditorData.options
+		if options == nil or options.indentStyle == IndentStyle.None
+			return defaultAction.invoke
+		
+		if modifier == Gdk.ModifierType.ShiftMask
+			# Shift + Tab = Dedent, this is handled by the base class
+			return defaultAction.invoke
+		
+		if textEditorData.isSomethingSelected
+			endOffset = textEditorData.selectionRange.offset
+		else
+			endOffset = textEditorData.caret.offset
+		
+		line = textEditorData.getLineByOffset(endOffset)
+		beginText = textEditorData.getTextBetween(line.offset, endOffset) ? ""
+		if beginText.trimStart.length <> 0 and not textEditorData.isMultiLineSelection
+			# the tab is not being used to indent, it's for a string literal or something else
+			return defaultAction.invoke
+		
+		# Cobra enforces four spaces per indent so we ignore whatever is set in the options regarding width...sorry
+		indentString = if(options.tabsToSpaces, '    ', '\t')
+		
+		if textEditorData.isSomethingSelected
+			if textEditorData.isMultiLineSelection
+				# indent all lines that are part of the selection and preserve the selection
+				selectionOffset = textEditorData.selectionRange.offset
+				indentedText = textEditorData.selectedText.replace('\n', '\n[indentString]')
+				textEditorData.selectedText = indentedText
+				textEditorData.insert(line.offset, indentString)
+				textEditorData.selectionRange = TextSegment(selectionOffset + indentString.length, indentedText.length)
+			else
+				# replace the selected text with an indent
+				textEditorData.selectedText = indentString
+				textEditorData.caret.offset = textEditorData.selectionRange.endOffset
+				textEditorData.clearSelection
+		else
+			textEditorData.insertAtCaret(indentString)
+		
+		# supress the default action
+		return false

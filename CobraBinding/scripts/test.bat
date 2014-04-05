@@ -30,6 +30,7 @@ cobra -test -clr-platform:x86 -color:yes ^
 ..\..\TypeSystem\LineInformation.cobra ^
 ..\..\TypeSystem\ParsedCobraDocument.cobra ^
 ..\..\TypeSystem\Parser.cobra ^
+..\..\Formatting\CobraIndentationTextEditorExtension.cobra ^
 ..\..\Completion\BoxMembersList.cobra ^
 ..\..\Completion\CobraCompletionList.cobra ^
 ..\..\Completion\CobraCompletionTextEditorExtension.cobra ^

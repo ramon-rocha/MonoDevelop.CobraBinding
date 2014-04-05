@@ -89,6 +89,7 @@
     <Folder Include="Completion\" />
     <Folder Include="Tooltips\" />
     <Folder Include="Commands\" />
+    <Folder Include="Formatting\" />
   </ItemGroup>
   <ItemGroup>
     <Compile Include="AssemblyInfo.cs" />
@@ -119,6 +120,7 @@
     <Compile Include="Commands\GoToDeclarationHandler.cobra" />
     <Compile Include="Project\GeneralBuildOptionsPanel.cobra" />
     <Compile Include="Project\CobraProjectParameters.cobra" />
+    <Compile Include="Formatting\CobraIndentationTextEditorExtension.cobra" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Gui\Gui.csproj">

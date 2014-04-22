@@ -6,6 +6,12 @@ use ICSharpCode.NRefactory.Completion
 
 namespace Completion
 
+extend IBoxMember
+
+	def isPublic as bool
+		isNames = .isNames
+		return "public" in isNames or ("protected" not in isNames and "private" not in isNames)
+
 class BoxMembersList inherits CobraCompletionList
 	"""
 	This class is a completion data list whose entries are the members of the given Box.
@@ -22,7 +28,7 @@ class BoxMembersList inherits CobraCompletionList
 		assert data.box is f
 		assert data.count >= 33 and data.count <= f.allMembers.count
 		
-		filteredData = BoxMembersList(f, do(m as IBoxMember) = "public" in m.isNames)
+		filteredData = BoxMembersList(f, do(m as IBoxMember) = m.isPublic)
 		assert filteredData.box is f
 		assert filteredData.count >= 17
 		assert filteredData.count < data.count
@@ -54,10 +60,10 @@ class BoxMembersList inherits CobraCompletionList
 			if filter <> nil
 				# TODO: I'm thinking using a sig for filtering is wasteful...
 				publicOnly = do(m as IBoxMember)
-					return if(filter(m), "protected" not in m.isNames and "private" not in m.isNames, false)
+					return if(filter(m), m.isPublic, false)
 			else
 				publicOnly = do(m as IBoxMember)
-					return "protected" not in m.isNames and "private" not in m.isNames
+					return m.isPublic
 			_addMembers(b.extendedBox.tryAllMembers, publicOnly)
 		
 	def _addMembers(members as IBoxMember*, filter as MemberFilter?)
@@ -101,7 +107,7 @@ class BoxMembersList inherits CobraCompletionList
 				namespaces.add(ud.boundNameSpace to !)
 			
 			filter as BoxMembersList.MemberFilter = do(m as IBoxMember)
-				return "protected" not in m.isNames and "private" not in m.isNames
+				return m.isPublic
 			
 			# do the test for the First class
 			firstMembers = BoxMembersList(f, filter)
@@ -147,7 +153,7 @@ class BoxMembersList inherits CobraCompletionList
 				return
 			
 			publicOnly as MemberFilter = do(m as IBoxMember)
-				return "protected" not in m.isNames and "private" not in m.isNames
+				return m.isPublic
 				
 			for nsMember in ns.declsInOrder
 				if not nsMember inherits Extension

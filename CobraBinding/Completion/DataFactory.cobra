@@ -224,7 +224,7 @@ class DataFactory
 			Returns a completion data list that only includes public non-shared members.
 			"""
 			filter as BoxMembersList.MemberFilter = do(m as IBoxMember)
-				return not m.isShared and "protected" not in m.isNames and "private" not in m.isNames
+				return not m.isShared and m.isPublic
 			
 			if namespaces == nil
 				# no namespaces means no extension methods
@@ -240,7 +240,7 @@ class DataFactory
 			Returns a completion data list that only includes public shared members.
 			"""
 			filter as BoxMembersList.MemberFilter = do(m as IBoxMember)
-				if "protected" not in m.isNames and "private" not in m.isNames
+				if m.isPublic
 					# only check isShared for BoxMember subclasses
 					# otherwise things like nested class decls do
 					# not get included in completion proposals.

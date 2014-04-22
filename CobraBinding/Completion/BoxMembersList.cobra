@@ -54,10 +54,10 @@ class BoxMembersList inherits CobraCompletionList
 			if filter <> nil
 				# TODO: I'm thinking using a sig for filtering is wasteful...
 				publicOnly = do(m as IBoxMember)
-					return if(filter(m), "public" in m.isNames, false)
+					return if(filter(m), "protected" not in m.isNames and "private" not in m.isNames, false)
 			else
 				publicOnly = do(m as IBoxMember)
-					return "public" in m.isNames
+					return "protected" not in m.isNames and "private" not in m.isNames
 			_addMembers(b.extendedBox.tryAllMembers, publicOnly)
 		
 	def _addMembers(members as IBoxMember*, filter as MemberFilter?)
@@ -101,7 +101,7 @@ class BoxMembersList inherits CobraCompletionList
 				namespaces.add(ud.boundNameSpace to !)
 			
 			filter as BoxMembersList.MemberFilter = do(m as IBoxMember)
-				return "public" in m.isNames
+				return "protected" not in m.isNames and "private" not in m.isNames
 			
 			# do the test for the First class
 			firstMembers = BoxMembersList(f, filter)
@@ -147,7 +147,7 @@ class BoxMembersList inherits CobraCompletionList
 				return
 			
 			publicOnly as MemberFilter = do(m as IBoxMember)
-				return "public" in m.isNames
+				return "protected" not in m.isNames and "private" not in m.isNames
 				
 			for nsMember in ns.declsInOrder
 				if not nsMember inherits Extension

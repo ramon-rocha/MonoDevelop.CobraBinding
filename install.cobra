@@ -14,20 +14,12 @@ To just compile the addin and not install the generated assemblies, do this inst
 
 	cobra install -run-args compile
 
-If you are running on 64-bit Windows, include the -clr-platform:x86 option.  See the
-NOTE below or the README.md file for more details.
-
 So what does this program do?  It generates the addin assemblies and copies them
 to the <OS-dependent>/MonoDevelop-4.0/LocalInstall/Addins folder.  If you just compile
 the addin, the DLL files will be in the bin/Debug folders of each project.
 
 Once installed, you will be able to create, run, and debug programs written in Cobra
 using MonoDevelop.
-
-NOTE: If you want to be able to use this addin on Windows 64-bit, you need to:
- * Install (or reinstall) Cobra using the -x86 option
- * Make sure to target your programs for the x86 platform when running
-This is due to a limitation of loading some 32-bit dependencies using System.Reflection.
 """
 
 use System.Diagnostics
@@ -105,7 +97,7 @@ class CobraBindingAddinInstaller
 		r"\Xamarin Studio\bin\MonoDevelop.Core.dll",
 		r"\Xamarin Studio\bin\MonoDevelop.Ide.dll",
 		r"\Xamarin Studio\bin\Mono.TextEditor.dll",
-		r"\Xamarin Studio\bin\MonoDevelop.Projects.Formats.MSBuild.exe",
+		r"\Xamarin Studio\bin\MonoDevelop.Projects.Formats.MSBuild.dll",
 		r"\Xamarin Studio\bin\ICSharpCode.NRefactory.dll",
 		r"\GtkSharp\2.12\lib\gtk-sharp-2.0\gtk-sharp.dll",
 		r"\GtkSharp\2.12\lib\gtk-sharp-2.0\gdk-sharp.dll",
@@ -419,14 +411,6 @@ class CobraBindingAddinInstaller
 			if _verbosity >= 3, info.arguments += " /verbosity:diagnostic"
 			else if _verbosity >= 2, info.arguments += " /verbosity:detailed"
 			else if _verbosity >= 1, info.arguments += " /verbosity:normal"
-			
-			if CobraCore.isRunningOnWindows
-				progFiles = Environment.getEnvironmentVariable("PROGRAMFILES")
-				if Directory.exists(progFiles + " (x86)")
-					# 32-bit on 64-bit Windows
-					info.arguments += " /p:Platform=x86"
-				else
-					info.arguments += " /p:Platform=anycpu"
 
 			info.workingDirectory += "Gui"
 			cmds.add(Process(startInfo = info))

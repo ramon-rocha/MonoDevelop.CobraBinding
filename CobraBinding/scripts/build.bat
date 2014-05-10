@@ -19,7 +19,7 @@ cobra -compile -v -timeit -target:lib -out:"..\\..\\bin\\Debug\\MonoDevelop.Cobr
 -ref:MonoDevelop.CobraBinding.Gui.dll ^
 -ref:MonoDevelop.Core.dll ^
 -ref:MonoDevelop.Ide.dll ^
--ref:MonoDevelop.Projects.Formats.MSBuild.exe ^
+-ref:MonoDevelop.Projects.Formats.MSBuild.dll ^
 -ref:pango-sharp.dll ^
 -ref:System.Core ^
 ..\..\CobraLanguageBinding.cobra ^

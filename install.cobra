@@ -350,7 +350,7 @@ class CobraBindingAddinInstaller
 			if CobraCore.isRunningOnWindows
 				progFiles = Environment.getEnvironmentVariable("PROGRAMFILES")
 				
-				if File.exists(progFiles + r" (x86)\Xamarin Studio\bin\mdtool")
+				if File.exists(progFiles + r" (x86)\Xamarin Studio\bin\mdtool.exe")
 					# 32-bit on 64-bit Windows
 					progFiles += " (x86)"
 				

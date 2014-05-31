@@ -35,7 +35,7 @@ Minimum Requirements
 --------------------
 * .NET Framework 4.5 or Mono 3.2.1
 
-* MonoDevelop or Xamarin Studio 4.2.5
+* MonoDevelop or Xamarin Studio 5.0
 
 * Cobra svn:3115 (post 0.9.6)
 

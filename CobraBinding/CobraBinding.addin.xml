@@ -9,7 +9,7 @@
 	url = "https://github.com/ramon-rocha/MonoDevelop.CobraBinding"
 	description = "Provides support for using the Cobra programming language in MonoDevelop."
 	category = "Language bindings"
-	version = "0.5.2">
+	version = "0.6">
 	
 	<Runtime>
 		<Import assembly="Cobra.Core.dll"/>

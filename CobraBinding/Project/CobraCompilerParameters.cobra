@@ -74,24 +74,6 @@ class CobraCompilerParameters inherits ConfigurationParameters
 		Jvm
 		ObjC
 
-	/#
-	#define symbols to be passed to the C# compiler. Cobra doesn't use
-	these but they are abstract in the base class so we need to
-	implement them.
-	#/
-	#region unused
-	def addDefineSymbol(symbol as String?) is override
-		pass
-	
-	def removeDefineSymbol(symbol as String?) is override
-		pass
-
-	def hasDefineSymbol(symbol as String?) as bool is override
-		return false
-	#endregion unused
-	
-	
-
 	# TODO: non-boolean option values should come from local
 	# vars/constants instead of hardcoded literals
 

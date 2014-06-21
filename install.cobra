@@ -33,7 +33,7 @@ class CobraBindingAddinInstaller
 	var _verbosity = 0
 	
 	# needs to match the version defined in CobraBinding.addin.xml
-	var _version = "0.6"
+	var _version = "0.6.1"
 	
 	# workaround an issue when trying to install from a drive other than C:\
 	var _defaultWindowsPaths = [

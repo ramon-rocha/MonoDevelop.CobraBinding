@@ -191,6 +191,10 @@ extend INamedNode
 			sysNamespace = compiler.globalNS.memberForName("System") to NameSpace
 			node = sysNamespace.memberForName("Tuple<of,,>") to INamedNode
 			assert node.createTooltipMarkup == "class System.Tuple&lt;of T1, T2, T3&gt;"
+			
+			node = parsedDoc.resolveLocationToNode(45, 10, txtDoc) to INamedNode
+			assert node.name == "NEG_ONE"
+			assert node.createTooltipMarkup == "const NEG_ONE as int = -1"
 		
 		body
 			/#
@@ -292,6 +296,10 @@ extend INamedNode
 				
 				else if node inherits EnumDecl
 					return "enum [typ.parentNameSpace.fullName].[typ.name]"
+				
+				else if node inherits BoxConst
+					initExpr = node.initExpr to !
+					return "const [node.name.escapeMarkup] as [typ.createFullNameMarkup][trailingMarkup] = [initExpr.toCobraSource]"
 				
 				else
 					kw = TooltipProvider.declKeyword[node.getType]

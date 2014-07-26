@@ -41,3 +41,5 @@ namespace Nonsense.Bar
 			combined.addRange(xs)
 			combined.addRange(ys)
 			return combined
+		
+		const NEG_ONE = -1

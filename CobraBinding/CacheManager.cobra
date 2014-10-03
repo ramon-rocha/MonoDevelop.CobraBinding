@@ -103,16 +103,3 @@ class CacheManager
 					if d.lastWriteTimeUtc < oldestDoc.lastWriteTimeUtc
 						oldestDoc = d
 				_docs.remove(oldestDoc.fileName)
-		
-		def clear
-			CacheManager.addCachedDocument(ParsedCobraDocument("a", "A"))
-			CacheManager.addCachedDocument(ParsedCobraDocument("b", "B"))
-			assert CacheManager.getCachedDocument("a") <> nil
-			assert CacheManager.getCachedDocument("b") <> nil
-			assert CacheManager.getCachedDocument("c") == nil
-			CacheManager.clear
-			assert CacheManager.getCachedDocument("a") == nil
-			assert CacheManager.getCachedDocument("b") == nil
-			assert CacheManager.getCachedDocument("c") == nil
-			lock _cacheAccess
-				_docs.clear
